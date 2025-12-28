@@ -1284,12 +1284,63 @@ const AddUserModal = ({ plans, onClose, onSuccess, showToast }) => {
     plan_start_date: new Date().toISOString().split('T')[0]
   });
   const [loading, setLoading] = useState(false);
+  const [photo, setPhoto] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(null);
+  const [documents, setDocuments] = useState([]);
 
   const handleChange = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
+  };
+
+  const handlePhotoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        showToast('Please select a valid image file', 'error');
+        return;
+      }
+      // Validate file size (5MB max)
+      if (file.size > 5 * 1024 * 1024) {
+        showToast('Photo size must be less than 5MB', 'error');
+        return;
+      }
+      setPhoto(file);
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhotoPreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleDocumentsChange = (e) => {
+    const files = Array.from(e.target.files);
+    // Validate total number of files (max 5)
+    if (files.length > 5) {
+      showToast('Maximum 5 documents allowed', 'error');
+      return;
+    }
+    // Validate each file size (10MB max per file)
+    const oversizedFiles = files.filter(file => file.size > 10 * 1024 * 1024);
+    if (oversizedFiles.length > 0) {
+      showToast('Each document must be less than 10MB', 'error');
+      return;
+    }
+    setDocuments(files);
+  };
+
+  const removePhoto = () => {
+    setPhoto(null);
+    setPhotoPreview(null);
+  };
+
+  const removeDocument = (index) => {
+    setDocuments(documents.filter((_, i) => i !== index));
   };
 
   const generateCSID = () => {
@@ -1305,7 +1356,31 @@ const AddUserModal = ({ plans, onClose, onSuccess, showToast }) => {
     setLoading(true);
 
     try {
-      await api.post('/api/users', formData);
+      // Create FormData for file upload
+      const submitData = new FormData();
+
+      // Append form fields
+      Object.keys(formData).forEach(key => {
+        submitData.append(key, formData[key]);
+      });
+
+      // Append photo if exists
+      if (photo) {
+        submitData.append('photo', photo);
+      }
+
+      // Append documents if exist
+      if (documents.length > 0) {
+        documents.forEach((doc, index) => {
+          submitData.append(`document_${index}`, doc);
+        });
+      }
+
+      await api.post('/api/users', submitData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
       onSuccess();
     } catch (error) {
       showToast(error.response?.data?.detail || 'Failed to add user', 'error');
@@ -1456,6 +1531,114 @@ const AddUserModal = ({ plans, onClose, onSuccess, showToast }) => {
               placeholder="Full address with area and pincode"
               required
             />
+          </div>
+
+          {/* Photo Upload */}
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Profile Photo <span className="text-gray-500 text-xs">(Optional)</span>
+            </label>
+            <div className="flex items-start gap-4">
+              {photoPreview ? (
+                <div className="relative">
+                  <img
+                    src={photoPreview}
+                    alt="Preview"
+                    className="w-24 h-24 rounded-lg object-cover border-2 border-gray-300"
+                  />
+                  <button
+                    type="button"
+                    onClick={removePhoto}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <label className="flex flex-col items-center justify-center w-24 h-24 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-orange-500 transition-colors">
+                  <Upload className="w-6 h-6 text-gray-400" />
+                  <span className="text-xs text-gray-500 mt-1">Upload</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoChange}
+                    className="hidden"
+                  />
+                </label>
+              )}
+              <div className="flex-1">
+                <p className="text-sm text-gray-600">
+                  Upload customer profile photo
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  JPG, PNG or GIF. Max size 5MB.
+                </p>
+                {photo && (
+                  <p className="text-xs text-green-600 mt-2 flex items-center gap-1">
+                    <CheckCircle className="w-3 h-3" />
+                    {photo.name} ({(photo.size / 1024).toFixed(1)} KB)
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Documents Upload */}
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Documents <span className="text-gray-500 text-xs">(Optional - Max 5 files)</span>
+            </label>
+            <div className="space-y-3">
+              <label className="flex flex-col items-center justify-center w-full p-4 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-orange-500 transition-colors">
+                <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                <span className="text-sm text-gray-600">Click to upload documents</span>
+                <span className="text-xs text-gray-500 mt-1">
+                  ID proof, address proof, etc. (PDF, JPG, PNG - Max 10MB each)
+                </span>
+                <input
+                  type="file"
+                  multiple
+                  accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                  onChange={handleDocumentsChange}
+                  className="hidden"
+                />
+              </label>
+
+              {/* Document List */}
+              {documents.length > 0 && (
+                <div className="space-y-2">
+                  {documents.map((doc, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
+                    >
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <FileText className="w-5 h-5 text-orange-600 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {doc.name}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {(doc.size / 1024).toFixed(1)} KB
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeDocument(index)}
+                        className="text-red-600 hover:text-red-800 p-1"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                  <p className="text-xs text-gray-500 flex items-center gap-1">
+                    <CheckCircle className="w-3 h-3 text-green-600" />
+                    {documents.length} document{documents.length > 1 ? 's' : ''} selected
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
