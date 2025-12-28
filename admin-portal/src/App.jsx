@@ -7,7 +7,7 @@ import {
   Calendar, TrendingUp, Activity, UserPlus, Package, Clock,
   CreditCard, Phone, MapPin, Globe, Zap, RefreshCw, Eye,
   ChevronLeft, ChevronRight, MoreVertical, X, Check, Loader,
-  Home, BarChart3, FileSpreadsheet, Wrench, Send, Info, Menu
+  Home, BarChart3, FileSpreadsheet, Wrench, Send, Info, Menu, Upload
 } from 'lucide-react';
 
 // ============================================
@@ -1229,6 +1229,7 @@ const UsersTab = ({ users, plans, onRefresh, showToast }) => {
       {showEditModal && selectedUser && (
         <EditUserModal
           user={selectedUser}
+          plans={plans}
           onClose={() => {
             setShowEditModal(false);
             setSelectedUser(null);
@@ -1237,7 +1238,6 @@ const UsersTab = ({ users, plans, onRefresh, showToast }) => {
             setShowEditModal(false);
             setSelectedUser(null);
             onRefresh();
-            showToast('User updated successfully', 'success');
           }}
           showToast={showToast}
         />
@@ -1356,31 +1356,41 @@ const AddUserModal = ({ plans, onClose, onSuccess, showToast }) => {
     setLoading(true);
 
     try {
-      // Create FormData for file upload
-      const submitData = new FormData();
+      // Check if files are present
+      const hasFiles = photo || documents.length > 0;
 
-      // Append form fields
-      Object.keys(formData).forEach(key => {
-        submitData.append(key, formData[key]);
-      });
+      if (hasFiles) {
+        // Create FormData for file upload
+        const submitData = new FormData();
 
-      // Append photo if exists
-      if (photo) {
-        submitData.append('photo', photo);
-      }
-
-      // Append documents if exist
-      if (documents.length > 0) {
-        documents.forEach((doc, index) => {
-          submitData.append(`document_${index}`, doc);
+        // Append form fields
+        Object.keys(formData).forEach(key => {
+          submitData.append(key, formData[key]);
         });
+
+        // Append photo if exists
+        if (photo) {
+          submitData.append('photo', photo);
+        }
+
+        // Append documents if exist
+        if (documents.length > 0) {
+          documents.forEach((doc, index) => {
+            submitData.append(`document_${index}`, doc);
+          });
+        }
+
+        await api.post('/api/users', submitData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+      } else {
+        // Send JSON data if no files
+        await api.post('/api/users', formData);
       }
 
-      await api.post('/api/users', submitData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      showToast('User added successfully!', 'success');
       onSuccess();
     } catch (error) {
       showToast(error.response?.data?.detail || 'Failed to add user', 'error');
@@ -1667,14 +1677,20 @@ const AddUserModal = ({ plans, onClose, onSuccess, showToast }) => {
 // EDIT USER MODAL
 // ============================================
 
-const EditUserModal = ({ user, onClose, onSuccess, showToast }) => {
+const EditUserModal = ({ user, plans, onClose, onSuccess, showToast }) => {
   const [formData, setFormData] = useState({
     name: user.name,
+    phone: user.phone,
     email: user.email,
     address: user.address,
-    status: user.status
+    status: user.status,
+    broadband_plan_id: user.broadband_plan_id || '',
+    user_password: '' // Optional - only update if filled
   });
   const [loading, setLoading] = useState(false);
+  const [photo, setPhoto] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(user.photo || null);
+  const [documents, setDocuments] = useState([]);
 
   const handleChange = (e) => {
     setFormData({
@@ -1683,12 +1699,89 @@ const EditUserModal = ({ user, onClose, onSuccess, showToast }) => {
     });
   };
 
+  const handlePhotoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        showToast('Please select a valid image file', 'error');
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        showToast('Photo size must be less than 5MB', 'error');
+        return;
+      }
+      setPhoto(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhotoPreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleDocumentsChange = (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length > 5) {
+      showToast('Maximum 5 documents allowed', 'error');
+      return;
+    }
+    const oversizedFiles = files.filter(file => file.size > 10 * 1024 * 1024);
+    if (oversizedFiles.length > 0) {
+      showToast('Each document must be less than 10MB', 'error');
+      return;
+    }
+    setDocuments(files);
+  };
+
+  const removePhoto = () => {
+    setPhoto(null);
+    setPhotoPreview(null);
+  };
+
+  const removeDocument = (index) => {
+    setDocuments(documents.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      await api.put(`/api/users/${user.id}`, formData);
+      const hasFiles = photo || documents.length > 0;
+
+      // Filter out empty password
+      const updateData = { ...formData };
+      if (!updateData.user_password) {
+        delete updateData.user_password;
+      }
+
+      if (hasFiles) {
+        const submitData = new FormData();
+
+        Object.keys(updateData).forEach(key => {
+          submitData.append(key, updateData[key]);
+        });
+
+        if (photo) {
+          submitData.append('photo', photo);
+        }
+
+        if (documents.length > 0) {
+          documents.forEach((doc, index) => {
+            submitData.append(`document_${index}`, doc);
+          });
+        }
+
+        await api.put(`/api/users/${user.id}`, submitData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+      } else {
+        await api.put(`/api/users/${user.id}`, updateData);
+      }
+
+      showToast('User updated successfully!', 'success');
       onSuccess();
     } catch (error) {
       showToast(error.response?.data?.detail || 'Failed to update user', 'error');
@@ -1698,19 +1791,13 @@ const EditUserModal = ({ user, onClose, onSuccess, showToast }) => {
   };
 
   return (
-    <Modal isOpen={true} onClose={onClose} title="Edit User" size="max-w-2xl">
+    <Modal isOpen={true} onClose={onClose} title="Edit User" size="max-w-3xl">
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* User Info Display */}
-        <div className="bg-gray-50 p-4 rounded-lg">
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <span className="text-gray-600">Customer ID:</span>
-              <span className="ml-2 font-medium">{user.cs_id}</span>
-            </div>
-            <div>
-              <span className="text-gray-600">Mobile:</span>
-              <span className="ml-2 font-medium">{user.phone}</span>
-            </div>
+        <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-orange-700 font-medium">Customer ID:</span>
+            <span className="font-bold text-orange-900">{user.cs_id}</span>
           </div>
         </div>
 
@@ -1718,7 +1805,7 @@ const EditUserModal = ({ user, onClose, onSuccess, showToast }) => {
           {/* Name */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Full Name
+              Full Name *
             </label>
             <input
               type="text"
@@ -1730,10 +1817,28 @@ const EditUserModal = ({ user, onClose, onSuccess, showToast }) => {
             />
           </div>
 
+          {/* Mobile */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Mobile Number *
+            </label>
+            <input
+              type="tel"
+              name="phone"
+              value={formData.phone}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              placeholder="9876543210"
+              maxLength="10"
+              pattern="[0-9]{10}"
+              required
+            />
+          </div>
+
           {/* Email */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email
+              Email *
             </label>
             <input
               type="email"
@@ -1745,10 +1850,47 @@ const EditUserModal = ({ user, onClose, onSuccess, showToast }) => {
             />
           </div>
 
+          {/* Password (Optional) */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              New Password <span className="text-gray-500 text-xs">(Optional - leave empty to keep current)</span>
+            </label>
+            <input
+              type="password"
+              name="user_password"
+              value={formData.user_password}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              placeholder="Enter new password to update"
+              minLength="6"
+            />
+          </div>
+
+          {/* Plan */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Broadband Plan *
+            </label>
+            <select
+              name="broadband_plan_id"
+              value={formData.broadband_plan_id}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              required
+            >
+              <option value="">Select a plan</option>
+              {plans.map((plan) => (
+                <option key={plan.id} value={plan.id}>
+                  {plan.name} - ₹{plan.price}/month ({plan.speed})
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* Status */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Status
+              Status *
             </label>
             <select
               name="status"
@@ -1766,7 +1908,7 @@ const EditUserModal = ({ user, onClose, onSuccess, showToast }) => {
           {/* Address */}
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Address
+              Address *
             </label>
             <textarea
               name="address"
@@ -1776,6 +1918,113 @@ const EditUserModal = ({ user, onClose, onSuccess, showToast }) => {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
               required
             />
+          </div>
+
+          {/* Photo Upload */}
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Profile Photo <span className="text-gray-500 text-xs">(Optional)</span>
+            </label>
+            <div className="flex items-start gap-4">
+              {photoPreview ? (
+                <div className="relative">
+                  <img
+                    src={photoPreview}
+                    alt="Preview"
+                    className="w-24 h-24 rounded-lg object-cover border-2 border-gray-300"
+                  />
+                  <button
+                    type="button"
+                    onClick={removePhoto}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <label className="flex flex-col items-center justify-center w-24 h-24 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-orange-500 transition-colors">
+                  <Upload className="w-6 h-6 text-gray-400" />
+                  <span className="text-xs text-gray-500 mt-1">Upload</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoChange}
+                    className="hidden"
+                  />
+                </label>
+              )}
+              <div className="flex-1">
+                <p className="text-sm text-gray-600">
+                  {photo ? 'New photo selected' : user.photo ? 'Update customer photo' : 'Upload customer photo'}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  JPG, PNG or GIF. Max size 5MB.
+                </p>
+                {photo && (
+                  <p className="text-xs text-green-600 mt-2 flex items-center gap-1">
+                    <CheckCircle className="w-3 h-3" />
+                    {photo.name} ({(photo.size / 1024).toFixed(1)} KB)
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Documents Upload */}
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Add Documents <span className="text-gray-500 text-xs">(Optional - Max 5 files)</span>
+            </label>
+            <div className="space-y-3">
+              <label className="flex flex-col items-center justify-center w-full p-4 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-orange-500 transition-colors">
+                <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                <span className="text-sm text-gray-600">Click to upload new documents</span>
+                <span className="text-xs text-gray-500 mt-1">
+                  ID proof, address proof, etc. (PDF, JPG, PNG - Max 10MB each)
+                </span>
+                <input
+                  type="file"
+                  multiple
+                  accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                  onChange={handleDocumentsChange}
+                  className="hidden"
+                />
+              </label>
+
+              {documents.length > 0 && (
+                <div className="space-y-2">
+                  {documents.map((doc, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
+                    >
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <FileText className="w-5 h-5 text-orange-600 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {doc.name}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {(doc.size / 1024).toFixed(1)} KB
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeDocument(index)}
+                        className="text-red-600 hover:text-red-800 p-1"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                  <p className="text-xs text-gray-500 flex items-center gap-1">
+                    <CheckCircle className="w-3 h-3 text-green-600" />
+                    {documents.length} new document{documents.length > 1 ? 's' : ''} selected
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
