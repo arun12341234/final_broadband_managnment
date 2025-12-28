@@ -1,0 +1,269 @@
+from fastapi import APIRouter, Depends, HTTPException, status, Request
+from sqlalchemy.orm import Session
+from datetime import datetime, timedelta
+from typing import List
+import logging
+
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
+from database import get_db
+from models import User, BroadbandPlan, BillingHistory
+from schemas import Token, CustomerLogin, CustomerDashboardResponse, PaymentRequest
+from auth import create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
+from auth_helpers import get_current_customer
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter(prefix="/api/customer", tags=["Customer"])
+
+# Rate limiter
+limiter = Limiter(key_func=get_remote_address)
+
+
+@router.post("/login", response_model=Token)
+@limiter.limit("5/minute")
+async def customer_login(
+    request: Request,
+    credentials: CustomerLogin, 
+    db: Session = Depends(get_db)
+):
+    """Customer login with mobile number and password (rate limited)"""
+    
+    logger.info(f"🔐 Customer login attempt: {credentials.mobile}")
+    
+    # Find user by mobile
+    user = db.query(User).filter(User.phone == credentials.mobile).first()
+    
+    if not user:
+        logger.warning(f"❌ Login failed: Mobile not found {credentials.mobile}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Mobile number not found. Please check your number.",
+        )
+    
+    # Check if account is suspended
+    if user.status == "Suspended":
+        logger.warning(f"❌ Login failed: Account suspended {credentials.mobile}")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account has been suspended. Please contact support.",
+        )
+    
+    # Verify password (plain text comparison)
+    if user.user_password != credentials.password:
+        logger.warning(f"❌ Login failed: Wrong password for {credentials.mobile}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect password. Please try again.",
+        )
+    
+    # Create access token with expiration
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.id, "role": "customer"},
+        expires_delta=access_token_expires
+    )
+    
+    logger.info(f"✅ Customer login successful: {user.name} ({user.phone})")
+    
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
+@router.get("/me")
+async def get_customer_profile(
+    current_user: User = Depends(get_current_customer),
+    db: Session = Depends(get_db)
+):
+    """Get current customer's profile and plan details"""
+    
+    # Get plan details
+    plan = db.query(BroadbandPlan).filter(
+        BroadbandPlan.id == current_user.broadband_plan_id
+    ).first()
+    
+    return {
+        "id": current_user.id,
+        "name": current_user.name,
+        "email": current_user.email,
+        "mobile": current_user.phone,
+        "address": current_user.address,
+        "photo": current_user.photo,
+        "plan_name": plan.name if plan else None,
+        "plan_price": plan.price if plan else None,
+        "plan_speed": plan.speed if plan else None,
+        "plan_data_limit": plan.data_limit if plan else None,
+        "plan_expiry_date": current_user.plan_expiry_date,
+        "is_plan_active": current_user.is_plan_active,
+        "payment_status": current_user.payment_status,
+        "old_pending_amount": current_user.old_pending_amount,
+        "payment_due_date": current_user.payment_due_date,
+        "status": current_user.status
+    }
+
+
+@router.get("/bills")
+async def get_customer_bills(
+    current_user: User = Depends(get_current_customer),
+    db: Session = Depends(get_db)
+):
+    """Get customer's billing history and current bill"""
+    
+    # Get plan details
+    plan = db.query(BroadbandPlan).filter(
+        BroadbandPlan.id == current_user.broadband_plan_id
+    ).first()
+    
+    # Get billing history
+    billing_history = db.query(BillingHistory).filter(
+        BillingHistory.user_id == current_user.id
+    ).order_by(BillingHistory.created_at.desc()).all()
+    
+    # Calculate current bill
+    current_bill_amount = 0
+    if plan:
+        current_bill_amount = plan.price + current_user.old_pending_amount
+    
+    # Prepare bills list
+    bills = []
+    
+    # Add current month bill if payment is pending
+    if current_user.payment_status == "Pending":
+        bills.append({
+            "id": 0,  # Current bill
+            "month": datetime.now().strftime("%B %Y"),
+            "amount": current_bill_amount,
+            "status": "Unpaid",
+            "due_date": current_user.payment_due_date,
+            "payment_method": None,
+            "paid_date": None
+        })
+    
+    # Add historical bills from billing history
+    for record in billing_history:
+        if record.change_type == "payment_verification":
+            bills.append({
+                "id": record.id,
+                "month": record.created_at.strftime("%B %Y"),
+                "amount": record.previous_old_pending_amount + (
+                    plan.price if plan else 0
+                ),
+                "status": "Paid",
+                "due_date": record.previous_payment_due_date,
+                "payment_method": record.new_payment_status,
+                "paid_date": record.created_at.strftime("%Y-%m-%d")
+            })
+    
+    # Calculate total due (only unpaid bills)
+    total_due = sum(bill["amount"] for bill in bills if bill["status"] == "Unpaid")
+    
+    return {
+        "bills": bills,
+        "total_due": total_due,
+        "current_plan": plan.name if plan else None,
+        "current_plan_price": plan.price if plan else None
+    }
+
+
+@router.post("/pay-bill")
+@limiter.limit("10/hour")
+async def pay_bill(
+    request: Request,
+    payment: PaymentRequest,
+    current_user: User = Depends(get_current_customer),
+    db: Session = Depends(get_db)
+):
+    """Process bill payment (rate limited to prevent abuse)"""
+    
+    # Get plan details
+    plan = db.query(BroadbandPlan).filter(
+        BroadbandPlan.id == current_user.broadband_plan_id
+    ).first()
+    
+    if not plan:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No active plan found"
+        )
+    
+    expected_amount = plan.price + current_user.old_pending_amount
+    
+    # Log payment attempt
+    logger.info(
+        f"💳 Payment attempt: {current_user.name} - "
+        f"Method: {payment.payment_method}, "
+        f"Expected: ₹{expected_amount}"
+    )
+    
+    # Update payment status based on method
+    if payment.payment_method.lower() == 'upi':
+        current_user.payment_status = "VerifiedByUpi"
+    elif payment.payment_method.lower() == 'card':
+        current_user.payment_status = "VerifiedByUpi"  # Treat card as UPI
+    elif payment.payment_method.lower() == 'netbanking':
+        current_user.payment_status = "VerifiedByUpi"  # Treat netbanking as UPI
+    else:
+        current_user.payment_status = "VerifiedByCash"
+    
+    # Save old values for billing history
+    old_payment_status = "Pending"
+    old_pending = current_user.old_pending_amount
+    old_due_date = current_user.payment_due_date
+    
+    # Update user
+    current_user.payment_due_date = "Paid"
+    current_user.old_pending_amount = 0
+    
+    # Create billing history entry
+    billing_record = BillingHistory(
+        user_id=current_user.id,
+        admin_email="customer_self_payment",
+        previous_payment_status=old_payment_status,
+        new_payment_status=current_user.payment_status,
+        previous_old_pending_amount=old_pending,
+        new_old_pending_amount=0,
+        previous_payment_due_date=old_due_date,
+        new_payment_due_date="Paid",
+        previous_plan_id=plan.id,
+        previous_plan_name=plan.name,
+        new_plan_id=plan.id,
+        new_plan_name=plan.name,
+        change_type="payment_verification",
+        notes=f"Customer self-payment via {payment.payment_method}. Transaction: {payment.transaction_id or 'N/A'}"
+    )
+    
+    db.add(billing_record)
+    db.commit()
+    
+    logger.info(f"✅ Payment received from {current_user.name} via {payment.payment_method}")
+    
+    # Generate transaction ID if not provided
+    txn_id = payment.transaction_id or f"TXN-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+    
+    return {
+        "success": True,
+        "message": "Payment successful! Your connection is secure.",
+        "transaction_id": txn_id,
+        "amount_paid": expected_amount,
+        "payment_method": payment.payment_method,
+        "payment_date": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }
+
+
+@router.get("/download-invoice/{bill_id}")
+async def download_invoice(
+    bill_id: int,
+    current_user: User = Depends(get_current_customer),
+    db: Session = Depends(get_db)
+):
+    """Get download URL for invoice PDF"""
+    
+    # In a real implementation, generate PDF here
+    # For now, return a placeholder URL
+    
+    logger.info(f"📄 Invoice download request: Bill #{bill_id} for {current_user.name}")
+    
+    return {
+        "download_url": f"/api/customer/invoices/{bill_id}.pdf",
+        "message": "Invoice ready for download"
+    }
