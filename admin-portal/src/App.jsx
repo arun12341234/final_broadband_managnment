@@ -1356,39 +1356,31 @@ const AddUserModal = ({ plans, onClose, onSuccess, showToast }) => {
     setLoading(true);
 
     try {
-      // Check if files are present
-      const hasFiles = photo || documents.length > 0;
+      // Always use FormData to match backend expectations
+      const submitData = new FormData();
 
-      if (hasFiles) {
-        // Create FormData for file upload
-        const submitData = new FormData();
+      // Append form fields
+      Object.keys(formData).forEach(key => {
+        submitData.append(key, formData[key]);
+      });
 
-        // Append form fields
-        Object.keys(formData).forEach(key => {
-          submitData.append(key, formData[key]);
-        });
-
-        // Append photo if exists
-        if (photo) {
-          submitData.append('photo', photo);
-        }
-
-        // Append documents if exist
-        if (documents.length > 0) {
-          documents.forEach((doc, index) => {
-            submitData.append(`document_${index}`, doc);
-          });
-        }
-
-        await api.post('/api/users', submitData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        });
-      } else {
-        // Send JSON data if no files
-        await api.post('/api/users', formData);
+      // Append photo if exists
+      if (photo) {
+        submitData.append('photo', photo);
       }
+
+      // Append documents if exist
+      if (documents.length > 0) {
+        documents.forEach((doc, index) => {
+          submitData.append(`document_${index}`, doc);
+        });
+      }
+
+      await api.post('/api/users', submitData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
 
       showToast('User added successfully!', 'success');
       onSuccess();
