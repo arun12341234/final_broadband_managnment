@@ -491,7 +491,7 @@ const AvatarModal = ({ user, isOpen, onClose }) => {
           <UserAvatar user={user} size="xl" />
         </div>
         
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <p className="text-sm font-medium text-gray-500">Customer ID</p>
             <p className="text-lg font-semibold text-gray-900">{user.cs_id}</p>
@@ -632,7 +632,7 @@ const UserFormModal = ({ isOpen, onClose, user, plans, onSuccess }) => {
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={user ? 'Edit User' : 'Add New User'} size="lg">
       <form onSubmit={handleSubmit}>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input
             label="Full Name *"
             name="name"
@@ -1373,18 +1373,20 @@ const UsersTab = ({ users, plans, setUsers }) => {
     <div className="space-y-6">
       <div className="flex justify-between items-center flex-wrap gap-3">
         <h2 className="text-2xl font-bold text-gray-800">User Management</h2>
-        <div className="flex space-x-2">
-          <button 
+        <div className="flex flex-wrap gap-2">
+          <button
             onClick={handleExportUsers}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg flex items-center hover:bg-green-700 shadow-sm transition-all text-sm"
+            className="px-3 md:px-4 py-2 bg-green-600 text-white rounded-lg flex items-center hover:bg-green-700 shadow-sm transition-all text-xs md:text-sm"
           >
-            <FileText className="w-4 h-4 mr-2" /> Export Excel
+            <FileText className="w-4 h-4 mr-1 md:mr-2" />
+            <span className="hidden sm:inline">Export </span>Excel
           </button>
-          <button 
+          <button
             onClick={() => { setSelectedUser(null); setModalOpen(true); }}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg flex items-center hover:bg-indigo-700 shadow-sm transition-all"
+            className="px-3 md:px-4 py-2 bg-indigo-600 text-white rounded-lg flex items-center hover:bg-indigo-700 shadow-sm transition-all text-xs md:text-sm"
           >
-            <Plus className="w-4 h-4 mr-2" /> Add User
+            <Plus className="w-4 h-4 mr-1 md:mr-2" />
+            <span className="hidden sm:inline">Add </span>User
           </button>
         </div>
       </div>
@@ -1416,7 +1418,101 @@ const UsersTab = ({ users, plans, setUsers }) => {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Mobile Card View */}
+        <div className="block lg:hidden space-y-4">
+          {paginatedUsers.map((user) => {
+            const plan = plans.find(p => p.id === user.broadband_plan_id);
+            return (
+              <Card key={user.id} className="p-4">
+                <div className="space-y-3">
+                  {/* User Header */}
+                  <div className="flex items-center justify-between pb-3 border-b border-gray-200">
+                    <div className="flex items-center space-x-3">
+                      <UserAvatar
+                        user={user}
+                        size="md"
+                        onClick={() => { setSelectedUser(user); setAvatarModalOpen(true); }}
+                      />
+                      <div>
+                        <p className="text-sm font-bold text-gray-900">{user.name}</p>
+                        <p className="text-xs text-gray-500">CS: {user.cs_id}</p>
+                      </div>
+                    </div>
+                    {getExpiryBadge(user)}
+                  </div>
+
+                  {/* User Details */}
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <p className="text-xs font-medium text-gray-500">Phone</p>
+                      <p className="text-gray-900">{user.phone}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-gray-500">Email</p>
+                      <p className="text-gray-900 truncate">{user.email}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-gray-500">Plan</p>
+                      <p className="text-gray-900">{plan?.name || 'N/A'}</p>
+                      <p className="text-xs text-gray-500">₹{plan?.price || 0}/mo</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-gray-500">Payment</p>
+                      {getPaymentStatusBadge(user.payment_status)}
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-gray-500">Old Pending</p>
+                      <EditableAmountCell
+                        value={user.old_pending_amount || 0}
+                        userId={user.id}
+                        onUpdate={fetchUsers}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex flex-wrap gap-2 pt-3 border-t border-gray-200">
+                    <button
+                      onClick={() => { setSelectedUser(user); setModalOpen(true); }}
+                      className="flex-1 min-w-[80px] text-indigo-600 hover:text-indigo-800 text-xs font-bold border border-indigo-200 hover:border-indigo-400 px-3 py-2 rounded transition-all"
+                    >
+                      EDIT
+                    </button>
+                    <button
+                      onClick={() => { setSelectedUser(user); setBillingModalOpen(true); }}
+                      className="flex-1 min-w-[80px] text-blue-600 hover:text-blue-800 text-xs font-bold border border-blue-200 hover:border-blue-400 px-3 py-2 rounded transition-all"
+                    >
+                      BILLING
+                    </button>
+                    <button
+                      onClick={() => handleGenerateInvoice(user.id)}
+                      className="flex-1 min-w-[80px] text-purple-600 hover:text-purple-800 text-xs font-bold border border-purple-200 hover:border-purple-400 px-3 py-2 rounded transition-all"
+                    >
+                      INVOICE
+                    </button>
+                    {!user.is_plan_active && (
+                      <button
+                        onClick={() => { setSelectedUser(user); setRenewalModalOpen(true); }}
+                        className="flex-1 min-w-[80px] text-green-600 hover:text-green-800 text-xs font-bold border border-green-300 hover:border-green-500 px-3 py-2 rounded transition-all"
+                      >
+                        RENEW
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleDelete(user.id)}
+                      className="flex-1 min-w-[80px] text-red-600 hover:text-red-800 text-xs font-bold border border-red-200 hover:border-red-400 px-3 py-2 rounded transition-all"
+                    >
+                      DELETE
+                    </button>
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+
+        {/* Desktop Table View */}
+        <div className="hidden lg:block overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
               <tr>
@@ -1436,9 +1532,9 @@ const UsersTab = ({ users, plans, setUsers }) => {
                   <tr key={user.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3">
                       <div className="flex items-center space-x-3">
-                        <UserAvatar 
-                          user={user} 
-                          size="md" 
+                        <UserAvatar
+                          user={user}
+                          size="md"
                           onClick={() => { setSelectedUser(user); setAvatarModalOpen(true); }}
                         />
                         <div>
@@ -1459,7 +1555,7 @@ const UsersTab = ({ users, plans, setUsers }) => {
                       {getPaymentStatusBadge(user.payment_status)}
                     </td>
                     <td className="px-4 py-3">
-                      <EditableAmountCell 
+                      <EditableAmountCell
                         value={user.old_pending_amount || 0}
                         userId={user.id}
                         onUpdate={fetchUsers}
@@ -1478,28 +1574,28 @@ const UsersTab = ({ users, plans, setUsers }) => {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-center space-x-1">
-                        <button 
+                        <button
                           onClick={() => { setSelectedUser(user); setModalOpen(true); }}
                           className="text-indigo-600 hover:text-indigo-800 text-[10px] font-bold border border-indigo-200 hover:border-indigo-400 px-2 py-1 rounded transition-all"
                           title="Edit User"
                         >
                           EDIT
                         </button>
-                        <button 
+                        <button
                           onClick={() => { setSelectedUser(user); setBillingModalOpen(true); }}
                           className="text-blue-600 hover:text-blue-800 text-[10px] font-bold border border-blue-200 hover:border-blue-400 px-2 py-1 rounded transition-all"
                           title="Update Billing"
                         >
                           BILLING
                         </button>
-                        <button 
+                        <button
                           onClick={() => handleGenerateInvoice(user.id)}
                           className="text-purple-600 hover:text-purple-800 text-[10px] font-bold border border-purple-200 hover:border-purple-400 px-2 py-1 rounded transition-all"
                           title="Generate Invoice"
                         >
                           INVOICE
                         </button>
-                        <button 
+                        <button
                           onClick={() => handleDelete(user.id)}
                           className="text-red-600 hover:text-red-800 text-[10px] font-bold border border-red-200 hover:border-red-400 px-2 py-1 rounded transition-all"
                           title="Delete User"
@@ -1517,8 +1613,11 @@ const UsersTab = ({ users, plans, setUsers }) => {
 
         {totalPages > 1 && (
           <div className="mt-4 flex items-center justify-between border-t border-gray-200 pt-4">
-            <p className="text-sm text-gray-500">
-              Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredUsers.length)} of {filteredUsers.length} users
+            <p className="text-xs sm:text-sm text-gray-500">
+              <span className="hidden sm:inline">Showing </span>
+              {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, filteredUsers.length)}
+              <span className="hidden sm:inline"> of {filteredUsers.length} users</span>
+              <span className="sm:hidden">/{filteredUsers.length}</span>
             </p>
             <div className="flex space-x-2">
               <button
@@ -1922,14 +2021,14 @@ const AdminPortalContent = ({ onLogout }) => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center space-x-2 px-4 py-3 border-b-2 font-medium text-sm whitespace-nowrap transition-colors ${
+                  className={`flex items-center space-x-2 px-3 md:px-4 py-3 border-b-2 font-medium text-sm whitespace-nowrap transition-colors ${
                     activeTab === tab.id
                       ? 'border-indigo-600 text-indigo-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
-                  <span>{tab.name}</span>
+                  <span className="hidden sm:inline">{tab.name}</span>
                 </button>
               );
             })}
