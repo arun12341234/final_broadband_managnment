@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, status, Request, Header
+from fastapi import FastAPI, Depends, HTTPException, status, Request, Header, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import List, Optional
 import logging
 import os
+import shutil
 from dotenv import load_dotenv
 
 # Rate Limiting
@@ -333,35 +334,76 @@ async def get_all_users(
 
 @app.post("/api/users", response_model=UserResponse, tags=["Users"])
 async def create_user(
-    user: UserCreate,
+    cs_id: str = Form(...),
+    name: str = Form(...),
+    phone: str = Form(...),
+    email: str = Form(...),
+    user_password: str = Form(...),
+    address: str = Form(...),
+    broadband_plan_id: str = Form(...),
+    plan_start_date: Optional[str] = Form(None),
+    photo: Optional[UploadFile] = File(None),
+    document_0: Optional[UploadFile] = File(None),
+    document_1: Optional[UploadFile] = File(None),
+    document_2: Optional[UploadFile] = File(None),
+    document_3: Optional[UploadFile] = File(None),
+    document_4: Optional[UploadFile] = File(None),
     current_admin: Admin = Depends(get_current_admin),
     db: Session = Depends(get_db)
 ):
-    """Create new user"""
-    
-    existing = db.query(User).filter(User.phone == user.phone).first()
+    """Create new user with optional file uploads"""
+
+    # Validate phone
+    if not phone.isdigit() or len(phone) != 10:
+        raise HTTPException(status_code=400, detail="Phone must be exactly 10 digits")
+
+    # Check if user exists
+    existing = db.query(User).filter(User.phone == phone).first()
     if existing:
         raise HTTPException(
             status_code=400,
-            detail=f"Mobile number {user.phone} already exists"
+            detail=f"Mobile number {phone} already exists"
         )
-    
+
     today = date.today()
-    plan_start = datetime.strptime(user.plan_start_date, "%Y-%m-%d").date() if user.plan_start_date else today
-    
+    plan_start = datetime.strptime(plan_start_date, "%Y-%m-%d").date() if plan_start_date else today
+
     from dateutil.relativedelta import relativedelta
     plan_expiry = plan_start + relativedelta(months=1)
     payment_due = plan_start + timedelta(days=15)
-    
+
+    # Handle photo upload
+    photo_path = None
+    if photo and photo.filename:
+        upload_dir = Path("uploads/photos")
+        upload_dir.mkdir(parents=True, exist_ok=True)
+        photo_filename = f"{cs_id}_{int(datetime.utcnow().timestamp())}_{photo.filename}"
+        photo_path = upload_dir / photo_filename
+        with photo_path.open("wb") as buffer:
+            shutil.copyfileobj(photo.file, buffer)
+        photo_path = str(photo_path)
+
+    # Handle document uploads
+    document_paths = []
+    for doc_file in [document_0, document_1, document_2, document_3, document_4]:
+        if doc_file and doc_file.filename:
+            upload_dir = Path("uploads/documents")
+            upload_dir.mkdir(parents=True, exist_ok=True)
+            doc_filename = f"{cs_id}_{int(datetime.utcnow().timestamp())}_{doc_file.filename}"
+            doc_path = upload_dir / doc_filename
+            with doc_path.open("wb") as buffer:
+                shutil.copyfileobj(doc_file.file, buffer)
+            document_paths.append(str(doc_path))
+
     new_user = User(
         id=f"usr_{int(datetime.utcnow().timestamp() * 1000)}",
-        cs_id=user.cs_id,
-        name=user.name,
-        phone=user.phone,
-        email=user.email,
-        user_password=user.user_password,
-        address=user.address,
-        broadband_plan_id=user.broadband_plan_id,
+        cs_id=cs_id,
+        name=name,
+        phone=phone,
+        email=email,
+        user_password=user_password,
+        address=address,
+        broadband_plan_id=broadband_plan_id,
         payment_status="Pending",
         old_pending_amount=0,
         created_at=today.strftime("%Y-%m-%d"),
@@ -369,15 +411,20 @@ async def create_user(
         plan_start_date=plan_start.strftime("%Y-%m-%d"),
         plan_expiry_date=plan_expiry.strftime("%Y-%m-%d"),
         is_plan_active=True,
-        status="Active"
+        status="Active",
+        photo=photo_path
     )
-    
+
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
-    
-    logger.info(f"✅ User created: {user.name} by {current_admin.email}")
-    
+
+    logger.info(f"✅ User created: {name} by {current_admin.email}")
+    if photo_path:
+        logger.info(f"📸 Photo uploaded: {photo_path}")
+    if document_paths:
+        logger.info(f"📄 Documents uploaded: {len(document_paths)} files")
+
     return new_user
 
 @app.get("/api/users/{user_id}", response_model=UserResponse, tags=["Users"])
@@ -398,25 +445,82 @@ async def get_user(
 @app.put("/api/users/{user_id}", response_model=UserResponse, tags=["Users"])
 async def update_user(
     user_id: str,
-    user_update: UserUpdate,
+    name: Optional[str] = Form(None),
+    phone: Optional[str] = Form(None),
+    email: Optional[str] = Form(None),
+    user_password: Optional[str] = Form(None),
+    address: Optional[str] = Form(None),
+    status: Optional[str] = Form(None),
+    broadband_plan_id: Optional[str] = Form(None),
+    photo: Optional[UploadFile] = File(None),
+    document_0: Optional[UploadFile] = File(None),
+    document_1: Optional[UploadFile] = File(None),
+    document_2: Optional[UploadFile] = File(None),
+    document_3: Optional[UploadFile] = File(None),
+    document_4: Optional[UploadFile] = File(None),
     current_admin: Admin = Depends(get_current_admin),
     db: Session = Depends(get_db)
 ):
-    """Update user"""
-    
+    """Update user with optional file uploads"""
+
     user = db.query(User).filter(User.id == user_id).first()
-    
+
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    
-    for field, value in user_update.dict(exclude_unset=True).items():
-        setattr(user, field, value)
-    
+
+    # Update text fields
+    if name:
+        user.name = name
+    if phone:
+        if not phone.isdigit() or len(phone) != 10:
+            raise HTTPException(status_code=400, detail="Phone must be exactly 10 digits")
+        # Check if phone is taken by another user
+        existing = db.query(User).filter(User.phone == phone, User.id != user_id).first()
+        if existing:
+            raise HTTPException(status_code=400, detail=f"Mobile number {phone} already exists")
+        user.phone = phone
+    if email:
+        user.email = email
+    if user_password:
+        user.user_password = user_password
+    if address:
+        user.address = address
+    if status:
+        user.status = status
+    if broadband_plan_id:
+        user.broadband_plan_id = broadband_plan_id
+
+    # Handle photo upload
+    if photo and photo.filename:
+        upload_dir = Path("uploads/photos")
+        upload_dir.mkdir(parents=True, exist_ok=True)
+        photo_filename = f"{user.cs_id}_{int(datetime.utcnow().timestamp())}_{photo.filename}"
+        photo_path = upload_dir / photo_filename
+        with photo_path.open("wb") as buffer:
+            shutil.copyfileobj(photo.file, buffer)
+        user.photo = str(photo_path)
+        logger.info(f"📸 Photo updated for user: {user.cs_id}")
+
+    # Handle document uploads
+    document_paths = []
+    for doc_file in [document_0, document_1, document_2, document_3, document_4]:
+        if doc_file and doc_file.filename:
+            upload_dir = Path("uploads/documents")
+            upload_dir.mkdir(parents=True, exist_ok=True)
+            doc_filename = f"{user.cs_id}_{int(datetime.utcnow().timestamp())}_{doc_file.filename}"
+            doc_path = upload_dir / doc_filename
+            with doc_path.open("wb") as buffer:
+                shutil.copyfileobj(doc_file.file, buffer)
+            document_paths.append(str(doc_path))
+
+    if document_paths:
+        logger.info(f"📄 Documents uploaded for user {user.cs_id}: {len(document_paths)} files")
+
     db.commit()
     db.refresh(user)
-    
+
     logger.info(f"✅ User updated: {user.name} by {current_admin.email}")
-    
+
     return user
 
 @app.delete("/api/users/{user_id}", tags=["Users"])
