@@ -7,7 +7,7 @@ import {
   Calendar, TrendingUp, Activity, UserPlus, Package, Clock,
   CreditCard, Phone, MapPin, Globe, Zap, RefreshCw, Eye,
   ChevronLeft, ChevronRight, MoreVertical, X, Check, Loader,
-  Home, BarChart3, FileSpreadsheet, Wrench, Send, Info
+  Home, BarChart3, FileSpreadsheet, Wrench, Send, Info, Menu
 } from 'lucide-react';
 
 // ============================================
@@ -170,6 +170,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [toast, setToast] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [users, setUsers] = useState([]);
   const [plans, setPlans] = useState([]);
@@ -256,8 +257,30 @@ function App() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} onLogout={handleLogout} />
+      <Sidebar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        onLogout={handleLogout}
+        sidebarOpen={sidebarOpen}
+        setSidebarOpen={setSidebarOpen}
+      />
       <main className="flex-1 overflow-y-auto">
+        {/* Mobile Header with Hamburger Menu */}
+        <div className="lg:hidden bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-30">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="p-2 rounded-lg hover:bg-gray-100"
+          >
+            <Menu className="w-6 h-6 text-gray-700" />
+          </button>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-orange-600 rounded-lg flex items-center justify-center">
+              <Wifi className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-lg font-bold text-gray-900">4You Broadband</span>
+          </div>
+          <div className="w-10"></div> {/* Spacer for centering */}
+        </div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {activeTab === 'dashboard' && (
             <DashboardTab 
@@ -419,7 +442,7 @@ const LoginScreen = ({ onLogin }) => {
 // SIDEBAR COMPONENT
 // ============================================
 
-const Sidebar = ({ activeTab, setActiveTab, onLogout }) => {
+const Sidebar = ({ activeTab, setActiveTab, onLogout, sidebarOpen, setSidebarOpen }) => {
   const menuItems = [
     { id: 'dashboard', icon: Home, label: 'Dashboard' },
     { id: 'users', icon: Users, label: 'User Management' },
@@ -430,47 +453,77 @@ const Sidebar = ({ activeTab, setActiveTab, onLogout }) => {
     { id: 'settings', icon: Settings, label: 'System Config' },
   ];
 
+  const handleNavClick = (tabId) => {
+    setActiveTab(tabId);
+    setSidebarOpen(false); // Close sidebar on mobile after navigation
+  };
+
   return (
-    <div className="w-64 bg-white border-r border-gray-200 flex flex-col">
-      <div className="p-6 border-b border-gray-200">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-orange-600 rounded-lg flex items-center justify-center">
-            <Wifi className="w-6 h-6 text-white" />
+    <>
+      {/* Mobile Overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        ></div>
+      )}
+
+      {/* Sidebar */}
+      <div
+        className={`
+          fixed lg:relative inset-y-0 left-0 z-50
+          w-64 bg-white border-r border-gray-200 flex flex-col
+          transform transition-transform duration-300 ease-in-out lg:translate-x-0
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+        `}
+      >
+        <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-orange-600 rounded-lg flex items-center justify-center">
+              <Wifi className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-gray-900">4You Broadband</h1>
+              <p className="text-xs text-gray-500">Admin Portal</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-lg font-bold text-gray-900">4You Broadband</h1>
-            <p className="text-xs text-gray-500">Admin Portal</p>
-          </div>
+          {/* Close button for mobile */}
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="lg:hidden p-1 rounded-lg hover:bg-gray-100"
+          >
+            <X className="w-5 h-5 text-gray-500" />
+          </button>
+        </div>
+
+        <nav className="flex-1 p-4 space-y-1">
+          {menuItems.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => handleNavClick(item.id)}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                activeTab === item.id
+                  ? 'bg-orange-50 text-orange-600'
+                  : 'text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              <item.icon className="w-5 h-5" />
+              <span className="font-medium">{item.label}</span>
+            </button>
+          ))}
+        </nav>
+
+        <div className="p-4 border-t border-gray-200">
+          <button
+            onClick={onLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-red-600 hover:bg-red-50 transition-colors"
+          >
+            <LogOut className="w-5 h-5" />
+            <span className="font-medium">Logout</span>
+          </button>
         </div>
       </div>
-
-      <nav className="flex-1 p-4 space-y-1">
-        {menuItems.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => setActiveTab(item.id)}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-              activeTab === item.id
-                ? 'bg-orange-50 text-orange-600'
-                : 'text-gray-700 hover:bg-gray-50'
-            }`}
-          >
-            <item.icon className="w-5 h-5" />
-            <span className="font-medium">{item.label}</span>
-          </button>
-        ))}
-      </nav>
-
-      <div className="p-4 border-t border-gray-200">
-        <button
-          onClick={onLogout}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-red-600 hover:bg-red-50 transition-colors"
-        >
-          <LogOut className="w-5 h-5" />
-          <span className="font-medium">Logout</span>
-        </button>
-      </div>
-    </div>
+    </>
   );
 };
 
@@ -654,70 +707,119 @@ const DashboardTab = ({ stats, users, plans, onRefresh, showToast }) => {
             description="Start by adding your first customer"
           />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Customer
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Contact
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Plan
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Payment
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {recentUsers.map((user) => {
-                  const plan = plans.find(p => p.id === user.broadband_plan_id);
-                  return (
-                    <tr key={user.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">{user.name}</div>
-                          <div className="text-sm text-gray-500">{user.cs_id}</div>
+          <>
+            {/* Mobile Card View */}
+            <div className="block lg:hidden space-y-4">
+              {recentUsers.map((user) => {
+                const plan = plans.find(p => p.id === user.broadband_plan_id);
+                return (
+                  <div key={user.id} className="bg-white border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">{user.name}</div>
+                        <div className="text-xs text-gray-500">{user.cs_id}</div>
+                      </div>
+                      <Badge variant={user.is_plan_active ? 'success' : 'danger'}>
+                        {user.status}
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <span className="text-gray-600">Phone:</span>
+                        <p className="font-medium text-gray-900">{user.phone}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Plan:</span>
+                        <p className="font-medium text-gray-900">{plan ? plan.name : 'N/A'}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Email:</span>
+                        <p className="font-medium text-gray-900 truncate">{user.email}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Payment:</span>
+                        <div className="mt-1">
+                          <Badge variant={
+                            user.payment_status === 'Pending' ? 'warning' :
+                            user.payment_status === 'VerifiedByCash' ? 'success' :
+                            user.payment_status === 'VerifiedByUpi' ? 'info' : 'default'
+                          }>
+                            {user.payment_status}
+                          </Badge>
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{user.phone}</div>
-                        <div className="text-sm text-gray-500">{user.email}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">
-                          {plan ? plan.name : 'N/A'}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {plan ? `₹${plan.price}` : ''}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Badge variant={
-                          user.payment_status === 'Pending' ? 'warning' :
-                          user.payment_status === 'VerifiedByCash' ? 'success' :
-                          user.payment_status === 'VerifiedByUpi' ? 'info' : 'default'
-                        }>
-                          {user.payment_status}
-                        </Badge>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Badge variant={user.is_plan_active ? 'success' : 'danger'}>
-                          {user.status}
-                        </Badge>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden lg:block overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Customer
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Contact
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Plan
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Payment
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {recentUsers.map((user) => {
+                    const plan = plans.find(p => p.id === user.broadband_plan_id);
+                    return (
+                      <tr key={user.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">{user.name}</div>
+                            <div className="text-sm text-gray-500">{user.cs_id}</div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">{user.phone}</div>
+                          <div className="text-sm text-gray-500">{user.email}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">
+                            {plan ? plan.name : 'N/A'}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {plan ? `₹${plan.price}` : ''}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Badge variant={
+                            user.payment_status === 'Pending' ? 'warning' :
+                            user.payment_status === 'VerifiedByCash' ? 'success' :
+                            user.payment_status === 'VerifiedByUpi' ? 'info' : 'default'
+                          }>
+                            {user.payment_status}
+                          </Badge>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Badge variant={user.is_plan_active ? 'success' : 'danger'}>
+                            {user.status}
+                          </Badge>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </Card>
     </div>
@@ -792,19 +894,19 @@ const UsersTab = ({ users, plans, onRefresh, showToast }) => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">User Management</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">User Management</h1>
           <p className="text-gray-600 mt-1">{users.length} total users</p>
         </div>
-        <div className="flex gap-3">
-          <Button variant="outline" onClick={onRefresh}>
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Refresh
+        <div className="flex gap-2 sm:gap-3">
+          <Button variant="outline" onClick={onRefresh} className="flex-1 sm:flex-none">
+            <RefreshCw className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline">Refresh</span>
           </Button>
-          <Button onClick={handleAddUser}>
-            <Plus className="w-4 h-4 mr-2" />
-            Add User
+          <Button onClick={handleAddUser} className="flex-1 sm:flex-none">
+            <Plus className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline">Add User</span>
           </Button>
         </div>
       </div>
@@ -882,124 +984,231 @@ const UsersTab = ({ users, plans, onRefresh, showToast }) => {
             action={!searchTerm && <Button onClick={handleAddUser}>Add User</Button>}
           />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Customer
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Contact
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Plan Details
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Payment
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredUsers.map((user) => {
-                  const plan = plans.find(p => p.id === user.broadband_plan_id);
-                  return (
-                    <tr key={user.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
-                            <Users className="w-5 h-5 text-orange-600" />
+          <>
+            {/* Mobile Card View */}
+            <div className="block lg:hidden space-y-4">
+              {filteredUsers.map((user) => {
+                const plan = plans.find(p => p.id === user.broadband_plan_id);
+                return (
+                  <div key={user.id} className="bg-white border border-gray-200 rounded-lg p-4">
+                    {/* User Header */}
+                    <div className="flex items-center justify-between mb-3 pb-3 border-b border-gray-100">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
+                          <Users className="w-5 h-5 text-orange-600" />
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">{user.name}</div>
+                          <div className="text-xs text-gray-500">{user.cs_id}</div>
+                        </div>
+                      </div>
+                      <Badge variant={user.is_plan_active ? 'success' : 'danger'}>
+                        {user.status}
+                      </Badge>
+                    </div>
+
+                    {/* User Details Grid */}
+                    <div className="grid grid-cols-2 gap-3 mb-3 text-sm">
+                      <div>
+                        <span className="text-gray-600 flex items-center gap-1">
+                          <Phone className="w-3 h-3" /> Phone:
+                        </span>
+                        <p className="font-medium text-gray-900">{user.phone}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Plan:</span>
+                        <p className="font-medium text-gray-900">{plan ? plan.name : 'No Plan'}</p>
+                      </div>
+                      <div className="col-span-2">
+                        <span className="text-gray-600 flex items-center gap-1">
+                          <Mail className="w-3 h-3" /> Email:
+                        </span>
+                        <p className="font-medium text-gray-900 text-xs truncate">{user.email}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Expires:</span>
+                        <p className="font-medium text-gray-900 text-xs">{user.plan_expiry_date}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Payment:</span>
+                        <div className="mt-1">
+                          <Badge variant={
+                            user.payment_status === 'Pending' ? 'warning' :
+                            user.payment_status === 'VerifiedByCash' ? 'success' :
+                            user.payment_status === 'VerifiedByUpi' ? 'info' : 'default'
+                          }>
+                            {user.payment_status}
+                          </Badge>
+                        </div>
+                      </div>
+                      {user.old_pending_amount > 0 && (
+                        <div className="col-span-2">
+                          <p className="text-xs text-red-600 font-medium">
+                            Pending: ₹{user.old_pending_amount} (Due: {user.payment_due_date})
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-2 pt-3 border-t border-gray-100">
+                      <button
+                        onClick={() => handleBilling(user)}
+                        className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-xs bg-orange-50 text-orange-600 rounded-lg hover:bg-orange-100"
+                        title="Billing"
+                      >
+                        <CreditCard className="w-4 h-4" />
+                        <span>Bill</span>
+                      </button>
+                      <button
+                        onClick={() => handleEditUser(user)}
+                        className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-xs bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100"
+                        title="Edit"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                        <span>Edit</span>
+                      </button>
+                      <button
+                        onClick={() => handleRenewPlan(user)}
+                        className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-xs bg-green-50 text-green-600 rounded-lg hover:bg-green-100"
+                        title="Renew"
+                      >
+                        <RefreshCw className="w-4 h-4" />
+                        <span>Renew</span>
+                      </button>
+                      <button
+                        onClick={() => handleDeleteUser(user.id)}
+                        className="flex items-center justify-center px-3 py-2 text-xs bg-red-50 text-red-600 rounded-lg hover:bg-red-100"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden lg:block overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Customer
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Contact
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Plan Details
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Payment
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredUsers.map((user) => {
+                    const plan = plans.find(p => p.id === user.broadband_plan_id);
+                    return (
+                      <tr key={user.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                              <Users className="w-5 h-5 text-orange-600" />
+                            </div>
+                            <div className="ml-4">
+                              <div className="text-sm font-medium text-gray-900">{user.name}</div>
+                              <div className="text-sm text-gray-500">{user.cs_id}</div>
+                            </div>
                           </div>
-                          <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">{user.name}</div>
-                            <div className="text-sm text-gray-500">{user.cs_id}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900 flex items-center gap-2">
+                            <Phone className="w-4 h-4 text-gray-400" />
+                            {user.phone}
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900 flex items-center gap-2">
-                          <Phone className="w-4 h-4 text-gray-400" />
-                          {user.phone}
-                        </div>
-                        <div className="text-sm text-gray-500 flex items-center gap-2">
-                          <Mail className="w-4 h-4 text-gray-400" />
-                          {user.email}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">
-                          {plan ? plan.name : 'No Plan'}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          Expires: {user.plan_expiry_date}
-                        </div>
-                        {user.old_pending_amount > 0 && (
-                          <div className="text-xs text-red-600 font-medium mt-1">
-                            Pending: ₹{user.old_pending_amount}
+                          <div className="text-sm text-gray-500 flex items-center gap-2">
+                            <Mail className="w-4 h-4 text-gray-400" />
+                            {user.email}
                           </div>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Badge variant={
-                          user.payment_status === 'Pending' ? 'warning' :
-                          user.payment_status === 'VerifiedByCash' ? 'success' :
-                          user.payment_status === 'VerifiedByUpi' ? 'info' : 'default'
-                        }>
-                          {user.payment_status}
-                        </Badge>
-                        <div className="text-xs text-gray-500 mt-1">
-                          Due: {user.payment_due_date}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Badge variant={user.is_plan_active ? 'success' : 'danger'}>
-                          {user.status}
-                        </Badge>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => handleBilling(user)}
-                            className="text-orange-600 hover:text-orange-900"
-                            title="Billing"
-                          >
-                            <CreditCard className="w-5 h-5" />
-                          </button>
-                          <button
-                            onClick={() => handleEditUser(user)}
-                            className="text-blue-600 hover:text-blue-900"
-                            title="Edit"
-                          >
-                            <Edit2 className="w-5 h-5" />
-                          </button>
-                          <button
-                            onClick={() => handleRenewPlan(user)}
-                            className="text-green-600 hover:text-green-900"
-                            title="Renew"
-                          >
-                            <RefreshCw className="w-5 h-5" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteUser(user.id)}
-                            className="text-red-600 hover:text-red-900"
-                            title="Delete"
-                          >
-                            <Trash2 className="w-5 h-5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">
+                            {plan ? plan.name : 'No Plan'}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            Expires: {user.plan_expiry_date}
+                          </div>
+                          {user.old_pending_amount > 0 && (
+                            <div className="text-xs text-red-600 font-medium mt-1">
+                              Pending: ₹{user.old_pending_amount}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Badge variant={
+                            user.payment_status === 'Pending' ? 'warning' :
+                            user.payment_status === 'VerifiedByCash' ? 'success' :
+                            user.payment_status === 'VerifiedByUpi' ? 'info' : 'default'
+                          }>
+                            {user.payment_status}
+                          </Badge>
+                          <div className="text-xs text-gray-500 mt-1">
+                            Due: {user.payment_due_date}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Badge variant={user.is_plan_active ? 'success' : 'danger'}>
+                            {user.status}
+                          </Badge>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleBilling(user)}
+                              className="text-orange-600 hover:text-orange-900"
+                              title="Billing"
+                            >
+                              <CreditCard className="w-5 h-5" />
+                            </button>
+                            <button
+                              onClick={() => handleEditUser(user)}
+                              className="text-blue-600 hover:text-blue-900"
+                              title="Edit"
+                            >
+                              <Edit2 className="w-5 h-5" />
+                            </button>
+                            <button
+                              onClick={() => handleRenewPlan(user)}
+                              className="text-green-600 hover:text-green-900"
+                              title="Renew"
+                            >
+                              <RefreshCw className="w-5 h-5" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteUser(user.id)}
+                              className="text-red-600 hover:text-red-900"
+                              title="Delete"
+                            >
+                              <Trash2 className="w-5 h-5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </Card>
 
@@ -2629,14 +2838,14 @@ const BillingTab = ({ billingHistory, users, plans, onRefresh, showToast }) => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Billing History</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Billing History</h1>
           <p className="text-gray-600 mt-1">{billingHistory.length} total records</p>
         </div>
         <Button variant="outline" onClick={onRefresh}>
-          <RefreshCw className="w-4 h-4 mr-2" />
-          Refresh
+          <RefreshCw className="w-4 h-4 sm:mr-2" />
+          <span className="hidden sm:inline">Refresh</span>
         </Button>
       </div>
 
@@ -2663,84 +2872,147 @@ const BillingTab = ({ billingHistory, users, plans, onRefresh, showToast }) => {
             description={searchTerm ? "Try adjusting your search" : "Billing changes will appear here"}
           />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Date & Time
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Customer
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Change Type
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Payment Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Plan Change
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Admin
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredHistory.map((record) => {
-                  const user = users.find(u => u.id === record.user_id);
-                  const oldPlan = plans.find(p => p.id === record.old_plan_id);
-                  const newPlan = plans.find(p => p.id === record.new_plan_id);
+          <>
+            {/* Mobile Card View */}
+            <div className="block lg:hidden space-y-4">
+              {filteredHistory.map((record) => {
+                const user = users.find(u => u.id === record.user_id);
+                const oldPlan = plans.find(p => p.id === record.old_plan_id);
+                const newPlan = plans.find(p => p.id === record.new_plan_id);
 
-                  return (
-                    <tr key={record.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{record.changed_at}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                return (
+                  <div key={record.id} className="bg-white border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
                         <div className="text-sm font-medium text-gray-900">
                           {user ? user.name : 'Unknown'}
                         </div>
-                        <div className="text-sm text-gray-500">
+                        <div className="text-xs text-gray-500">
                           {user ? user.cs_id : 'N/A'}
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Badge variant={
-                          record.change_type === 'payment_status' ? 'info' :
-                          record.change_type === 'plan_change' ? 'warning' : 'default'
-                        }>
-                          {record.change_type}
-                        </Badge>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        {record.old_payment_status && record.new_payment_status && (
-                          <div className="flex items-center gap-2">
+                      </div>
+                      <Badge variant={
+                        record.change_type === 'payment_status' ? 'info' :
+                        record.change_type === 'plan_change' ? 'warning' : 'default'
+                      }>
+                        {record.change_type}
+                      </Badge>
+                    </div>
+                    <div className="space-y-2 text-sm">
+                      <div>
+                        <span className="text-gray-600">Date:</span>
+                        <p className="font-medium text-gray-900">{record.changed_at}</p>
+                      </div>
+                      {record.old_payment_status && record.new_payment_status && (
+                        <div>
+                          <span className="text-gray-600">Payment Status:</span>
+                          <div className="flex items-center gap-2 mt-1">
                             <Badge variant="warning">{record.old_payment_status}</Badge>
                             <ChevronRight className="w-4 h-4 text-gray-400" />
                             <Badge variant="success">{record.new_payment_status}</Badge>
                           </div>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        {oldPlan && newPlan && (
-                          <div className="flex items-center gap-2">
-                            <span className="text-gray-600">{oldPlan.name}</span>
+                        </div>
+                      )}
+                      {oldPlan && newPlan && (
+                        <div>
+                          <span className="text-gray-600">Plan Change:</span>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-gray-600 text-xs">{oldPlan.name}</span>
                             <ChevronRight className="w-4 h-4 text-gray-400" />
-                            <span className="text-gray-900 font-medium">{newPlan.name}</span>
+                            <span className="text-gray-900 font-medium text-xs">{newPlan.name}</span>
                           </div>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{record.admin_email}</div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                        </div>
+                      )}
+                      <div>
+                        <span className="text-gray-600">Admin:</span>
+                        <p className="font-medium text-gray-900 text-xs truncate">{record.admin_email}</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden lg:block overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Date & Time
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Customer
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Change Type
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Payment Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Plan Change
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Admin
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredHistory.map((record) => {
+                    const user = users.find(u => u.id === record.user_id);
+                    const oldPlan = plans.find(p => p.id === record.old_plan_id);
+                    const newPlan = plans.find(p => p.id === record.new_plan_id);
+
+                    return (
+                      <tr key={record.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">{record.changed_at}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">
+                            {user ? user.name : 'Unknown'}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {user ? user.cs_id : 'N/A'}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Badge variant={
+                            record.change_type === 'payment_status' ? 'info' :
+                            record.change_type === 'plan_change' ? 'warning' : 'default'
+                          }>
+                            {record.change_type}
+                          </Badge>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          {record.old_payment_status && record.new_payment_status && (
+                            <div className="flex items-center gap-2">
+                              <Badge variant="warning">{record.old_payment_status}</Badge>
+                              <ChevronRight className="w-4 h-4 text-gray-400" />
+                              <Badge variant="success">{record.new_payment_status}</Badge>
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          {oldPlan && newPlan && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-gray-600">{oldPlan.name}</span>
+                              <ChevronRight className="w-4 h-4 text-gray-400" />
+                              <span className="text-gray-900 font-medium">{newPlan.name}</span>
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">{record.admin_email}</div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </Card>
     </div>
