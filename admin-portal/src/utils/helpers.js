@@ -206,12 +206,56 @@ export const retryWithBackoff = async (fn, maxRetries = 3, delay = 1000) => {
 
 /**
  * Extract error message from error object
+ * Handles Pydantic validation errors, nested objects, and arrays
  */
 export const getErrorMessage = (error) => {
+  // Handle string errors
   if (typeof error === 'string') return error;
-  if (error.response?.data?.detail) return error.response.data.detail;
+
+  // Handle null/undefined
+  if (!error) return 'An unexpected error occurred';
+
+  // Handle arrays (Pydantic validation errors)
+  if (Array.isArray(error)) {
+    return error.map(err => {
+      if (typeof err === 'string') return err;
+      if (err.msg) return err.msg;
+      if (err.message) return err.message;
+      return JSON.stringify(err);
+    }).join(', ');
+  }
+
+  // Handle error objects with nested detail
+  if (error.response?.data?.detail) {
+    const detail = error.response.data.detail;
+    // If detail is an array (Pydantic validation errors)
+    if (Array.isArray(detail)) {
+      return detail.map(err => err.msg || err.message || JSON.stringify(err)).join(', ');
+    }
+    // If detail is an object
+    if (typeof detail === 'object' && detail !== null) {
+      if (detail.message) return detail.message;
+      if (detail.msg) return detail.msg;
+      return JSON.stringify(detail);
+    }
+    // If detail is a string
+    if (typeof detail === 'string') return detail;
+  }
+
+  // Handle other response data formats
   if (error.response?.data?.message) return error.response.data.message;
+
+  // Handle error with message property
   if (error.message) return error.message;
+
+  // Handle error with msg property (Pydantic)
+  if (error.msg) return error.msg;
+
+  // Handle generic objects
+  if (typeof error === 'object' && error !== null) {
+    return JSON.stringify(error);
+  }
+
   return 'An unexpected error occurred';
 };
 

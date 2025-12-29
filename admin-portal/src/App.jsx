@@ -189,11 +189,14 @@ const Toast = ({ message, type = 'success', onClose }) => {
     info: 'border-blue-500'
   };
 
+  // Defense layer 2: Final safeguard to ensure message is always a string
+  const safeMessage = typeof message === 'string' ? message : getErrorMessage(message);
+
   return (
     <div className={`fixed bottom-4 right-4 max-w-sm bg-white rounded-lg shadow-lg border-l-4 ${colors[type]} p-4 z-50 animate-slide-in`}>
       <div className="flex items-center gap-3">
         {icons[type]}
-        <p className="flex-1 text-sm text-gray-700">{message}</p>
+        <p className="flex-1 text-sm text-gray-700">{safeMessage}</p>
         <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
           <X className="w-4 h-4" />
         </button>
@@ -319,7 +322,9 @@ function App() {
   };
 
   const showToast = (message, type = 'success') => {
-    setToast({ message, type });
+    // Defense layer 1: Convert error objects to strings using getErrorMessage
+    const safeMessage = typeof message === 'string' ? message : getErrorMessage(message);
+    setToast({ message: safeMessage, type });
   };
 
   const handleLogin = async (email, password) => {
@@ -3810,6 +3815,75 @@ const EngineersTab = ({ engineers, onRefresh, showToast }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [engineerToDelete, setEngineerToDelete] = useState(null);
 
+  // Search, filter, sort, pagination state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [specializationFilter, setSpecializationFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('name_asc');
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Debounced search
+  const debouncedSearchTerm = useDebounce(searchTerm);
+
+  // Filter, sort, and paginate engineers
+  const filteredAndSortedEngineers = useMemo(() => {
+    let filtered = [...engineers];
+
+    // Search filter
+    if (debouncedSearchTerm) {
+      const term = debouncedSearchTerm.toLowerCase();
+      filtered = filtered.filter(eng =>
+        eng.name.toLowerCase().includes(term) ||
+        eng.mobile.includes(term) ||
+        (eng.email && eng.email.toLowerCase().includes(term)) ||
+        (eng.specialization && eng.specialization.toLowerCase().includes(term))
+      );
+    }
+
+    // Status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(eng => eng.status === statusFilter);
+    }
+
+    // Specialization filter
+    if (specializationFilter !== 'all') {
+      filtered = filtered.filter(eng => eng.specialization === specializationFilter);
+    }
+
+    // Sorting
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'name_asc':
+          return a.name.localeCompare(b.name);
+        case 'name_desc':
+          return b.name.localeCompare(a.name);
+        case 'date_newest':
+          return new Date(b.joining_date) - new Date(a.joining_date);
+        case 'date_oldest':
+          return new Date(a.joining_date) - new Date(b.joining_date);
+        case 'status':
+          return a.status.localeCompare(b.status);
+        default:
+          return 0;
+      }
+    });
+
+    return filtered;
+  }, [engineers, debouncedSearchTerm, statusFilter, specializationFilter, sortBy]);
+
+  // Pagination
+  const itemsPerPage = PAGINATION.ITEMS_PER_PAGE;
+  const totalPages = Math.ceil(filteredAndSortedEngineers.length / itemsPerPage);
+  const paginatedEngineers = filteredAndSortedEngineers.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchTerm, statusFilter, specializationFilter]);
+
   const handleEditEngineer = (engineer) => {
     setSelectedEngineer(engineer);
     setShowEditModal(true);
@@ -3828,7 +3902,7 @@ const EngineersTab = ({ engineers, onRefresh, showToast }) => {
       showToast('Engineer deleted successfully', 'success');
       onRefresh();
     } catch (error) {
-      showToast(error.response?.data?.detail || 'Failed to delete engineer', 'error');
+      showToast(getErrorMessage(error), 'error');
     } finally {
       setShowDeleteConfirm(false);
       setEngineerToDelete(null);
@@ -3841,7 +3915,9 @@ const EngineersTab = ({ engineers, onRefresh, showToast }) => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Field Engineers</h1>
-          <p className="text-sm sm:text-base text-gray-600 mt-1">{engineers.length} total engineers</p>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">
+            {filteredAndSortedEngineers.length} of {engineers.length} engineers
+          </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
           <Button variant="outline" onClick={onRefresh} className="w-full sm:w-auto">
@@ -3855,87 +3931,253 @@ const EngineersTab = ({ engineers, onRefresh, showToast }) => {
         </div>
       </div>
 
+      {/* Search and Filters */}
+      <Card className="p-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Search */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Name, mobile, email..."
+                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              />
+            </div>
+          </div>
+
+          {/* Status Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+            >
+              <option value="all">All Status</option>
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+              <option value="On Leave">On Leave</option>
+            </select>
+          </div>
+
+          {/* Specialization Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Specialization</label>
+            <select
+              value={specializationFilter}
+              onChange={(e) => setSpecializationFilter(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+            >
+              <option value="all">All Specializations</option>
+              <option value="Fiber Optic Installation">Fiber Optic Installation</option>
+              <option value="Cable Installation">Cable Installation</option>
+              <option value="Router Configuration">Router Configuration</option>
+              <option value="Network Troubleshooting">Network Troubleshooting</option>
+              <option value="General Maintenance">General Maintenance</option>
+              <option value="Customer Support">Customer Support</option>
+            </select>
+          </div>
+
+          {/* Sort */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+            >
+              <option value="name_asc">Name (A-Z)</option>
+              <option value="name_desc">Name (Z-A)</option>
+              <option value="date_newest">Newest First</option>
+              <option value="date_oldest">Oldest First</option>
+              <option value="status">Status</option>
+            </select>
+          </div>
+        </div>
+      </Card>
+
       {/* Engineers Grid */}
-      {engineers.length === 0 ? (
+      {filteredAndSortedEngineers.length === 0 ? (
         <Card className="p-8 sm:p-12">
-          <EmptyState
-            icon={Wrench}
-            title="No engineers yet"
-            description="Add your first field engineer to manage installations"
-            action={<Button onClick={() => setShowAddModal(true)}>Add Engineer</Button>}
-          />
+          {engineers.length === 0 ? (
+            <EmptyState
+              icon={Wrench}
+              title="No engineers yet"
+              description="Add your first field engineer to manage installations"
+              action={<Button onClick={() => setShowAddModal(true)}>Add Engineer</Button>}
+            />
+          ) : (
+            <EmptyState
+              icon={Search}
+              title="No engineers found"
+              description="Try adjusting your search or filters"
+              action={
+                <Button variant="outline" onClick={() => {
+                  setSearchTerm('');
+                  setStatusFilter('all');
+                  setSpecializationFilter('all');
+                }}>
+                  Clear Filters
+                </Button>
+              }
+            />
+          )}
         </Card>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          {engineers.map((engineer) => (
-            <Card key={engineer.id} className="p-4 sm:p-6 hover:shadow-lg transition-shadow">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <Wrench className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            {paginatedEngineers.map((engineer) => (
+              <Card key={engineer.id} className="p-4 sm:p-6 hover:shadow-lg transition-shadow">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      <Wrench className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate">{engineer.name}</h3>
+                      <Badge variant={engineer.status === 'Active' ? 'success' : engineer.status === 'On Leave' ? 'warning' : 'danger'}>
+                        {engineer.status}
+                      </Badge>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate">{engineer.name}</h3>
-                    <Badge variant={engineer.status === 'Active' ? 'success' : engineer.status === 'On Leave' ? 'warning' : 'danger'}>
-                      {engineer.status}
-                    </Badge>
+                  <div className="flex gap-2 flex-shrink-0 ml-2">
+                    <button
+                      onClick={() => handleEditEngineer(engineer)}
+                      className="text-blue-600 hover:text-blue-900 p-2 hover:bg-blue-50 rounded-lg transition-colors"
+                      title="Edit Engineer"
+                      aria-label={`Edit ${engineer.name}`}
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteClick(engineer)}
+                      className="text-red-600 hover:text-red-900 p-2 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Delete Engineer"
+                      aria-label={`Delete ${engineer.name}`}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
-                <div className="flex gap-2 flex-shrink-0 ml-2">
-                  <button
-                    onClick={() => handleEditEngineer(engineer)}
-                    className="text-blue-600 hover:text-blue-900 p-1"
-                    title="Edit Engineer"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleDeleteClick(engineer)}
-                    className="text-red-600 hover:text-red-900 p-1"
-                    title="Delete Engineer"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
 
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                  <span className="text-gray-700">{engineer.mobile}</span>
-                </div>
-                {engineer.email && (
-                  <div className="flex items-center gap-2">
-                    <Mail className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                    <span className="text-gray-700 truncate">{engineer.email}</span>
-                  </div>
-                )}
-                {engineer.specialization && (
-                  <div className="flex items-center gap-2">
-                    <Wrench className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                    <span className="text-gray-700 truncate">{engineer.specialization}</span>
-                  </div>
-                )}
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                  <span className="text-gray-700">Joined: {engineer.joining_date}</span>
-                </div>
-                {engineer.emergency_contact && (
+                <div className="space-y-2 text-sm">
                   <div className="flex items-center gap-2">
                     <Phone className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                    <span className="text-gray-700">Emergency: {engineer.emergency_contact}</span>
+                    <span className="text-gray-700">{engineer.mobile}</span>
                   </div>
-                )}
-                {engineer.address && (
-                  <div className="flex items-start gap-2 pt-2 border-t border-gray-200">
-                    <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                    <span className="text-gray-700 text-xs line-clamp-2">{engineer.address}</span>
+                  {engineer.email && (
+                    <div className="flex items-center gap-2">
+                      <Mail className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                      <span className="text-gray-700 truncate">{engineer.email}</span>
+                    </div>
+                  )}
+                  {engineer.specialization && (
+                    <div className="flex items-center gap-2">
+                      <Wrench className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                      <span className="text-gray-700 truncate">{engineer.specialization}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                    <span className="text-gray-700">Joined: {formatDate(engineer.joining_date)}</span>
                   </div>
-                )}
+                  {engineer.emergency_contact && (
+                    <div className="flex items-center gap-2">
+                      <Phone className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                      <span className="text-gray-700">Emergency: {engineer.emergency_contact}</span>
+                    </div>
+                  )}
+                  {engineer.address && (
+                    <div className="flex items-start gap-2 pt-2 border-t border-gray-200">
+                      <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                      <span className="text-gray-700 text-xs line-clamp-2">{engineer.address}</span>
+                    </div>
+                  )}
+                </div>
+              </Card>
+            ))}
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 rounded-lg">
+              <div className="flex flex-1 justify-between sm:hidden">
+                <Button
+                  variant="outline"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                </Button>
               </div>
-            </Card>
-          ))}
-        </div>
+              <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm text-gray-700">
+                    Showing <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span> to{' '}
+                    <span className="font-medium">
+                      {Math.min(currentPage * itemsPerPage, filteredAndSortedEngineers.length)}
+                    </span>{' '}
+                    of <span className="font-medium">{filteredAndSortedEngineers.length}</span> results
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    Previous
+                  </Button>
+                  {[...Array(totalPages)].map((_, i) => {
+                    const page = i + 1;
+                    if (
+                      page === 1 ||
+                      page === totalPages ||
+                      (page >= currentPage - 1 && page <= currentPage + 1)
+                    ) {
+                      return (
+                        <button
+                          key={page}
+                          onClick={() => setCurrentPage(page)}
+                          className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                            currentPage === page
+                              ? 'bg-orange-600 text-white'
+                              : 'text-gray-700 hover:bg-gray-100'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      );
+                    } else if (page === currentPage - 2 || page === currentPage + 2) {
+                      return <span key={page} className="px-2">...</span>;
+                    }
+                    return null;
+                  })}
+                  <Button
+                    variant="outline"
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* Modals */}
@@ -3948,6 +4190,7 @@ const EngineersTab = ({ engineers, onRefresh, showToast }) => {
             showToast('Engineer added successfully', 'success');
           }}
           showToast={showToast}
+          engineers={engineers}
         />
       )}
 
@@ -3965,6 +4208,7 @@ const EngineersTab = ({ engineers, onRefresh, showToast }) => {
             showToast('Engineer updated successfully', 'success');
           }}
           showToast={showToast}
+          engineers={engineers}
         />
       )}
 
@@ -3992,7 +4236,7 @@ const EngineersTab = ({ engineers, onRefresh, showToast }) => {
 // ADD ENGINEER MODAL
 // ============================================
 
-const AddEngineerModal = ({ onClose, onSuccess, showToast }) => {
+const AddEngineerModal = ({ onClose, onSuccess, showToast, engineers = [] }) => {
   const [formData, setFormData] = useState({
     name: '',
     mobile: '',
@@ -4015,13 +4259,30 @@ const AddEngineerModal = ({ onClose, onSuccess, showToast }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Check for duplicate mobile number
+    const duplicateMobile = engineers.find(eng => eng.mobile === formData.mobile);
+    if (duplicateMobile) {
+      showToast(`Mobile number ${formData.mobile} is already registered to ${duplicateMobile.name}`, 'error');
+      return;
+    }
+
+    // Check for duplicate email if provided
+    if (formData.email && formData.email.trim()) {
+      const duplicateEmail = engineers.find(eng => eng.email && eng.email.toLowerCase() === formData.email.toLowerCase());
+      if (duplicateEmail) {
+        showToast(`Email ${formData.email} is already registered to ${duplicateEmail.name}`, 'error');
+        return;
+      }
+    }
+
     setLoading(true);
 
     try {
       await api.post('/api/engineers', formData);
       onSuccess();
     } catch (error) {
-      showToast(error.response?.data?.detail || 'Failed to add engineer', 'error');
+      showToast(getErrorMessage(error), 'error');
     } finally {
       setLoading(false);
     }
@@ -4042,6 +4303,9 @@ const AddEngineerModal = ({ onClose, onSuccess, showToast }) => {
               onChange={handleChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
               placeholder="Ravi Kumar"
+              minLength="2"
+              maxLength="100"
+              title="Name must be between 2 and 100 characters"
               required
             />
           </div>
@@ -4058,6 +4322,8 @@ const AddEngineerModal = ({ onClose, onSuccess, showToast }) => {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
               placeholder="9876543210"
               maxLength="10"
+              pattern="[0-9]{10}"
+              title="Please enter a valid 10-digit mobile number"
               required
             />
           </div>
@@ -4074,6 +4340,7 @@ const AddEngineerModal = ({ onClose, onSuccess, showToast }) => {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
               placeholder="Minimum 6 characters"
               minLength="6"
+              title="Password must be at least 6 characters"
               required
             />
           </div>
@@ -4089,6 +4356,7 @@ const AddEngineerModal = ({ onClose, onSuccess, showToast }) => {
               onChange={handleChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
               placeholder="ravi@example.com"
+              maxLength="100"
             />
           </div>
 
@@ -4096,14 +4364,20 @@ const AddEngineerModal = ({ onClose, onSuccess, showToast }) => {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Specialization
             </label>
-            <input
-              type="text"
+            <select
               name="specialization"
               value={formData.specialization}
               onChange={handleChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-              placeholder="Fiber Optic Installation"
-            />
+            >
+              <option value="">Select Specialization</option>
+              <option value="Fiber Optic Installation">Fiber Optic Installation</option>
+              <option value="Cable Installation">Cable Installation</option>
+              <option value="Router Configuration">Router Configuration</option>
+              <option value="Network Troubleshooting">Network Troubleshooting</option>
+              <option value="General Maintenance">General Maintenance</option>
+              <option value="Customer Support">Customer Support</option>
+            </select>
           </div>
 
           <div>
@@ -4132,7 +4406,9 @@ const AddEngineerModal = ({ onClose, onSuccess, showToast }) => {
               name="joining_date"
               value={formData.joining_date}
               onChange={handleChange}
+              max={new Date().toISOString().split('T')[0]}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              title="Joining date cannot be in the future"
               required
             />
           </div>
@@ -4149,6 +4425,8 @@ const AddEngineerModal = ({ onClose, onSuccess, showToast }) => {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
               placeholder="9876543211"
               maxLength="10"
+              pattern="[0-9]{10}"
+              title="Please enter a valid 10-digit mobile number"
             />
           </div>
 
@@ -4163,7 +4441,9 @@ const AddEngineerModal = ({ onClose, onSuccess, showToast }) => {
               rows="2"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
               placeholder="Full address"
+              maxLength="500"
             />
+            <p className="text-xs text-gray-500 mt-1">{formData.address.length}/500 characters</p>
           </div>
         </div>
 
@@ -4191,10 +4471,11 @@ const AddEngineerModal = ({ onClose, onSuccess, showToast }) => {
 // EDIT ENGINEER MODAL
 // ============================================
 
-const EditEngineerModal = ({ engineer, onClose, onSuccess, showToast }) => {
+const EditEngineerModal = ({ engineer, onClose, onSuccess, showToast, engineers = [] }) => {
   const [formData, setFormData] = useState({
     name: engineer.name,
     mobile: engineer.mobile,
+    password: '', // Optional - only update if filled
     email: engineer.email || '',
     specialization: engineer.specialization || '',
     status: engineer.status,
@@ -4213,13 +4494,40 @@ const EditEngineerModal = ({ engineer, onClose, onSuccess, showToast }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Check for duplicate mobile number (excluding current engineer)
+    const duplicateMobile = engineers.find(eng => eng.id !== engineer.id && eng.mobile === formData.mobile);
+    if (duplicateMobile) {
+      showToast(`Mobile number ${formData.mobile} is already registered to ${duplicateMobile.name}`, 'error');
+      return;
+    }
+
+    // Check for duplicate email if provided (excluding current engineer)
+    if (formData.email && formData.email.trim()) {
+      const duplicateEmail = engineers.find(eng =>
+        eng.id !== engineer.id &&
+        eng.email &&
+        eng.email.toLowerCase() === formData.email.toLowerCase()
+      );
+      if (duplicateEmail) {
+        showToast(`Email ${formData.email} is already registered to ${duplicateEmail.name}`, 'error');
+        return;
+      }
+    }
+
     setLoading(true);
 
     try {
-      await api.put(`/api/engineers/${engineer.id}`, formData);
+      // Only send password if it's filled
+      const updateData = { ...formData };
+      if (!updateData.password || updateData.password.trim() === '') {
+        delete updateData.password;
+      }
+
+      await api.put(`/api/engineers/${engineer.id}`, updateData);
       onSuccess();
     } catch (error) {
-      showToast(error.response?.data?.detail || 'Failed to update engineer', 'error');
+      showToast(getErrorMessage(error), 'error');
     } finally {
       setLoading(false);
     }
@@ -4239,6 +4547,9 @@ const EditEngineerModal = ({ engineer, onClose, onSuccess, showToast }) => {
               value={formData.name}
               onChange={handleChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              minLength="2"
+              maxLength="100"
+              title="Name must be between 2 and 100 characters"
               required
             />
           </div>
@@ -4254,8 +4565,26 @@ const EditEngineerModal = ({ engineer, onClose, onSuccess, showToast }) => {
               onChange={handleChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
               maxLength="10"
+              pattern="[0-9]{10}"
+              title="Please enter a valid 10-digit mobile number"
               required
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              New Password
+            </label>
+            <input
+              type="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              placeholder="Leave blank to keep current password"
+              minLength="6"
+            />
+            <p className="text-xs text-gray-500 mt-1">Leave blank to keep current password</p>
           </div>
 
           <div>
@@ -4268,6 +4597,7 @@ const EditEngineerModal = ({ engineer, onClose, onSuccess, showToast }) => {
               value={formData.email}
               onChange={handleChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              maxLength="100"
             />
           </div>
 
@@ -4275,13 +4605,20 @@ const EditEngineerModal = ({ engineer, onClose, onSuccess, showToast }) => {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Specialization
             </label>
-            <input
-              type="text"
+            <select
               name="specialization"
               value={formData.specialization}
               onChange={handleChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-            />
+            >
+              <option value="">Select Specialization</option>
+              <option value="Fiber Optic Installation">Fiber Optic Installation</option>
+              <option value="Cable Installation">Cable Installation</option>
+              <option value="Router Configuration">Router Configuration</option>
+              <option value="Network Troubleshooting">Network Troubleshooting</option>
+              <option value="General Maintenance">General Maintenance</option>
+              <option value="Customer Support">Customer Support</option>
+            </select>
           </div>
 
           <div>
@@ -4310,7 +4647,9 @@ const EditEngineerModal = ({ engineer, onClose, onSuccess, showToast }) => {
               name="joining_date"
               value={formData.joining_date}
               onChange={handleChange}
+              max={new Date().toISOString().split('T')[0]}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              title="Joining date cannot be in the future"
               required
             />
           </div>
@@ -4326,6 +4665,8 @@ const EditEngineerModal = ({ engineer, onClose, onSuccess, showToast }) => {
               onChange={handleChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
               maxLength="10"
+              pattern="[0-9]{10}"
+              title="Please enter a valid 10-digit mobile number"
             />
           </div>
 
@@ -4339,7 +4680,9 @@ const EditEngineerModal = ({ engineer, onClose, onSuccess, showToast }) => {
               onChange={handleChange}
               rows="2"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              maxLength="500"
             />
+            <p className="text-xs text-gray-500 mt-1">{formData.address.length}/500 characters</p>
           </div>
         </div>
 
