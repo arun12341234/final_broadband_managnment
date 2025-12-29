@@ -131,7 +131,7 @@ class BillingUpdate(BaseModel):
 
 
 class PlanRenewalRequest(BaseModel):
-    months: int = Field(..., ge=1, le=12)
+    months: int = Field(..., ge=-12, le=12)  # Negative for reduction, positive for extension
 
 
 class PaymentRequest(BaseModel):

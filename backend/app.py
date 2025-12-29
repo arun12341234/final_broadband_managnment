@@ -607,30 +607,43 @@ async def renew_user_plan(
     current_admin: Admin = Depends(get_current_admin),
     db: Session = Depends(get_db)
 ):
-    """Renew user's plan"""
-    
+    """Renew or reduce user's plan (positive months = extend, negative = reduce)"""
+
     user = db.query(User).filter(User.id == user_id).first()
-    
+
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    
+
+    if renewal_data.months == 0:
+        raise HTTPException(status_code=400, detail="Months cannot be zero")
+
     from dateutil.relativedelta import relativedelta
-    
+
     current_expiry = datetime.strptime(user.plan_expiry_date, "%Y-%m-%d")
     new_expiry = current_expiry + relativedelta(months=renewal_data.months)
-    
+
+    # Check if reducing below current date
+    if renewal_data.months < 0 and new_expiry < datetime.now():
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot reduce plan below current date. Minimum expiry: {date.today().strftime('%Y-%m-%d')}"
+        )
+
     user.plan_expiry_date = new_expiry.strftime("%Y-%m-%d")
     user.is_plan_active = True
     user.status = "Active"
     user.last_renewal_date = date.today().strftime("%Y-%m-%d")
-    
+
     db.commit()
-    
-    logger.info(f"✅ Plan renewed for {user.name}: +{renewal_data.months} months by {current_admin.email}")
-    
+
+    action = "reduced" if renewal_data.months < 0 else "extended"
+    abs_months = abs(renewal_data.months)
+    logger.info(f"✅ Plan {action} for {user.name}: {renewal_data.months:+d} months by {current_admin.email}")
+
     return {
-        "message": f"Plan renewed for {renewal_data.months} months",
-        "new_expiry_date": new_expiry.strftime("%Y-%m-%d")
+        "message": f"Plan {action} by {abs_months} month{'s' if abs_months != 1 else ''}",
+        "new_expiry_date": new_expiry.strftime("%Y-%m-%d"),
+        "action": action
     }
 
 @app.get("/api/billing-history", response_model=List[BillingHistoryResponse], tags=["Billing"])

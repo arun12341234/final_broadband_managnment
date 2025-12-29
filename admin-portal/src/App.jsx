@@ -1077,17 +1077,28 @@ const AvatarModal = ({ user, onClose }) => {
 const RenewPlanModal = ({ user, onClose, onSuccess, showToast }) => {
   const [months, setMonths] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [isReducing, setIsReducing] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Show confirmation dialog
+    if (!showConfirm) {
+      setShowConfirm(true);
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const response = await api.post(`/api/users/${user.id}/renew`, { months: parseInt(months, 10) });
-      showToast(response.data.message || `Plan renewed for ${months} months`, 'success');
+      const monthsToAdd = isReducing ? -months : months;
+      const response = await api.post(`/api/users/${user.id}/renew`, { months: monthsToAdd });
+      showToast(response.data.message || `Plan ${isReducing ? 'reduced' : 'renewed'} successfully`, 'success');
       onSuccess();
     } catch (error) {
       showToast(getErrorMessage(error), 'error');
+      setShowConfirm(false);
     } finally {
       setLoading(false);
     }
@@ -1096,7 +1107,8 @@ const RenewPlanModal = ({ user, onClose, onSuccess, showToast }) => {
   const calculateNewExpiry = () => {
     if (!user.plan_expiry_date) return 'N/A';
     const currentExpiry = new Date(user.plan_expiry_date);
-    currentExpiry.setMonth(currentExpiry.getMonth() + parseInt(months, 10));
+    const monthsToAdd = isReducing ? -parseInt(months, 10) : parseInt(months, 10);
+    currentExpiry.setMonth(currentExpiry.getMonth() + monthsToAdd);
     return currentExpiry.toLocaleDateString('en-IN', {
       year: 'numeric',
       month: 'short',
@@ -1111,9 +1123,53 @@ const RenewPlanModal = ({ user, onClose, onSuccess, showToast }) => {
     { value: 12, label: '12 Months', popular: false }
   ];
 
+  if (showConfirm) {
+    return (
+      <ConfirmDialog
+        isOpen={true}
+        onClose={() => {
+          setShowConfirm(false);
+          setLoading(false);
+        }}
+        onConfirm={handleSubmit}
+        title={isReducing ? "Reduce Plan Duration?" : "Renew Plan?"}
+        message={`Are you sure you want to ${isReducing ? 'reduce' : 'extend'} ${user.name}'s plan by ${months} month(s)? New expiry will be ${calculateNewExpiry()}.`}
+        confirmText={isReducing ? "Yes, Reduce" : "Yes, Renew"}
+        cancelText="Cancel"
+        variant={isReducing ? "warning" : "success"}
+      />
+    );
+  }
+
   return (
-    <Modal isOpen={true} onClose={onClose} title="Renew Plan" size="max-w-md">
+    <Modal isOpen={true} onClose={onClose} title={isReducing ? "Reduce Plan Duration" : "Renew / Extend Plan"} size="max-w-md">
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Mode Toggle */}
+        <div className="flex gap-2 p-1 bg-gray-100 rounded-lg">
+          <button
+            type="button"
+            onClick={() => setIsReducing(false)}
+            className={`flex-1 py-2 px-4 rounded-md font-medium text-sm transition-all ${
+              !isReducing
+                ? 'bg-green-500 text-white shadow-sm'
+                : 'bg-transparent text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            ➕ Extend Plan
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsReducing(true)}
+            className={`flex-1 py-2 px-4 rounded-md font-medium text-sm transition-all ${
+              isReducing
+                ? 'bg-orange-500 text-white shadow-sm'
+                : 'bg-transparent text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            ➖ Reduce Plan
+          </button>
+        </div>
+
         {/* User Info */}
         <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
           <h4 className="font-medium text-blue-900 mb-2">Customer Details</h4>
@@ -1135,10 +1191,10 @@ const RenewPlanModal = ({ user, onClose, onSuccess, showToast }) => {
           </div>
         </div>
 
-        {/* Renewal Duration */}
+        {/* Duration Selection */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-3">
-            Select Renewal Duration
+            Select {isReducing ? 'Reduction' : 'Extension'} Duration
           </label>
           <div className="grid grid-cols-2 gap-3">
             {renewalOptions.map((option) => (
@@ -1148,23 +1204,27 @@ const RenewPlanModal = ({ user, onClose, onSuccess, showToast }) => {
                 onClick={() => setMonths(option.value)}
                 className={`relative p-4 rounded-lg border-2 transition-all ${
                   months === option.value
-                    ? 'border-orange-500 bg-orange-50'
+                    ? isReducing ? 'border-orange-500 bg-orange-50' : 'border-green-500 bg-green-50'
                     : 'border-gray-200 hover:border-gray-300'
                 }`}
               >
-                {option.popular && (
-                  <span className="absolute -top-2 -right-2 bg-orange-500 text-white text-xs px-2 py-0.5 rounded-full">
+                {option.popular && !isReducing && (
+                  <span className="absolute -top-2 -right-2 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full">
                     Popular
                   </span>
                 )}
                 <div className="text-center">
                   <div className={`text-2xl font-bold ${
-                    months === option.value ? 'text-orange-600' : 'text-gray-900'
+                    months === option.value
+                      ? isReducing ? 'text-orange-600' : 'text-green-600'
+                      : 'text-gray-900'
                   }`}>
                     {option.value}
                   </div>
                   <div className={`text-xs ${
-                    months === option.value ? 'text-orange-700' : 'text-gray-600'
+                    months === option.value
+                      ? isReducing ? 'text-orange-700' : 'text-green-700'
+                      : 'text-gray-600'
                   }`}>
                     {option.value === 1 ? 'Month' : 'Months'}
                   </div>
@@ -1175,29 +1235,51 @@ const RenewPlanModal = ({ user, onClose, onSuccess, showToast }) => {
         </div>
 
         {/* New Expiry Date Preview */}
-        <div className="bg-green-50 border border-green-200 p-4 rounded-lg">
+        <div className={`${
+          isReducing
+            ? 'bg-orange-50 border-orange-200'
+            : 'bg-green-50 border-green-200'
+        } border p-4 rounded-lg`}>
           <div className="flex items-center gap-2 mb-2">
-            <Calendar className="w-5 h-5 text-green-600" />
-            <h4 className="font-medium text-green-900">New Expiry Date</h4>
+            <Calendar className={`w-5 h-5 ${isReducing ? 'text-orange-600' : 'text-green-600'}`} />
+            <h4 className={`font-medium ${isReducing ? 'text-orange-900' : 'text-green-900'}`}>
+              New Expiry Date
+            </h4>
           </div>
-          <p className="text-2xl font-bold text-green-900">
+          <p className={`text-2xl font-bold ${isReducing ? 'text-orange-900' : 'text-green-900'}`}>
             {calculateNewExpiry()}
           </p>
-          <p className="text-xs text-green-700 mt-1">
-            Extends from current expiry date
+          <p className={`text-xs ${isReducing ? 'text-orange-700' : 'text-green-700'} mt-1`}>
+            {isReducing ? 'Reduces from current expiry date' : 'Extends from current expiry date'}
           </p>
         </div>
 
-        {/* Info */}
-        <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg">
+        {/* Info / Warning */}
+        <div className={`${
+          isReducing
+            ? 'bg-yellow-50 border-yellow-200'
+            : 'bg-blue-50 border-blue-200'
+        } border p-3 rounded-lg`}>
           <div className="flex gap-2">
-            <Info className="w-5 h-5 text-blue-600 flex-shrink-0" />
-            <div className="text-xs text-blue-800">
-              <p className="font-medium mb-1">Important Notes:</p>
+            <Info className={`w-5 h-5 ${isReducing ? 'text-yellow-600' : 'text-blue-600'} flex-shrink-0`} />
+            <div className={`text-xs ${isReducing ? 'text-yellow-800' : 'text-blue-800'}`}>
+              <p className="font-medium mb-1">{isReducing ? 'Caution:' : 'Important Notes:'}</p>
               <ul className="space-y-0.5">
-                <li>• Renewal extends from current expiry date</li>
-                <li>• Plan status will be set to "Active"</li>
-                <li>• Customer will receive confirmation notification</li>
+                {isReducing ? (
+                  <>
+                    <li>• Use this to fix accidental renewals</li>
+                    <li>• Reduces expiry by selected months</li>
+                    <li>• Customer may be notified of change</li>
+                    <li>• Check the new date before confirming</li>
+                  </>
+                ) : (
+                  <>
+                    <li>• Extension adds to current expiry date</li>
+                    <li>• Plan status will be set to "Active"</li>
+                    <li>• Customer will receive confirmation</li>
+                    <li>• Recorded in billing history</li>
+                  </>
+                )}
               </ul>
             </div>
           </div>
@@ -1208,16 +1290,20 @@ const RenewPlanModal = ({ user, onClose, onSuccess, showToast }) => {
           <Button type="button" variant="secondary" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" disabled={loading} variant="success">
+          <Button
+            type="submit"
+            disabled={loading}
+            variant={isReducing ? "danger" : "success"}
+          >
             {loading ? (
               <span className="flex items-center gap-2">
                 <Loader className="w-4 h-4 animate-spin" />
-                Renewing...
+                {isReducing ? 'Reducing...' : 'Extending...'}
               </span>
             ) : (
               <span className="flex items-center gap-2">
                 <RefreshCw className="w-4 h-4" />
-                Renew Plan
+                {isReducing ? 'Reduce Plan' : 'Extend Plan'}
               </span>
             )}
           </Button>
