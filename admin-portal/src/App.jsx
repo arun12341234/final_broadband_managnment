@@ -6,7 +6,8 @@ import {
   Calendar, TrendingUp, Activity, UserPlus, Package, Clock,
   CreditCard, Phone, MapPin, Globe, Zap, RefreshCw, Eye,
   ChevronLeft, ChevronRight, MoreVertical, X, Check, Loader,
-  Home, BarChart3, FileSpreadsheet, Wrench, Send, Info, Menu, Upload
+  Home, BarChart3, FileSpreadsheet, Wrench, Send, Info, Menu, Upload,
+  History
 } from 'lucide-react';
 
 // Import utilities and configurations
