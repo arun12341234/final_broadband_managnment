@@ -96,11 +96,14 @@ const Toast = ({ message, type = 'success', onClose }) => {
     info: <Info className="w-5 h-5 text-blue-500" />
   };
 
+  // Ensure message is always a string to prevent React errors
+  const safeMessage = typeof message === 'string' ? message : formatErrorMessage(message);
+
   return (
     <div className={`toast toast-${type}`}>
       <div className="flex items-center gap-3">
         {icons[type]}
-        <p className="flex-1 text-sm text-gray-700">{message}</p>
+        <p className="flex-1 text-sm text-gray-700">{safeMessage}</p>
         <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
           <X className="w-4 h-4" />
         </button>
@@ -188,7 +191,9 @@ function App() {
   };
 
   const showToast = (message, type = 'success') => {
-    setToast({ message, type });
+    // Ensure message is always a string
+    const safeMessage = typeof message === 'string' ? message : formatErrorMessage(message);
+    setToast({ message: safeMessage, type });
   };
 
   const handleLogin = async (mobile, password) => {
