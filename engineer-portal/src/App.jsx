@@ -1,11 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import api from './api';
 import {
   Wrench, LogOut, Plus, User, Phone, MapPin, Package, CheckCircle,
   Clock, Loader, AlertTriangle, X, Upload, FileText, Camera,
   Calendar, Home, ClipboardList, RefreshCw, Search, Filter,
-  ChevronRight, Info, Wifi, Mail
+  ChevronRight, Info, Wifi, Mail, ChevronLeft
 } from 'lucide-react';
+
+// Import utilities
+import { getErrorMessage, formatDate, formatDateTime, formatCurrency, formatPhone, generateSecurePassword, isDevelopment } from './utils/helpers';
+import { validatePhone, validateEmail, validatePassword, validateName, validateAddress, validatePhotoFile, validateDocumentFile } from './utils/validation';
+import { TOAST, FILE_UPLOAD, PAGINATION, TASK_STATUS } from './utils/constants';
+import { useDebounce } from './hooks/useDebounce';
 
 // ============================================
 // UTILITY COMPONENTS
@@ -56,9 +62,10 @@ const Badge = ({ children, variant = 'default' }) => {
 
 const Toast = ({ message, type = 'success', onClose }) => {
   useEffect(() => {
-    const timer = setTimeout(onClose, 5000);
+    const duration = TOAST[`${type.toUpperCase()}_DURATION`] || TOAST.SUCCESS_DURATION;
+    const timer = setTimeout(onClose, duration);
     return () => clearTimeout(timer);
-  }, [onClose]);
+  }, [onClose, type]);
 
   const icons = {
     success: <CheckCircle className="w-5 h-5 text-green-500" />,
@@ -67,12 +74,15 @@ const Toast = ({ message, type = 'success', onClose }) => {
     info: <Info className="w-5 h-5 text-blue-500" />
   };
 
+  // Defense layer: Ensure message is always a string
+  const safeMessage = typeof message === 'string' ? message : getErrorMessage(message);
+
   return (
     <div className={`toast toast-${type}`}>
       <div className="flex items-center gap-3">
         {icons[type]}
-        <p className="flex-1 text-sm text-gray-700">{message}</p>
-        <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+        <p className="flex-1 text-sm text-gray-700">{safeMessage}</p>
+        <button onClick={onClose} className="text-gray-400 hover:text-gray-600" aria-label="Close notification">
           <X className="w-4 h-4" />
         </button>
       </div>
@@ -98,6 +108,61 @@ const EmptyState = ({ icon: Icon, title, description, action }) => (
 );
 
 // ============================================
+// CONFIRM DIALOG COMPONENT
+// ============================================
+
+const ConfirmDialog = ({ isOpen, onClose, onConfirm, title, message, confirmText = 'Confirm', cancelText = 'Cancel', variant = 'danger' }) => {
+  if (!isOpen) return null;
+
+  const handleConfirm = () => {
+    onConfirm();
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
+        <div className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" onClick={onClose}></div>
+
+        <div className="relative inline-block px-4 pt-5 pb-4 overflow-hidden text-left align-bottom transition-all transform bg-white rounded-lg shadow-xl sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+          <div className="sm:flex sm:items-start">
+            <div className={`flex items-center justify-center flex-shrink-0 w-12 h-12 mx-auto rounded-full sm:mx-0 sm:h-10 sm:w-10 ${
+              variant === 'danger' ? 'bg-red-100' : 'bg-blue-100'
+            }`}>
+              <AlertTriangle className={`w-6 h-6 ${variant === 'danger' ? 'text-red-600' : 'text-blue-600'}`} />
+            </div>
+            <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left flex-1">
+              <h3 className="text-lg font-medium leading-6 text-gray-900">{title}</h3>
+              <div className="mt-2">
+                <p className="text-sm text-gray-500">{message}</p>
+              </div>
+            </div>
+          </div>
+          <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse gap-2">
+            <Button
+              type="button"
+              variant={variant}
+              onClick={handleConfirm}
+              className="w-full sm:w-auto"
+            >
+              {confirmText}
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={onClose}
+              className="w-full sm:w-auto mt-3 sm:mt-0"
+            >
+              {cancelText}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ============================================
 // MAIN APP COMPONENT
 // ============================================
 
@@ -108,6 +173,7 @@ function App() {
   const [toast, setToast] = useState(null);
   const [engineer, setEngineer] = useState(null);
   const [tasks, setTasks] = useState([]);
+  const [plans, setPlans] = useState([]);
 
   useEffect(() => {
     const token = localStorage.getItem('engineer_token');
@@ -121,23 +187,27 @@ function App() {
 
   const fetchEngineerData = async () => {
     try {
-      const [profileRes, tasksRes] = await Promise.all([
+      const [profileRes, tasksRes, plansRes] = await Promise.allSettled([
         api.get('/api/engineer/me'),
-        api.get('/api/engineer/tasks')
+        api.get('/api/engineer/tasks'),
+        api.get('/api/plans')
       ]);
 
-      setEngineer(profileRes.data);
-      setTasks(tasksRes.data.tasks || []);
+      if (profileRes.status === 'fulfilled') setEngineer(profileRes.value.data);
+      if (tasksRes.status === 'fulfilled') setTasks(tasksRes.value.data.tasks || []);
+      if (plansRes.status === 'fulfilled') setPlans(plansRes.value.data || []);
     } catch (error) {
       console.error('Error fetching data:', error);
-      showToast('Failed to load data', 'error');
+      showToast(getErrorMessage(error), 'error');
     } finally {
       setLoading(false);
     }
   };
 
   const showToast = (message, type = 'success') => {
-    setToast({ message, type });
+    // Defense layer 1: Convert error objects to strings
+    const safeMessage = typeof message === 'string' ? message : getErrorMessage(message);
+    setToast({ message: safeMessage, type });
   };
 
   const handleLogin = async (mobile, password) => {
@@ -148,7 +218,7 @@ function App() {
       await fetchEngineerData();
       showToast('Login successful!', 'success');
     } catch (error) {
-      showToast(error.response?.data?.detail || 'Login failed', 'error');
+      showToast(getErrorMessage(error), 'error');
       throw error;
     }
   };
@@ -158,6 +228,7 @@ function App() {
     setIsAuthenticated(false);
     setEngineer(null);
     setTasks([]);
+    setPlans([]);
     setActiveTab('home');
   };
 
@@ -190,7 +261,8 @@ function App() {
             </div>
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 text-red-600 hover:text-red-700"
+              className="flex items-center gap-2 text-red-600 hover:text-red-700 px-3 py-2 rounded-lg hover:bg-red-50 transition-colors"
+              aria-label="Logout"
             >
               <LogOut className="w-5 h-5" />
               <span className="hidden sm:inline">Logout</span>
@@ -210,6 +282,7 @@ function App() {
                   ? 'border-blue-600 text-blue-600'
                   : 'border-transparent text-gray-600 hover:text-gray-900'
               }`}
+              aria-label="Go to Home"
             >
               <Home className="w-4 h-4 inline mr-2" />
               Home
@@ -221,6 +294,7 @@ function App() {
                   ? 'border-blue-600 text-blue-600'
                   : 'border-transparent text-gray-600 hover:text-gray-900'
               }`}
+              aria-label="Go to Add Customer"
             >
               <Plus className="w-4 h-4 inline mr-2" />
               Add Customer
@@ -232,6 +306,7 @@ function App() {
                   ? 'border-blue-600 text-blue-600'
                   : 'border-transparent text-gray-600 hover:text-gray-900'
               }`}
+              aria-label={`Go to Tasks (${tasks.length} tasks)`}
             >
               <ClipboardList className="w-4 h-4 inline mr-2" />
               Tasks ({tasks.length})
@@ -243,10 +318,10 @@ function App() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {activeTab === 'home' && (
-          <HomeTab engineer={engineer} tasks={tasks} onRefresh={fetchEngineerData} />
+          <HomeTab engineer={engineer} tasks={tasks} onRefresh={fetchEngineerData} setActiveTab={setActiveTab} />
         )}
         {activeTab === 'add-customer' && (
-          <AddCustomerTab showToast={showToast} onSuccess={fetchEngineerData} />
+          <AddCustomerTab showToast={showToast} onSuccess={fetchEngineerData} plans={plans} />
         )}
         {activeTab === 'tasks' && (
           <TasksTab tasks={tasks} onRefresh={fetchEngineerData} showToast={showToast} />
@@ -278,12 +353,20 @@ const LoginScreen = ({ onLogin }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    // Validate mobile
+    const mobileValidation = validatePhone(mobile);
+    if (!mobileValidation.valid) {
+      setError(mobileValidation.error);
+      return;
+    }
+
     setLoading(true);
 
     try {
       await onLogin(mobile, password);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Login failed. Please try again.');
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -310,6 +393,8 @@ const LoginScreen = ({ onLogin }) => {
               className="input"
               placeholder="9876543210"
               maxLength="10"
+              pattern="[0-9]{10}"
+              title="Please enter a valid 10-digit mobile number"
               required
             />
           </div>
@@ -328,8 +413,8 @@ const LoginScreen = ({ onLogin }) => {
 
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4" />
-              {error}
+              <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+              <span>{error}</span>
             </div>
           )}
 
@@ -345,14 +430,17 @@ const LoginScreen = ({ onLogin }) => {
           </Button>
         </form>
 
-        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <p className="text-sm text-blue-900 font-medium mb-2">📝 Demo Credentials:</p>
-          <p className="text-xs text-blue-800">Mobile: 9876543210</p>
-          <p className="text-xs text-blue-800">Password: ravi123</p>
-          <p className="text-xs text-blue-700 mt-2">
-            (Created via migrate_add_engineers.py)
-          </p>
-        </div>
+        {/* Only show demo credentials in development */}
+        {isDevelopment() && (
+          <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-blue-900 font-medium mb-2">📝 Demo Credentials:</p>
+            <p className="text-xs text-blue-800">Mobile: 9876543210</p>
+            <p className="text-xs text-blue-800">Password: ravi123</p>
+            <p className="text-xs text-blue-700 mt-2">
+              (Created via migrate_add_engineers.py)
+            </p>
+          </div>
+        )}
       </Card>
     </div>
   );
@@ -362,10 +450,10 @@ const LoginScreen = ({ onLogin }) => {
 // HOME TAB
 // ============================================
 
-const HomeTab = ({ engineer, tasks, onRefresh }) => {
-  const pendingTasks = tasks.filter(t => t.status === 'Pending Installation');
-  const scheduledTasks = tasks.filter(t => t.status === 'Installation Scheduled');
-  const completedTasks = tasks.filter(t => t.status === 'Completed');
+const HomeTab = ({ engineer, tasks, onRefresh, setActiveTab }) => {
+  const pendingTasks = tasks.filter(t => t.status === TASK_STATUS.PENDING);
+  const scheduledTasks = tasks.filter(t => t.status === TASK_STATUS.SCHEDULED);
+  const completedTasks = tasks.filter(t => t.status === TASK_STATUS.COMPLETED);
 
   return (
     <div className="space-y-6">
@@ -377,10 +465,10 @@ const HomeTab = ({ engineer, tasks, onRefresh }) => {
             <p className="mt-2 text-blue-100">
               {engineer.specialization || 'Field Engineer'}
             </p>
-            <div className="mt-4 flex items-center gap-4 text-sm">
+            <div className="mt-4 flex flex-wrap items-center gap-4 text-sm">
               <div className="flex items-center gap-2">
                 <Phone className="w-4 h-4" />
-                {engineer.mobile}
+                {formatPhone(engineer.mobile)}
               </div>
               {engineer.email && (
                 <div className="flex items-center gap-2">
@@ -435,12 +523,20 @@ const HomeTab = ({ engineer, tasks, onRefresh }) => {
       <Card className="p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <button className="p-4 bg-blue-50 hover:bg-blue-100 rounded-lg text-left transition-colors">
+          <button
+            onClick={() => setActiveTab('add-customer')}
+            className="p-4 bg-blue-50 hover:bg-blue-100 rounded-lg text-left transition-colors"
+            aria-label="Add New Customer"
+          >
             <Plus className="w-6 h-6 text-blue-600 mb-2" />
             <p className="font-medium text-gray-900">Add New Customer</p>
             <p className="text-sm text-gray-600">Register new connection</p>
           </button>
-          <button onClick={onRefresh} className="p-4 bg-green-50 hover:bg-green-100 rounded-lg text-left transition-colors">
+          <button
+            onClick={onRefresh}
+            className="p-4 bg-green-50 hover:bg-green-100 rounded-lg text-left transition-colors"
+            aria-label="Refresh Tasks"
+          >
             <RefreshCw className="w-6 h-6 text-green-600 mb-2" />
             <p className="font-medium text-gray-900">Refresh Tasks</p>
             <p className="text-sm text-gray-600">Get latest updates</p>
@@ -461,22 +557,22 @@ const HomeTab = ({ engineer, tasks, onRefresh }) => {
           <div className="space-y-3">
             {tasks.slice(0, 5).map((task) => (
               <div key={task.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3 mb-2">
-                    <User className="w-5 h-5 text-gray-400" />
-                    <div>
-                      <p className="font-medium text-gray-900">{task.name}</p>
-                      <p className="text-sm text-gray-500">{task.mobile}</p>
+                    <User className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className="font-medium text-gray-900 truncate">{task.name}</p>
+                      <p className="text-sm text-gray-500">{formatPhone(task.mobile)}</p>
                     </div>
                   </div>
-                  <p className="text-xs text-gray-600 flex items-center gap-1">
-                    <MapPin className="w-3 h-3" />
-                    {task.address}
+                  <p className="text-xs text-gray-600 flex items-center gap-1 truncate">
+                    <MapPin className="w-3 h-3 flex-shrink-0" />
+                    <span className="truncate">{task.address}</span>
                   </p>
                 </div>
                 <Badge variant={
-                  task.status === 'Completed' ? 'success' :
-                  task.status === 'Installation Scheduled' ? 'info' : 'warning'
+                  task.status === TASK_STATUS.COMPLETED ? 'success' :
+                  task.status === TASK_STATUS.SCHEDULED ? 'info' : 'warning'
                 }>
                   {task.status}
                 </Badge>
@@ -489,18 +585,17 @@ const HomeTab = ({ engineer, tasks, onRefresh }) => {
   );
 };
 
-// ============================================
-// ADD CUSTOMER TAB - CONTINUED IN NEXT MESSAGE
-// ============================================
+// File is too long, continuing in next write...
 
 // ============================================
 // ADD CUSTOMER TAB
 // ============================================
 
-const AddCustomerTab = ({ showToast, onSuccess }) => {
+const AddCustomerTab = ({ showToast, onSuccess, plans }) => {
   const [formData, setFormData] = useState({
     name: '',
     mobile: '',
+    email: '',
     address: '',
     plan: '',
     password: ''
@@ -520,45 +615,90 @@ const AddCustomerTab = ({ showToast, onSuccess }) => {
 
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        showToast('Photo size must be less than 5MB', 'error');
-        return;
-      }
-      setUserPhoto(file);
-      setPhotoPreview(URL.createObjectURL(file));
+    if (!file) return;
+
+    // Validate file
+    const validation = validatePhotoFile(file);
+    if (!validation.valid) {
+      showToast(validation.error, 'error');
+      return;
     }
+
+    setUserPhoto(file);
+    setPhotoPreview(URL.createObjectURL(file));
   };
 
   const handleDocChange = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      if (file.size > 10 * 1024 * 1024) {
-        showToast('Document size must be less than 10MB', 'error');
-        return;
-      }
-      setKycDocument(file);
-      setDocPreview(file.name);
+    if (!file) return;
+
+    // Validate file
+    const validation = validateDocumentFile(file);
+    if (!validation.valid) {
+      showToast(validation.error, 'error');
+      return;
     }
+
+    setKycDocument(file);
+    setDocPreview(file.name);
   };
 
-  const generatePassword = () => {
-    const password = Math.random().toString(36).slice(-8);
+  const handleGeneratePassword = () => {
+    const password = generateSecurePassword(12);
     setFormData({ ...formData, password });
+    showToast('Secure password generated!', 'success');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Validate all fields
+    const nameValidation = validateName(formData.name);
+    if (!nameValidation.valid) {
+      showToast(nameValidation.error, 'error');
+      return;
+    }
+
+    const mobileValidation = validatePhone(formData.mobile);
+    if (!mobileValidation.valid) {
+      showToast(mobileValidation.error, 'error');
+      return;
+    }
+
+    if (formData.email) {
+      const emailValidation = validateEmail(formData.email);
+      if (!emailValidation.valid) {
+        showToast(emailValidation.error, 'error');
+        return;
+      }
+    }
+
+    const addressValidation = validateAddress(formData.address);
+    if (!addressValidation.valid) {
+      showToast(addressValidation.error, 'error');
+      return;
+    }
+
+    const passwordValidation = validatePassword(formData.password);
+    if (!passwordValidation.valid) {
+      showToast(passwordValidation.error, 'error');
+      return;
+    }
+
     setLoading(true);
 
     try {
       const submitData = new FormData();
-      submitData.append('name', formData.name);
+      submitData.append('name', formData.name.trim());
       submitData.append('mobile', formData.mobile);
-      submitData.append('address', formData.address);
+      submitData.append('address', formData.address.trim());
       submitData.append('plan', formData.plan);
       submitData.append('password', formData.password);
       
+      if (formData.email) {
+        submitData.append('email', formData.email.trim());
+      }
+
       if (userPhoto) {
         submitData.append('user_photo', userPhoto);
       }
@@ -572,12 +712,14 @@ const AddCustomerTab = ({ showToast, onSuccess }) => {
         },
       });
 
-      showToast(response.data.message, 'success');
+      const customerId = response.data.customer_id || 'N/A';
+      showToast(`Customer added successfully! Customer ID: ${customerId}`, 'success');
       
       // Reset form
       setFormData({
         name: '',
         mobile: '',
+        email: '',
         address: '',
         plan: '',
         password: ''
@@ -589,7 +731,7 @@ const AddCustomerTab = ({ showToast, onSuccess }) => {
 
       if (onSuccess) onSuccess();
     } catch (error) {
-      showToast(error.response?.data?.detail || 'Failed to add customer', 'error');
+      showToast(getErrorMessage(error), 'error');
     } finally {
       setLoading(false);
     }
@@ -620,6 +762,9 @@ const AddCustomerTab = ({ showToast, onSuccess }) => {
                   onChange={handleChange}
                   className="input"
                   placeholder="Rajesh Kumar"
+                  minLength="2"
+                  maxLength="100"
+                  title="Name must be between 2 and 100 characters"
                   required
                 />
               </div>
@@ -635,8 +780,25 @@ const AddCustomerTab = ({ showToast, onSuccess }) => {
                   placeholder="9876543210"
                   maxLength="10"
                   pattern="[0-9]{10}"
+                  title="Please enter a valid 10-digit mobile number"
                   required
                 />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="label">Email (Optional)</label>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  className="input"
+                  placeholder="rajesh@example.com"
+                  maxLength="100"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Email for notifications and updates
+                </p>
               </div>
 
               <div className="md:col-span-2">
@@ -648,8 +810,12 @@ const AddCustomerTab = ({ showToast, onSuccess }) => {
                   rows="3"
                   className="input"
                   placeholder="House no., Street, Area, Pincode"
+                  maxLength="500"
                   required
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  {formData.address.length}/500 characters
+                </p>
               </div>
             </div>
           </div>
@@ -671,26 +837,33 @@ const AddCustomerTab = ({ showToast, onSuccess }) => {
                   required
                 >
                   <option value="">Choose a plan</option>
-                  <option value="Basic 50 Mbps">Basic 50 Mbps - ₹500/month</option>
-                  <option value="Standard 100 Mbps">Standard 100 Mbps - ₹800/month</option>
-                  <option value="Premium 300 Mbps">Premium 300 Mbps - ₹1200/month</option>
-                  <option value="Ultra 500 Mbps">Ultra 500 Mbps - ₹2000/month</option>
+                  {plans.map((plan) => (
+                    <option key={plan.id} value={plan.name}>
+                      {plan.name} - {formatCurrency(plan.price)}/month
+                    </option>
+                  ))}
                 </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Plans are fetched from the backend
+                </p>
               </div>
 
               <div>
                 <label className="label">Login Password *</label>
                 <div className="flex gap-2">
                   <input
-                    type="text"
+                    type="password"
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
                     className="input"
                     placeholder="Customer portal password"
+                    minLength="6"
+                    maxLength="50"
+                    title="Password must be at least 6 characters"
                     required
                   />
-                  <Button type="button" variant="outline" onClick={generatePassword}>
+                  <Button type="button" variant="outline" onClick={handleGeneratePassword}>
                     Generate
                   </Button>
                 </div>
@@ -705,7 +878,7 @@ const AddCustomerTab = ({ showToast, onSuccess }) => {
           <div>
             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <Camera className="w-5 h-5 text-blue-600" />
-              Customer Photo
+              Customer Photo (Optional)
             </h3>
             <div className="flex items-start gap-4">
               <div className="flex-1">
@@ -715,7 +888,9 @@ const AddCustomerTab = ({ showToast, onSuccess }) => {
                     <p className="text-sm text-gray-600">
                       {userPhoto ? userPhoto.name : 'Click to upload photo'}
                     </p>
-                    <p className="text-xs text-gray-500 mt-1">Max size: 5MB</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      JPG, PNG, WebP (Max: 5MB)
+                    </p>
                   </div>
                   <input
                     type="file"
@@ -739,6 +914,7 @@ const AddCustomerTab = ({ showToast, onSuccess }) => {
                       setPhotoPreview(null);
                     }}
                     className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
+                    aria-label="Remove photo"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -751,23 +927,38 @@ const AddCustomerTab = ({ showToast, onSuccess }) => {
           <div>
             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <FileText className="w-5 h-5 text-blue-600" />
-              KYC Document
+              KYC Document (Optional)
             </h3>
-            <label className="block">
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-500 transition-colors cursor-pointer">
-                <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                <p className="text-sm text-gray-600">
-                  {docPreview || 'Upload Aadhaar / ID Proof'}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">PDF, JPG, PNG (Max: 10MB)</p>
-              </div>
-              <input
-                type="file"
-                accept=".pdf,.jpg,.jpeg,.png"
-                onChange={handleDocChange}
-                className="hidden"
-              />
-            </label>
+            <div className="flex items-center gap-4">
+              <label className="block flex-1">
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-500 transition-colors cursor-pointer">
+                  <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                  <p className="text-sm text-gray-600">
+                    {docPreview || 'Upload Aadhaar / ID Proof'}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">PDF, JPG, PNG (Max: 10MB)</p>
+                </div>
+                <input
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  onChange={handleDocChange}
+                  className="hidden"
+                />
+              </label>
+              {kycDocument && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setKycDocument(null);
+                    setDocPreview(null);
+                  }}
+                  className="w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 flex-shrink-0"
+                  aria-label="Remove document"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Info Box */}
@@ -779,6 +970,7 @@ const AddCustomerTab = ({ showToast, onSuccess }) => {
                 <ul className="space-y-1 text-xs">
                   <li>• All fields marked with * are mandatory</li>
                   <li>• Ensure mobile number is correct (used for login)</li>
+                  <li>• Strong password recommended for security</li>
                   <li>• Photo and documents help in verification</li>
                   <li>• Customer will receive login credentials after approval</li>
                   <li>• Installation will be marked as "Pending" after submission</li>
@@ -796,6 +988,7 @@ const AddCustomerTab = ({ showToast, onSuccess }) => {
                 setFormData({
                   name: '',
                   mobile: '',
+                  email: '',
                   address: '',
                   plan: '',
                   password: ''
@@ -829,6 +1022,8 @@ const AddCustomerTab = ({ showToast, onSuccess }) => {
   );
 };
 
+// Continuing with TasksTab in next command due to length...
+
 // ============================================
 // TASKS TAB
 // ============================================
@@ -836,40 +1031,90 @@ const AddCustomerTab = ({ showToast, onSuccess }) => {
 const TasksTab = ({ tasks, onRefresh, showToast }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [selectedTask, setSelectedTask] = useState(null);
+  const [sortBy, setSortBy] = useState('date_newest');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
 
-  const filteredTasks = tasks.filter(task => {
-    const matchesSearch = 
-      task.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      task.mobile.includes(searchTerm) ||
-      task.address.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesFilter = 
-      filterStatus === 'all' ||
-      (filterStatus === 'pending' && task.status === 'Pending Installation') ||
-      (filterStatus === 'scheduled' && task.status === 'Installation Scheduled') ||
-      (filterStatus === 'completed' && task.status === 'Completed');
-    
-    return matchesSearch && matchesFilter;
-  });
+  // Debounced search
+  const debouncedSearchTerm = useDebounce(searchTerm);
 
-  const handleUpdateStatus = async (taskId, newStatus) => {
-    if (!window.confirm(`Update task status to "${newStatus}"?`)) return;
+  // Filter, sort, and paginate tasks
+  const { filteredTasks, paginatedTasks, totalPages } = useMemo(() => {
+    let filtered = [...tasks];
+
+    // Search filter
+    if (debouncedSearchTerm) {
+      const term = debouncedSearchTerm.toLowerCase();
+      filtered = filtered.filter(task =>
+        task.name.toLowerCase().includes(term) ||
+        task.mobile.includes(term) ||
+        task.address.toLowerCase().includes(term)
+      );
+    }
+
+    // Status filter
+    if (filterStatus === 'pending') {
+      filtered = filtered.filter(t => t.status === TASK_STATUS.PENDING);
+    } else if (filterStatus === 'scheduled') {
+      filtered = filtered.filter(t => t.status === TASK_STATUS.SCHEDULED);
+    } else if (filterStatus === 'completed') {
+      filtered = filtered.filter(t => t.status === TASK_STATUS.COMPLETED);
+    }
+
+    // Sorting
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'date_newest':
+          return new Date(b.created_at) - new Date(a.created_at);
+        case 'date_oldest':
+          return new Date(a.created_at) - new Date(b.created_at);
+        case 'name_asc':
+          return a.name.localeCompare(b.name);
+        case 'name_desc':
+          return b.name.localeCompare(a.name);
+        default:
+          return 0;
+      }
+    });
+
+    // Pagination
+    const itemsPerPage = PAGINATION.TASKS_PER_PAGE;
+    const totalPages = Math.ceil(filtered.length / itemsPerPage);
+    const paginated = filtered.slice(
+      (currentPage - 1) * itemsPerPage,
+      currentPage * itemsPerPage
+    );
+
+    return { filteredTasks: filtered, paginatedTasks: paginated, totalPages };
+  }, [tasks, debouncedSearchTerm, filterStatus, sortBy, currentPage]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchTerm, filterStatus, sortBy]);
+
+  const handleUpdateStatus = (taskId, newStatus) => {
+    setConfirmAction({
+      taskId,
+      newStatus,
+      message: `Update task status to "${newStatus}"?`
+    });
+    setShowConfirm(true);
+  };
+
+  const executeStatusUpdate = async () => {
+    if (!confirmAction) return;
 
     try {
-      const formData = new FormData();
-      formData.append('status', newStatus);
-
-      await api.put(`/api/engineer/update-task/${taskId}`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+      await api.put(`/api/engineer/update-task/${confirmAction.taskId}`, {
+        status: confirmAction.newStatus
       });
 
       showToast('Task updated successfully!', 'success');
       onRefresh();
     } catch (error) {
-      showToast(error.response?.data?.detail || 'Failed to update task', 'error');
+      showToast(getErrorMessage(error), 'error');
     }
   };
 
@@ -879,7 +1124,9 @@ const TasksTab = ({ tasks, onRefresh, showToast }) => {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Installation Tasks</h2>
-          <p className="text-gray-600 mt-1">{tasks.length} total tasks</p>
+          <p className="text-gray-600 mt-1">
+            {filteredTasks.length} of {tasks.length} tasks
+          </p>
         </div>
         <Button onClick={onRefresh}>
           <RefreshCw className="w-4 h-4 mr-2" />
@@ -889,9 +1136,9 @@ const TasksTab = ({ tasks, onRefresh, showToast }) => {
 
       {/* Filters */}
       <Card className="p-4">
-        <div className="flex flex-col sm:flex-row gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Search */}
-          <div className="flex-1">
+          <div className="lg:col-span-2">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
@@ -905,47 +1152,39 @@ const TasksTab = ({ tasks, onRefresh, showToast }) => {
           </div>
 
           {/* Status Filter */}
-          <div className="flex gap-2 overflow-x-auto">
-            <button
-              onClick={() => setFilterStatus('all')}
-              className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-colors ${
-                filterStatus === 'all'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+          <div>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              aria-label="Filter by status"
             >
-              All ({tasks.length})
-            </button>
-            <button
-              onClick={() => setFilterStatus('pending')}
-              className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-colors ${
-                filterStatus === 'pending'
-                  ? 'bg-yellow-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+              <option value="all">All Status ({tasks.length})</option>
+              <option value="pending">
+                Pending ({tasks.filter(t => t.status === TASK_STATUS.PENDING).length})
+              </option>
+              <option value="scheduled">
+                Scheduled ({tasks.filter(t => t.status === TASK_STATUS.SCHEDULED).length})
+              </option>
+              <option value="completed">
+                Completed ({tasks.filter(t => t.status === TASK_STATUS.COMPLETED).length})
+              </option>
+            </select>
+          </div>
+
+          {/* Sort */}
+          <div>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              aria-label="Sort tasks"
             >
-              Pending ({tasks.filter(t => t.status === 'Pending Installation').length})
-            </button>
-            <button
-              onClick={() => setFilterStatus('scheduled')}
-              className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-colors ${
-                filterStatus === 'scheduled'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              Scheduled ({tasks.filter(t => t.status === 'Installation Scheduled').length})
-            </button>
-            <button
-              onClick={() => setFilterStatus('completed')}
-              className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-colors ${
-                filterStatus === 'completed'
-                  ? 'bg-green-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              Completed ({tasks.filter(t => t.status === 'Completed').length})
-            </button>
+              <option value="date_newest">Newest First</option>
+              <option value="date_oldest">Oldest First</option>
+              <option value="name_asc">Name (A-Z)</option>
+              <option value="name_desc">Name (Z-A)</option>
+            </select>
           </div>
         </div>
       </Card>
@@ -957,85 +1196,172 @@ const TasksTab = ({ tasks, onRefresh, showToast }) => {
             icon={ClipboardList}
             title="No tasks found"
             description={searchTerm ? "Try adjusting your search" : "New installation tasks will appear here"}
+            action={searchTerm && (
+              <Button variant="outline" onClick={() => setSearchTerm('')}>
+                Clear Search
+              </Button>
+            )}
           />
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filteredTasks.map((task) => (
-            <Card key={task.id} className="p-6 hover:shadow-lg transition-shadow">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                    <User className="w-6 h-6 text-blue-600" />
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {paginatedTasks.map((task) => (
+              <Card key={task.id} className="p-6 hover:shadow-lg transition-shadow">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      <User className="w-6 h-6 text-blue-600" />
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="font-semibold text-gray-900 truncate">{task.name}</h3>
+                      <p className="text-sm text-gray-500 flex items-center gap-1">
+                        <Phone className="w-3 h-3" />
+                        {formatPhone(task.mobile)}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{task.name}</h3>
-                    <p className="text-sm text-gray-500 flex items-center gap-1">
-                      <Phone className="w-3 h-3" />
-                      {task.mobile}
-                    </p>
+                  <Badge variant={
+                    task.status === TASK_STATUS.COMPLETED ? 'success' :
+                    task.status === TASK_STATUS.SCHEDULED ? 'info' : 'warning'
+                  }>
+                    {task.status}
+                  </Badge>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-start gap-2 text-sm text-gray-700">
+                    <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                    <span className="line-clamp-2">{task.address}</span>
+                  </div>
+
+                  <div className="flex items-center gap-2 text-sm text-gray-700">
+                    <Wifi className="w-4 h-4 text-gray-400" />
+                    <span>{task.plan}</span>
+                  </div>
+
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <Calendar className="w-4 h-4" />
+                    <span>Added: {formatDate(task.created_at)}</span>
                   </div>
                 </div>
-                <Badge variant={
-                  task.status === 'Completed' ? 'success' :
-                  task.status === 'Installation Scheduled' ? 'info' : 'warning'
-                }>
-                  {task.status}
-                </Badge>
-              </div>
 
-              <div className="space-y-3">
-                <div className="flex items-start gap-2 text-sm text-gray-700">
-                  <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                  <span className="line-clamp-2">{task.address}</span>
-                </div>
-
-                <div className="flex items-center gap-2 text-sm text-gray-700">
-                  <Wifi className="w-4 h-4 text-gray-400" />
-                  <span>{task.plan}</span>
-                </div>
-
-                <div className="flex items-center gap-2 text-sm text-gray-500">
-                  <Calendar className="w-4 h-4" />
-                  <span>Added: {task.created_at}</span>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              {task.status !== 'Completed' && (
-                <div className="mt-4 pt-4 border-t border-gray-200 flex gap-2">
-                  {task.status === 'Pending Installation' && (
+                {/* Action Buttons */}
+                {task.status !== TASK_STATUS.COMPLETED && (
+                  <div className="mt-4 pt-4 border-t border-gray-200 flex gap-2">
+                    {task.status === TASK_STATUS.PENDING && (
+                      <Button
+                        onClick={() => handleUpdateStatus(task.id, TASK_STATUS.SCHEDULED)}
+                        variant="outline"
+                        className="flex-1 text-sm min-h-[44px]"
+                        aria-label={`Schedule installation for ${task.name}`}
+                      >
+                        <Calendar className="w-4 h-4 mr-1" />
+                        Schedule
+                      </Button>
+                    )}
                     <Button
-                      onClick={() => handleUpdateStatus(task.id, 'Installation Scheduled')}
-                      variant="outline"
-                      className="flex-1 text-sm"
+                      onClick={() => handleUpdateStatus(task.id, TASK_STATUS.COMPLETED)}
+                      variant="success"
+                      className="flex-1 text-sm min-h-[44px]"
+                      aria-label={`Mark installation complete for ${task.name}`}
                     >
-                      <Calendar className="w-4 h-4 mr-1" />
-                      Schedule
+                      <CheckCircle className="w-4 h-4 mr-1" />
+                      Complete
                     </Button>
-                  )}
+                  </div>
+                )}
+
+                {task.status === TASK_STATUS.COMPLETED && (
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <div className="flex items-center gap-2 text-sm text-green-600">
+                      <CheckCircle className="w-4 h-4" />
+                      <span className="font-medium">Installation Completed</span>
+                    </div>
+                  </div>
+                )}
+              </Card>
+            ))}
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 rounded-lg">
+              <div className="flex flex-1 justify-between sm:hidden">
+                <Button
+                  variant="outline"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                </Button>
+              </div>
+              <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm text-gray-700">
+                    Showing <span className="font-medium">{(currentPage - 1) * PAGINATION.TASKS_PER_PAGE + 1}</span> to{' '}
+                    <span className="font-medium">
+                      {Math.min(currentPage * PAGINATION.TASKS_PER_PAGE, filteredTasks.length)}
+                    </span>{' '}
+                    of <span className="font-medium">{filteredTasks.length}</span> results
+                  </p>
+                </div>
+                <div className="flex gap-2">
                   <Button
-                    onClick={() => handleUpdateStatus(task.id, 'Completed')}
-                    variant="success"
-                    className="flex-1 text-sm"
+                    variant="outline"
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
                   >
-                    <CheckCircle className="w-4 h-4 mr-1" />
-                    Complete
+                    <ChevronLeft className="w-4 h-4" />
+                    Previous
+                  </Button>
+                  {[...Array(totalPages)].map((_, i) => {
+                    const page = i + 1;
+                    if (
+                      page === 1 ||
+                      page === totalPages ||
+                      (page >= currentPage - 1 && page <= currentPage + 1)
+                    ) {
+                      return (
+                        <button
+                          key={page}
+                          onClick={() => setCurrentPage(page)}
+                          className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors min-w-[44px] min-h-[44px] ${
+                            currentPage === page
+                              ? 'bg-blue-600 text-white'
+                              : 'text-gray-700 hover:bg-gray-100'
+                          }`}
+                          aria-label={`Go to page ${page}`}
+                          aria-current={currentPage === page ? 'page' : undefined}
+                        >
+                          {page}
+                        </button>
+                      );
+                    } else if (page === currentPage - 2 || page === currentPage + 2) {
+                      return <span key={page} className="px-2">...</span>;
+                    }
+                    return null;
+                  })}
+                  <Button
+                    variant="outline"
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                    <ChevronRight className="w-4 h-4" />
                   </Button>
                 </div>
-              )}
-
-              {task.status === 'Completed' && (
-                <div className="mt-4 pt-4 border-t border-gray-200">
-                  <div className="flex items-center gap-2 text-sm text-green-600">
-                    <CheckCircle className="w-4 h-4" />
-                    <span className="font-medium">Installation Completed</span>
-                  </div>
-                </div>
-              )}
-            </Card>
-          ))}
-        </div>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* Summary Card */}
@@ -1050,23 +1376,40 @@ const TasksTab = ({ tasks, onRefresh, showToast }) => {
             <div>
               <p className="text-yellow-700">Pending</p>
               <p className="text-2xl font-bold text-yellow-900">
-                {filteredTasks.filter(t => t.status === 'Pending Installation').length}
+                {filteredTasks.filter(t => t.status === TASK_STATUS.PENDING).length}
               </p>
             </div>
             <div>
               <p className="text-blue-700">Scheduled</p>
               <p className="text-2xl font-bold text-blue-900">
-                {filteredTasks.filter(t => t.status === 'Installation Scheduled').length}
+                {filteredTasks.filter(t => t.status === TASK_STATUS.SCHEDULED).length}
               </p>
             </div>
             <div>
               <p className="text-green-700">Completed</p>
               <p className="text-2xl font-bold text-green-900">
-                {filteredTasks.filter(t => t.status === 'Completed').length}
+                {filteredTasks.filter(t => t.status === TASK_STATUS.COMPLETED).length}
               </p>
             </div>
           </div>
         </Card>
+      )}
+
+      {/* Confirm Dialog */}
+      {showConfirm && confirmAction && (
+        <ConfirmDialog
+          isOpen={showConfirm}
+          onClose={() => {
+            setShowConfirm(false);
+            setConfirmAction(null);
+          }}
+          onConfirm={executeStatusUpdate}
+          title="Update Task Status"
+          message={confirmAction.message}
+          confirmText="Update"
+          cancelText="Cancel"
+          variant="primary"
+        />
       )}
     </div>
   );
