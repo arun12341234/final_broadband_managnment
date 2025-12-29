@@ -81,10 +81,30 @@ const Button = ({ children, onClick, variant = 'primary', disabled = false, clas
 const Modal = ({ isOpen, onClose, title, children, size = 'max-w-2xl' }) => {
   if (!isOpen) return null;
 
+  // Handle ESC key to close modal
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscape);
+      // Prevent body scroll when modal is open
+      document.body.style.overflow = 'hidden';
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen, onClose]);
+
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
+    <div className="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="modal-title">
       <div className="flex items-center justify-center min-h-screen px-4">
-        <div className="fixed inset-0 bg-black opacity-50" onClick={onClose}></div>
+        <div className="fixed inset-0 bg-black opacity-50" onClick={onClose} aria-hidden="true"></div>
         <div className={`relative bg-white rounded-lg shadow-xl ${size} w-full max-h-[90vh] overflow-y-auto`}>
           <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
             <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
@@ -94,6 +114,53 @@ const Modal = ({ isOpen, onClose, title, children, size = 'max-w-2xl' }) => {
           </div>
           <div className="p-6">
             {children}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ConfirmDialog = ({ isOpen, onClose, onConfirm, title, message, confirmText = 'Confirm', cancelText = 'Cancel', variant = 'danger' }) => {
+  if (!isOpen) return null;
+
+  const handleConfirm = () => {
+    onConfirm();
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] overflow-y-auto" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title">
+      <div className="flex items-center justify-center min-h-screen px-4">
+        <div className="fixed inset-0 bg-black opacity-60" onClick={onClose} aria-hidden="true"></div>
+        <div className="relative bg-white rounded-lg shadow-2xl max-w-md w-full p-6">
+          <div className="flex items-start gap-4">
+            <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${
+              variant === 'danger' ? 'bg-red-100' :
+              variant === 'warning' ? 'bg-yellow-100' :
+              'bg-blue-100'
+            }`}>
+              {variant === 'danger' && <AlertTriangle className="w-6 h-6 text-red-600" />}
+              {variant === 'warning' && <AlertTriangle className="w-6 h-6 text-yellow-600" />}
+              {variant === 'info' && <Bell className="w-6 h-6 text-blue-600" />}
+            </div>
+            <div className="flex-1">
+              <h3 id="confirm-title" className="text-lg font-semibold text-gray-900 mb-2">
+                {title}
+              </h3>
+              <p className="text-sm text-gray-600">
+                {message}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-6 flex justify-end gap-3">
+            <Button variant="secondary" onClick={onClose}>
+              {cancelText}
+            </Button>
+            <Button variant={variant} onClick={handleConfirm}>
+              {confirmText}
+            </Button>
           </div>
         </div>
       </div>
@@ -2666,7 +2733,7 @@ const BillingModal = ({ user, plans, onClose, onSuccess, showToast }) => {
   };
 
   const selectedPlan = plans.find(p => p.id === formData.broadband_plan_id);
-  const totalDue = selectedPlan ? selectedPlan.price + parseInt(formData.old_pending_amount) : 0;
+  const totalDue = selectedPlan ? selectedPlan.price + Math.max(0, parseFloat(formData.old_pending_amount) || 0) : 0;
 
   return (
     <Modal isOpen={true} onClose={onClose} title="Billing Adjustment" size="max-w-4xl">
@@ -2942,7 +3009,7 @@ const BillingModal = ({ user, plans, onClose, onSuccess, showToast }) => {
             <div className="flex justify-between">
               <span className="text-orange-700">Old Pending:</span>
               <span className="font-medium text-orange-900">
-                ₹{parseInt(formData.old_pending_amount).toLocaleString()}
+                ₹{Math.max(0, parseFloat(formData.old_pending_amount) || 0).toLocaleString()}
               </span>
             </div>
             <div className="border-t border-orange-300 pt-2 flex justify-between text-base">
