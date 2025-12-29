@@ -827,31 +827,174 @@ const DashboardTab = ({ stats, users, plans, onRefresh, showToast }) => {
 };
 
 // ============================================
+// HELPER COMPONENTS FOR USERS TAB
+// ============================================
+
+// User Avatar Component
+const UserAvatar = ({ user, size = 'md', onClick }) => {
+  const sizeClasses = {
+    sm: 'w-8 h-8',
+    md: 'w-10 h-10',
+    lg: 'w-16 h-16',
+    xl: 'w-24 h-24'
+  };
+
+  const iconSizes = {
+    sm: 'w-4 h-4',
+    md: 'w-5 h-5',
+    lg: 'w-8 h-8',
+    xl: 'w-12 h-12'
+  };
+
+  if (user.photo) {
+    return (
+      <img
+        src={user.photo}
+        alt={user.name}
+        className={`${sizeClasses[size]} rounded-full object-cover ${onClick ? 'cursor-pointer hover:ring-2 hover:ring-indigo-500' : ''}`}
+        onClick={onClick}
+      />
+    );
+  }
+
+  return (
+    <div
+      className={`${sizeClasses[size]} bg-orange-100 rounded-full flex items-center justify-center ${onClick ? 'cursor-pointer hover:ring-2 hover:ring-indigo-500' : ''}`}
+      onClick={onClick}
+    >
+      <Users className={`${iconSizes[size]} text-orange-600`} />
+    </div>
+  );
+};
+
+// Editable Amount Cell Component
+const EditableAmountCell = ({ value, userId, onUpdate }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [amount, setAmount] = useState(value);
+  const [loading, setLoading] = useState(false);
+
+  const handleSave = async () => {
+    if (amount === value) {
+      setIsEditing(false);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('old_pending_amount', amount);
+
+      await api.put(`/api/users/${userId}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      onUpdate();
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Failed to update amount:', error);
+      setAmount(value);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (isEditing) {
+    return (
+      <div className="flex items-center gap-1">
+        <input
+          type="number"
+          value={amount}
+          onChange={(e) => setAmount(Number(e.target.value))}
+          className="w-20 px-2 py-1 text-sm border border-gray-300 rounded"
+          autoFocus
+          onBlur={handleSave}
+          onKeyPress={(e) => e.key === 'Enter' && handleSave()}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="text-sm font-medium text-gray-900 cursor-pointer hover:text-indigo-600"
+      onClick={() => setIsEditing(true)}
+      title="Click to edit"
+    >
+      ₹{value}
+    </div>
+  );
+};
+
+// Avatar Modal Component
+const AvatarModal = ({ user, onClose }) => {
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={onClose}>
+      <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-900">{user.name}'s Profile Photo</h3>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+        <div className="flex justify-center">
+          {user.photo ? (
+            <img
+              src={user.photo}
+              alt={user.name}
+              className="max-w-full max-h-96 rounded-lg object-contain"
+            />
+          ) : (
+            <div className="w-64 h-64 bg-gray-100 rounded-lg flex items-center justify-center">
+              <Users className="w-32 h-32 text-gray-400" />
+            </div>
+          )}
+        </div>
+        <div className="mt-4 text-center text-sm text-gray-600">
+          <p>CS ID: {user.cs_id}</p>
+          <p>Email: {user.email}</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ============================================
 // USERS TAB
 // ============================================
 
 const UsersTab = ({ users, plans, onRefresh, showToast }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
+  const [paymentFilter, setPaymentFilter] = useState('All');
+  const [currentPage, setCurrentPage] = useState(1);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showBillingModal, setShowBillingModal] = useState(false);
+  const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const itemsPerPage = 5;
 
   const filteredUsers = users.filter(user => {
-    const matchesSearch = 
+    const matchesSearch =
       user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.phone.includes(searchTerm) ||
-      user.cs_id.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesFilter = 
-      filterStatus === 'all' ||
-      (filterStatus === 'active' && user.is_plan_active) ||
-      (filterStatus === 'expired' && !user.is_plan_active) ||
-      (filterStatus === 'pending' && user.payment_status === 'Pending');
-    
+      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.cs_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.address.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesFilter = paymentFilter === 'All' || user.payment_status === paymentFilter;
+
     return matchesSearch && matchesFilter;
   });
+
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+  const paginatedUsers = filteredUsers.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   const handleAddUser = () => {
     setShowAddModal(true);
@@ -891,103 +1034,263 @@ const UsersTab = ({ users, plans, onRefresh, showToast }) => {
     }
   };
 
+  const handleGenerateInvoice = async (userId) => {
+    try {
+      const response = await api.post(`/api/invoice/generate/${userId}`, {}, {
+        responseType: 'blob'
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `invoice_${userId}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      showToast('Invoice generated successfully', 'success');
+    } catch (error) {
+      showToast('Failed to generate invoice', 'error');
+    }
+  };
+
+  const handleExportUsers = async () => {
+    try {
+      const response = await api.get('/api/export/users', {
+        responseType: 'blob'
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `users_${new Date().toISOString().split('T')[0]}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      showToast('Users exported successfully', 'success');
+    } catch (error) {
+      showToast('Failed to export users', 'error');
+    }
+  };
+
+  const handleExportFinancialReport = async () => {
+    try {
+      const response = await api.get('/api/export/financial-report', {
+        responseType: 'blob'
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `financial_report_${new Date().toISOString().split('T')[0]}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      showToast('Financial report exported successfully', 'success');
+    } catch (error) {
+      showToast('Failed to export financial report', 'error');
+    }
+  };
+
+  const getPaymentStatusBadge = (status) => {
+    switch (status) {
+      case 'Pending':
+        return <Badge variant="warning">⏳ Pending</Badge>;
+      case 'VerifiedByCash':
+        return <Badge variant="success">💵 Cash</Badge>;
+      case 'VerifiedByUpi':
+        return <Badge variant="info">📱 UPI</Badge>;
+      default:
+        return <Badge>{status}</Badge>;
+    }
+  };
+
+  const getExpiryBadge = (user) => {
+    if (!user.is_plan_active) {
+      return <Badge variant="danger">Expired</Badge>;
+    }
+
+    if (!user.plan_expiry_date) {
+      return <Badge variant="info">Active</Badge>;
+    }
+
+    const today = new Date();
+    const expiry = new Date(user.plan_expiry_date);
+    const daysUntilExpiry = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+
+    if (daysUntilExpiry <= 0) {
+      return <Badge variant="danger">Expired</Badge>;
+    } else if (daysUntilExpiry <= 7) {
+      return <Badge variant="warning">Expires in {daysUntilExpiry}d</Badge>;
+    } else {
+      return <Badge variant="success">Active</Badge>;
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">User Management</h1>
-          <p className="text-gray-600 mt-1">{users.length} total users</p>
-        </div>
-        <div className="flex gap-2 sm:gap-3">
-          <Button variant="outline" onClick={onRefresh} className="flex-1 sm:flex-none">
-            <RefreshCw className="w-4 h-4 sm:mr-2" />
-            <span className="hidden sm:inline">Refresh</span>
-          </Button>
-          <Button onClick={handleAddUser} className="flex-1 sm:flex-none">
-            <Plus className="w-4 h-4 sm:mr-2" />
-            <span className="hidden sm:inline">Add User</span>
-          </Button>
+      <div className="flex justify-between items-center flex-wrap gap-3">
+        <h2 className="text-2xl font-bold text-gray-800">Broadband User List</h2>
+        <div className="flex space-x-2 flex-wrap gap-2">
+          <button
+            onClick={handleExportUsers}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg flex items-center hover:bg-green-700 shadow-sm transition-all text-sm"
+          >
+            <FileText className="w-4 h-4 mr-2" /> Export to Excel
+          </button>
+          <button
+            onClick={handleExportFinancialReport}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center hover:bg-blue-700 shadow-sm transition-all text-sm"
+          >
+            <BarChart3 className="w-4 h-4 mr-2" /> Financial Report
+          </button>
+          <button
+            onClick={handleAddUser}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg flex items-center hover:bg-indigo-700 shadow-sm transition-all"
+          >
+            <Plus className="w-4 h-4 mr-2" /> New Connection
+          </button>
         </div>
       </div>
 
       {/* Filters */}
       <Card className="p-4">
-        <div className="flex flex-col sm:flex-row gap-4">
-          {/* Search */}
-          <div className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <input
-                type="text"
-                placeholder="Search by name, mobile, or customer ID..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-              />
-            </div>
+        <div className="flex flex-col md:flex-row gap-4 mb-4">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-2.5 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search by name, phone, email, CS ID, or address..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+            />
           </div>
-
-          {/* Status Filter */}
-          <div className="flex gap-2">
-            <button
-              onClick={() => setFilterStatus('all')}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                filterStatus === 'all'
-                  ? 'bg-orange-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+          <div className="flex items-center space-x-2">
+            <Filter className="w-5 h-5 text-gray-400" />
+            <select
+              value={paymentFilter}
+              onChange={(e) => setPaymentFilter(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
             >
-              All ({users.length})
-            </button>
-            <button
-              onClick={() => setFilterStatus('active')}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                filterStatus === 'active'
-                  ? 'bg-green-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              Active ({users.filter(u => u.is_plan_active).length})
-            </button>
-            <button
-              onClick={() => setFilterStatus('expired')}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                filterStatus === 'expired'
-                  ? 'bg-red-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              Expired ({users.filter(u => !u.is_plan_active).length})
-            </button>
-            <button
-              onClick={() => setFilterStatus('pending')}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                filterStatus === 'pending'
-                  ? 'bg-yellow-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              Pending ({users.filter(u => u.payment_status === 'Pending').length})
-            </button>
+              <option value="All">All Payments</option>
+              <option value="Pending">Pending</option>
+              <option value="VerifiedByCash">Verified (Cash)</option>
+              <option value="VerifiedByUpi">Verified (UPI)</option>
+            </select>
           </div>
         </div>
-      </Card>
 
-      {/* Users Table */}
-      <Card className="p-6">
-        {filteredUsers.length === 0 ? (
-          <EmptyState
-            icon={Users}
-            title="No users found"
-            description={searchTerm ? "Try adjusting your search" : "Start by adding your first user"}
-            action={!searchTerm && <Button onClick={handleAddUser}>Add User</Button>}
-          />
-        ) : (
-          <>
-            {/* Mobile Card View */}
-            <div className="block lg:hidden space-y-4">
-              {filteredUsers.map((user) => {
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-bold uppercase">User</th>
+                <th className="px-4 py-3 text-left text-xs font-bold uppercase">Contact</th>
+                <th className="px-4 py-3 text-left text-xs font-bold uppercase">Plan</th>
+                <th className="px-4 py-3 text-left text-xs font-bold uppercase">Payment</th>
+                <th className="px-4 py-3 text-left text-xs font-bold uppercase">Old Pending</th>
+                <th className="px-4 py-3 text-left text-xs font-bold uppercase">Due Date</th>
+                <th className="px-4 py-3 text-left text-xs font-bold uppercase">Plan Status</th>
+                <th className="px-4 py-3 text-center text-xs font-bold uppercase">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {paginatedUsers.map((user) => {
+                const plan = plans.find(p => p.id === user.broadband_plan_id);
+                return (
+                  <tr key={user.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center space-x-3">
+                        <UserAvatar
+                          user={user}
+                          size="md"
+                          onClick={() => { setSelectedUser(user); setShowAvatarModal(true); }}
+                        />
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{user.name}</p>
+                          <p className="text-xs text-gray-500">CS: {user.cs_id}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <p className="text-sm text-gray-900">{user.phone}</p>
+                      <p className="text-xs text-gray-500">{user.email}</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <p className="text-sm font-medium text-gray-900">{plan?.name || 'N/A'}</p>
+                      <p className="text-xs text-gray-500">₹{plan?.price || 0}/mo</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      {getPaymentStatusBadge(user.payment_status)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <EditableAmountCell
+                        value={user.old_pending_amount || 0}
+                        userId={user.id}
+                        onUpdate={onRefresh}
+                      />
+                    </td>
+                    <td className="px-4 py-3">
+                      <p className="text-sm text-gray-900">{user.payment_due_date}</p>
+                      {user.plan_expiry_date && (
+                        <p className="text-xs text-gray-500">Exp: {user.plan_expiry_date}</p>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {getExpiryBadge(user)}
+                      {!user.is_plan_active && (
+                        <button
+                          onClick={() => handleRenewPlan(user)}
+                          className="ml-2 text-xs font-bold text-green-600 hover:text-green-800 border border-green-300 hover:border-green-500 px-2 py-1 rounded transition-all"
+                        >
+                          RENEW
+                        </button>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-center space-x-1">
+                        <button
+                          onClick={() => handleEditUser(user)}
+                          className="text-indigo-600 hover:text-indigo-800 text-[10px] font-bold border border-indigo-200 hover:border-indigo-400 px-2 py-1 rounded transition-all"
+                          title="Edit User"
+                        >
+                          EDIT
+                        </button>
+                        <button
+                          onClick={() => handleBilling(user)}
+                          className="text-blue-600 hover:text-blue-800 text-[10px] font-bold border border-blue-200 hover:border-blue-400 px-2 py-1 rounded transition-all"
+                          title="Update Billing"
+                        >
+                          BILLING
+                        </button>
+                        <button
+                          onClick={() => handleGenerateInvoice(user.id)}
+                          className="text-purple-600 hover:text-purple-800 text-[10px] font-bold border border-purple-200 hover:border-purple-400 px-2 py-1 rounded transition-all"
+                          title="Generate Invoice"
+                        >
+                          INVOICE
+                        </button>
+                        <button
+                          onClick={() => handleDeleteUser(user.id)}
+                          className="text-red-600 hover:text-red-800 text-[10px] font-bold border border-red-200 hover:border-red-400 px-2 py-1 rounded transition-all"
+                          title="Delete User"
+                        >
+                          DELETE
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Mobile Card View */}
+        <div className="md:hidden space-y-4">
+          {paginatedUsers.map((user) => {
                 const plan = plans.find(p => p.id === user.broadband_plan_id);
                 return (
                   <div key={user.id} className="bg-white border border-gray-200 rounded-lg p-4">
@@ -1032,13 +1335,7 @@ const UsersTab = ({ users, plans, onRefresh, showToast }) => {
                       <div>
                         <span className="text-gray-600">Payment:</span>
                         <div className="mt-1">
-                          <Badge variant={
-                            user.payment_status === 'Pending' ? 'warning' :
-                            user.payment_status === 'VerifiedByCash' ? 'success' :
-                            user.payment_status === 'VerifiedByUpi' ? 'info' : 'default'
-                          }>
-                            {user.payment_status}
-                          </Badge>
+                          {getPaymentStatusBadge(user.payment_status)}
                         </div>
                       </div>
                       {user.old_pending_amount > 0 && (
@@ -1089,126 +1386,32 @@ const UsersTab = ({ users, plans, onRefresh, showToast }) => {
               })}
             </div>
 
-            {/* Desktop Table View */}
-            <div className="hidden lg:block overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Customer
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Contact
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Plan Details
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Payment
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredUsers.map((user) => {
-                    const plan = plans.find(p => p.id === user.broadband_plan_id);
-                    return (
-                      <tr key={user.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
-                              <Users className="w-5 h-5 text-orange-600" />
-                            </div>
-                            <div className="ml-4">
-                              <div className="text-sm font-medium text-gray-900">{user.name}</div>
-                              <div className="text-sm text-gray-500">{user.cs_id}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900 flex items-center gap-2">
-                            <Phone className="w-4 h-4 text-gray-400" />
-                            {user.phone}
-                          </div>
-                          <div className="text-sm text-gray-500 flex items-center gap-2">
-                            <Mail className="w-4 h-4 text-gray-400" />
-                            {user.email}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">
-                            {plan ? plan.name : 'No Plan'}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            Expires: {user.plan_expiry_date}
-                          </div>
-                          {user.old_pending_amount > 0 && (
-                            <div className="text-xs text-red-600 font-medium mt-1">
-                              Pending: ₹{user.old_pending_amount}
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <Badge variant={
-                            user.payment_status === 'Pending' ? 'warning' :
-                            user.payment_status === 'VerifiedByCash' ? 'success' :
-                            user.payment_status === 'VerifiedByUpi' ? 'info' : 'default'
-                          }>
-                            {user.payment_status}
-                          </Badge>
-                          <div className="text-xs text-gray-500 mt-1">
-                            Due: {user.payment_due_date}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <Badge variant={user.is_plan_active ? 'success' : 'danger'}>
-                            {user.status}
-                          </Badge>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => handleBilling(user)}
-                              className="text-orange-600 hover:text-orange-900"
-                              title="Billing"
-                            >
-                              <CreditCard className="w-5 h-5" />
-                            </button>
-                            <button
-                              onClick={() => handleEditUser(user)}
-                              className="text-blue-600 hover:text-blue-900"
-                              title="Edit"
-                            >
-                              <Edit2 className="w-5 h-5" />
-                            </button>
-                            <button
-                              onClick={() => handleRenewPlan(user)}
-                              className="text-green-600 hover:text-green-900"
-                              title="Renew"
-                            >
-                              <RefreshCw className="w-5 h-5" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteUser(user.id)}
-                              className="text-red-600 hover:text-red-900"
-                              title="Delete"
-                            >
-                              <Trash2 className="w-5 h-5" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="mt-4 flex items-center justify-between border-t border-gray-200 pt-4">
+            <p className="text-sm text-gray-500">
+              Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredUsers.length)} of {filteredUsers.length} users
+            </p>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <span className="px-4 py-1 border border-gray-300 rounded-lg bg-white">
+                {currentPage} / {totalPages}
+              </span>
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
             </div>
-          </>
+          </div>
         )}
       </Card>
 
@@ -1258,6 +1461,16 @@ const UsersTab = ({ users, plans, onRefresh, showToast }) => {
             showToast('Billing updated successfully', 'success');
           }}
           showToast={showToast}
+        />
+      )}
+
+      {showAvatarModal && selectedUser && (
+        <AvatarModal
+          user={selectedUser}
+          onClose={() => {
+            setShowAvatarModal(false);
+            setSelectedUser(null);
+          }}
         />
       )}
     </div>
