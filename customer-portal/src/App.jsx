@@ -8,6 +8,35 @@ import {
 } from 'lucide-react';
 
 // ============================================
+// UTILITY FUNCTIONS
+// ============================================
+
+const formatErrorMessage = (error) => {
+  // Handle Pydantic validation errors (array of error objects)
+  if (Array.isArray(error)) {
+    return error.map(err => err.msg || JSON.stringify(err)).join(', ');
+  }
+
+  // Handle error objects
+  if (typeof error === 'object' && error !== null) {
+    // If it has a message property
+    if (error.message) return error.message;
+    // If it has a msg property (Pydantic)
+    if (error.msg) return error.msg;
+    // If it has a detail property
+    if (error.detail) {
+      if (typeof error.detail === 'string') return error.detail;
+      return formatErrorMessage(error.detail);
+    }
+    // Last resort - stringify
+    return JSON.stringify(error);
+  }
+
+  // Already a string
+  return String(error || 'An error occurred');
+};
+
+// ============================================
 // UTILITY COMPONENTS
 // ============================================
 
@@ -170,7 +199,10 @@ function App() {
       await fetchUserData();
       showToast('Welcome back!', 'success');
     } catch (error) {
-      showToast(error.response?.data?.detail || 'Login failed', 'error');
+      const errorMsg = error.response?.data?.detail
+        ? formatErrorMessage(error.response.data.detail)
+        : 'Login failed';
+      showToast(errorMsg, 'error');
       throw error;
     }
   };
@@ -315,7 +347,10 @@ const LoginScreen = ({ onLogin }) => {
     try {
       await onLogin(mobile, password);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Login failed. Please check your credentials.');
+      const errorMsg = err.response?.data?.detail
+        ? formatErrorMessage(err.response.data.detail)
+        : 'Login failed. Please check your credentials.';
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -841,7 +876,10 @@ const PaymentModal = ({ bill, userData, onClose, onSuccess, showToast }) => {
 
       onSuccess();
     } catch (error) {
-      showToast(error.response?.data?.detail || 'Payment failed', 'error');
+      const errorMsg = error.response?.data?.detail
+        ? formatErrorMessage(error.response.data.detail)
+        : 'Payment failed';
+      showToast(errorMsg, 'error');
     } finally {
       setLoading(false);
     }
