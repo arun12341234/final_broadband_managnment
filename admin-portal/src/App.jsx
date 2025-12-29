@@ -323,12 +323,13 @@ function App() {
         </div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {activeTab === 'dashboard' && (
-            <DashboardTab 
-              stats={dashboardStats} 
+            <DashboardTab
+              stats={dashboardStats}
               users={users}
               plans={plans}
               onRefresh={fetchAllData}
               showToast={showToast}
+              setActiveTab={setActiveTab}
             />
           )}
           {activeTab === 'users' && (
@@ -583,13 +584,13 @@ const Sidebar = ({ activeTab, setActiveTab, onLogout, sidebarOpen, setSidebarOpe
 // DASHBOARD TAB
 // ============================================
 
-const DashboardTab = ({ stats, users, plans, onRefresh, showToast }) => {
+const DashboardTab = ({ stats, users, plans, onRefresh, showToast, setActiveTab }) => {
   if (!stats) return <LoadingSpinner />;
 
   const statCards = [
     {
       title: 'Total Users',
-      value: stats.total_users,
+      value: stats?.total_users || 0,
       icon: Users,
       color: 'bg-blue-100 text-blue-600',
       bgColor: 'bg-blue-50',
@@ -598,7 +599,7 @@ const DashboardTab = ({ stats, users, plans, onRefresh, showToast }) => {
     },
     {
       title: 'Active Connections',
-      value: stats.active_users,
+      value: stats?.active_users || 0,
       icon: Activity,
       color: 'bg-green-100 text-green-600',
       bgColor: 'bg-green-50',
@@ -607,7 +608,7 @@ const DashboardTab = ({ stats, users, plans, onRefresh, showToast }) => {
     },
     {
       title: 'Monthly Revenue',
-      value: `₹${stats.monthly_revenue.toLocaleString()}`,
+      value: `₹${(stats?.monthly_revenue || 0).toLocaleString()}`,
       icon: TrendingUp,
       color: 'bg-orange-100 text-orange-600',
       bgColor: 'bg-orange-50',
@@ -616,7 +617,7 @@ const DashboardTab = ({ stats, users, plans, onRefresh, showToast }) => {
     },
     {
       title: 'Pending Payments',
-      value: stats.pending_payments,
+      value: stats?.pending_payments || 0,
       icon: AlertTriangle,
       color: 'bg-red-100 text-red-600',
       bgColor: 'bg-red-50',
@@ -625,7 +626,7 @@ const DashboardTab = ({ stats, users, plans, onRefresh, showToast }) => {
     },
   ];
 
-  const recentUsers = users.slice(0, 5);
+  const recentUsers = (users || []).slice(0, 5);
 
   return (
     <div className="space-y-6">
@@ -677,7 +678,7 @@ const DashboardTab = ({ stats, users, plans, onRefresh, showToast }) => {
               <div>
                 <p className="text-sm text-gray-600">Monthly Revenue</p>
                 <p className="text-2xl font-bold text-green-600">
-                  ₹{stats.monthly_revenue.toLocaleString()}
+                  ₹{(stats?.monthly_revenue || 0).toLocaleString()}
                 </p>
               </div>
               <CheckCircle className="w-8 h-8 text-green-600" />
@@ -686,7 +687,7 @@ const DashboardTab = ({ stats, users, plans, onRefresh, showToast }) => {
               <div>
                 <p className="text-sm text-gray-600">Pending Collection</p>
                 <p className="text-2xl font-bold text-orange-600">
-                  ₹{stats.pending_collection.toLocaleString()}
+                  ₹{(stats?.pending_collection || 0).toLocaleString()}
                 </p>
               </div>
               <Clock className="w-8 h-8 text-orange-600" />
@@ -695,7 +696,7 @@ const DashboardTab = ({ stats, users, plans, onRefresh, showToast }) => {
               <div>
                 <p className="text-sm text-gray-600">Outstanding Debt</p>
                 <p className="text-2xl font-bold text-red-600">
-                  ₹{stats.total_old_debt.toLocaleString()}
+                  ₹{(stats?.total_old_debt || 0).toLocaleString()}
                 </p>
               </div>
               <AlertTriangle className="w-8 h-8 text-red-600" />
@@ -735,7 +736,7 @@ const DashboardTab = ({ stats, users, plans, onRefresh, showToast }) => {
       <Card className="p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-900">Recent Users</h3>
-          <Button variant="outline" onClick={() => {}}>
+          <Button variant="outline" onClick={() => setActiveTab('users')}>
             View All
           </Button>
         </div>
@@ -1028,13 +1029,13 @@ const UsersTab = ({ users, plans, onRefresh, showToast }) => {
   const filteredUsers = useMemo(() => {
     return users.filter(user => {
       const matchesSearch =
-        user.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-        user.phone.includes(debouncedSearchTerm) ||
-        user.email.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-        user.cs_id.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-        user.address.toLowerCase().includes(debouncedSearchTerm.toLowerCase());
+        (user?.name || '').toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+        (user?.phone || '').includes(debouncedSearchTerm) ||
+        (user?.email || '').toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+        (user?.cs_id || '').toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+        (user?.address || '').toLowerCase().includes(debouncedSearchTerm.toLowerCase());
 
-      const matchesFilter = paymentFilter === 'All' || user.payment_status === paymentFilter;
+      const matchesFilter = paymentFilter === 'All' || user?.payment_status === paymentFilter;
 
       return matchesSearch && matchesFilter;
     });
@@ -1444,7 +1445,7 @@ const UsersTab = ({ users, plans, onRefresh, showToast }) => {
         {totalPages > 1 && (
           <div className="mt-4 flex items-center justify-between border-t border-gray-200 pt-4">
             <p className="text-sm text-gray-500">
-              Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredUsers.length)} of {filteredUsers.length} users
+              Showing {((currentPage - 1) * PAGINATION.ITEMS_PER_PAGE) + 1} to {Math.min(currentPage * PAGINATION.ITEMS_PER_PAGE, filteredUsers.length)} of {filteredUsers.length} users
             </p>
             <div className="flex space-x-2">
               <button
@@ -4059,11 +4060,12 @@ const BillingTab = ({ billingHistory, users, plans, onRefresh, showToast }) => {
     let filtered = billingHistory.filter(record => {
       const user = userMap[record.user_id];
       const matchesSearch =
-        (user && user.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase())) ||
-        (user && user.cs_id.toLowerCase().includes(debouncedSearchTerm.toLowerCase())) ||
-        record.admin_email.toLowerCase().includes(debouncedSearchTerm.toLowerCase());
+        !debouncedSearchTerm ||
+        (user?.name || '').toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+        (user?.cs_id || '').toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+        (record?.admin_email || '').toLowerCase().includes(debouncedSearchTerm.toLowerCase());
 
-      const matchesChangeType = changeTypeFilter === 'all' || record.change_type === changeTypeFilter;
+      const matchesChangeType = changeTypeFilter === 'all' || record?.change_type === changeTypeFilter;
       const matchesDate = filterByDate(record);
 
       return matchesSearch && matchesChangeType && matchesDate;
@@ -4072,14 +4074,14 @@ const BillingTab = ({ billingHistory, users, plans, onRefresh, showToast }) => {
     // Sort
     filtered.sort((a, b) => {
       if (sortBy === 'date_desc') {
-        return new Date(b.changed_at) - new Date(a.changed_at);
+        return new Date(b.changed_at || b.created_at) - new Date(a.changed_at || a.created_at);
       } else if (sortBy === 'date_asc') {
-        return new Date(a.changed_at) - new Date(b.changed_at);
+        return new Date(a.changed_at || a.created_at) - new Date(b.changed_at || b.created_at);
       } else if (sortBy === 'customer') {
         const userA = userMap[a.user_id];
         const userB = userMap[b.user_id];
-        const nameA = userA ? userA.name : '';
-        const nameB = userB ? userB.name : '';
+        const nameA = userA?.name || '';
+        const nameB = userB?.name || '';
         return nameA.localeCompare(nameB);
       }
       return 0;
@@ -4089,10 +4091,15 @@ const BillingTab = ({ billingHistory, users, plans, onRefresh, showToast }) => {
     const stats = {
       total: filtered.length,
       today: filtered.filter(r => {
-        const recordDate = new Date(r.changed_at);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        return recordDate >= today;
+        try {
+          const recordDate = new Date(r.changed_at || r.created_at);
+          if (isNaN(recordDate.getTime())) return false;
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          return recordDate >= today;
+        } catch (e) {
+          return false;
+        }
       }).length,
       paymentChanges: filtered.filter(r => r.change_type === 'payment_status').length,
       planChanges: filtered.filter(r => r.change_type === 'plan_change').length,
