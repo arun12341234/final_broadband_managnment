@@ -1107,8 +1107,14 @@ const TasksTab = ({ tasks, onRefresh, showToast }) => {
     if (!confirmAction) return;
 
     try {
-      await api.put(`/api/engineer/update-task/${confirmAction.taskId}`, {
-        status: confirmAction.newStatus
+      // Backend expects Form data, not JSON
+      const formData = new FormData();
+      formData.append('status', confirmAction.newStatus);
+
+      await api.put(`/api/engineer/update-task/${confirmAction.taskId}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
       });
 
       showToast('Task updated successfully!', 'success');
