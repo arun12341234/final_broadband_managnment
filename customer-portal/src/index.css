@@ -3,9 +3,15 @@
 @tailwind utilities;
 
 @layer components {
-  /* Input field styles */
+  /* Input field styles with better accessibility */
   .input {
-    @apply w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all;
+    @apply w-full px-4 py-2.5 border border-gray-300 rounded-lg
+           focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent
+           transition-all min-h-[44px];
+  }
+
+  .input:focus-visible {
+    @apply ring-2 ring-orange-500 ring-offset-2;
   }
 
   /* Label styles */
@@ -13,34 +19,106 @@
     @apply block text-sm font-medium text-gray-700 mb-2;
   }
 
-  /* Payment method button styles */
+  /* Payment method button styles with accessibility */
   .payment-method {
-    @apply w-full p-4 border-2 border-gray-200 rounded-lg hover:border-orange-300 hover:bg-orange-50 transition-all cursor-pointer flex items-center justify-between;
+    @apply w-full p-4 border-2 border-gray-200 rounded-lg
+           hover:border-orange-300 hover:bg-orange-50
+           transition-all cursor-pointer flex items-center justify-between
+           min-h-[56px];
+  }
+
+  .payment-method:focus-visible {
+    @apply ring-2 ring-orange-500 ring-offset-2 outline-none;
   }
 
   .payment-method.selected {
     @apply border-orange-500 bg-orange-50;
   }
 
-  /* Toast notification styles */
+  /* Button with proper touch targets */
+  .btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-colors duration-200
+           disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px];
+  }
+
+  .btn:focus-visible {
+    @apply ring-2 ring-offset-2 outline-none;
+  }
+
+  .btn-primary {
+    @apply btn bg-orange-600 hover:bg-orange-700 text-white;
+  }
+
+  .btn-primary:focus-visible {
+    @apply ring-orange-500;
+  }
+
+  .btn-secondary {
+    @apply btn bg-gray-200 hover:bg-gray-300 text-gray-800;
+  }
+
+  .btn-secondary:focus-visible {
+    @apply ring-gray-400;
+  }
+
+  /* Icon button with minimum touch target */
+  .icon-btn {
+    @apply p-2 rounded-lg transition-colors min-w-[44px] min-h-[44px]
+           flex items-center justify-center;
+  }
+
+  .icon-btn:focus-visible {
+    @apply ring-2 ring-orange-500 ring-offset-2 outline-none;
+  }
+
+  /* Toast notification styles with better colors */
   .toast {
-    @apply fixed bottom-4 right-4 bg-white rounded-lg shadow-2xl border p-4 max-w-sm w-full mx-4 z-50 animate-slide-up;
+    @apply fixed bottom-4 right-4 bg-white rounded-lg shadow-2xl border p-4
+           max-w-sm w-full mx-4 z-50 animate-slide-up;
   }
 
   .toast-success {
-    @apply border-green-200 bg-green-50;
+    @apply border-green-300 bg-green-50;
   }
 
   .toast-error {
-    @apply border-red-200 bg-red-50;
+    @apply border-red-300 bg-red-50;
   }
 
   .toast-warning {
-    @apply border-yellow-200 bg-yellow-50;
+    @apply border-yellow-300 bg-yellow-50;
   }
 
   .toast-info {
-    @apply border-blue-200 bg-blue-50;
+    @apply border-blue-300 bg-blue-50;
+  }
+
+  /* Tab button with ARIA support */
+  .tab-button {
+    @apply px-4 py-3 font-medium border-b-2 transition-colors whitespace-nowrap
+           min-h-[48px] flex items-center;
+  }
+
+  .tab-button:focus-visible {
+    @apply ring-2 ring-orange-500 ring-inset outline-none;
+  }
+
+  .tab-button[aria-selected="true"] {
+    @apply border-orange-600 text-orange-600;
+  }
+
+  .tab-button[aria-selected="false"] {
+    @apply border-transparent text-gray-600 hover:text-gray-900;
+  }
+
+  /* Skip link for keyboard navigation */
+  .skip-link {
+    @apply absolute -top-10 left-0 bg-orange-600 text-white px-4 py-2
+           rounded-br-lg z-[100];
+  }
+
+  .skip-link:focus {
+    @apply top-0;
   }
 }
 
@@ -60,9 +138,91 @@
   animation: slide-up 0.3s ease-out;
 }
 
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Focus visible polyfill for better keyboard navigation */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 2px solid #ea580c;
+  outline-offset: 2px;
+}
+
+/* Improve button focus for accessibility */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  @apply ring-2 ring-orange-500 ring-offset-2;
+}
+
 /* Mobile responsive fixes */
 @media (max-width: 640px) {
   .toast {
     @apply left-4 right-4 bottom-4 max-w-none;
+  }
+
+  /* Ensure touch targets are large enough on mobile */
+  .tab-button {
+    @apply min-h-[48px];
+  }
+
+  .icon-btn {
+    @apply min-w-[48px] min-h-[48px];
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .btn-primary {
+    @apply border-2 border-white;
+  }
+
+  .tab-button[aria-selected="true"] {
+    @apply border-b-4;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Print styles */
+@media print {
+  .toast,
+  .skip-link,
+  button:not(.print-show) {
+    display: none !important;
   }
 }
