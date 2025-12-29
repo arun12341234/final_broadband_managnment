@@ -639,9 +639,63 @@ async def get_billing_history(
     db: Session = Depends(get_db)
 ):
     """Get all billing history"""
-    
+
     history = db.query(BillingHistory).order_by(BillingHistory.created_at.desc()).all()
     return history
+
+@app.put("/api/billing-history/{history_id}", response_model=BillingHistoryResponse, tags=["Billing"])
+async def update_billing_history(
+    history_id: int,
+    history_data: BillingHistoryUpdate,
+    current_admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """Update a billing history record"""
+
+    # Get the billing history record
+    record = db.query(BillingHistory).filter(BillingHistory.id == history_id).first()
+    if not record:
+        raise HTTPException(404, "Billing history record not found")
+
+    # Update fields that are provided
+    update_data = history_data.dict(exclude_unset=True)
+
+    for field, value in update_data.items():
+        setattr(record, field, value)
+
+    # Update plan names if plan IDs changed
+    if history_data.previous_plan_id is not None:
+        prev_plan = db.query(BroadbandPlan).filter(BroadbandPlan.id == history_data.previous_plan_id).first()
+        record.previous_plan_name = prev_plan.name if prev_plan else None
+
+    if history_data.new_plan_id is not None:
+        new_plan = db.query(BroadbandPlan).filter(BroadbandPlan.id == history_data.new_plan_id).first()
+        record.new_plan_name = new_plan.name if new_plan else None
+
+    db.commit()
+    db.refresh(record)
+
+    logger.info(f"Billing history record {history_id} updated by {current_admin.email}")
+    return record
+
+@app.delete("/api/billing-history/{history_id}", tags=["Billing"])
+async def delete_billing_history(
+    history_id: int,
+    current_admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """Delete a billing history record"""
+
+    # Get the billing history record
+    record = db.query(BillingHistory).filter(BillingHistory.id == history_id).first()
+    if not record:
+        raise HTTPException(404, "Billing history record not found")
+
+    db.delete(record)
+    db.commit()
+
+    logger.info(f"Billing history record {history_id} deleted by {current_admin.email}")
+    return {"message": "Billing history record deleted successfully"}
 
 # ============================================
 # ENGINEER MANAGEMENT

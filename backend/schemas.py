@@ -150,14 +150,29 @@ class BillingHistoryResponse(BaseModel):
     new_old_pending_amount: Optional[int]
     previous_payment_due_date: Optional[str]
     new_payment_due_date: Optional[str]
+    previous_plan_id: Optional[str]
+    new_plan_id: Optional[str]
     previous_plan_name: Optional[str]
     new_plan_name: Optional[str]
     change_type: str
     notes: Optional[str]
     created_at: datetime
-    
+
     class Config:
         from_attributes = True
+
+
+class BillingHistoryUpdate(BaseModel):
+    previous_payment_status: Optional[str] = None
+    new_payment_status: Optional[str] = None
+    previous_old_pending_amount: Optional[int] = None
+    new_old_pending_amount: Optional[int] = None
+    previous_payment_due_date: Optional[str] = None
+    new_payment_due_date: Optional[str] = None
+    previous_plan_id: Optional[str] = None
+    new_plan_id: Optional[str] = None
+    change_type: Optional[str] = None
+    notes: Optional[str] = None
 
 
 # ============================================

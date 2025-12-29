@@ -2308,12 +2308,287 @@ const EditUserModal = ({ user, plans, onClose, onSuccess, showToast }) => {
 };
 
 // ============================================
+// EDIT BILLING HISTORY MODAL
+// ============================================
+
+const EditBillingHistoryModal = ({ record, plans, onClose, onSuccess, showToast }) => {
+  const [formData, setFormData] = useState({
+    previous_payment_status: record.previous_payment_status || '',
+    new_payment_status: record.new_payment_status || '',
+    previous_old_pending_amount: record.previous_old_pending_amount || 0,
+    new_old_pending_amount: record.new_old_pending_amount || 0,
+    previous_payment_due_date: record.previous_payment_due_date || '',
+    new_payment_due_date: record.new_payment_due_date || '',
+    previous_plan_id: record.previous_plan_id || '',
+    new_plan_id: record.new_plan_id || '',
+    notes: record.notes || '',
+    change_type: record.change_type || 'billing_update'
+  });
+  const [loading, setLoading] = useState(false);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      // Update the billing history record
+      await api.put(`/api/billing-history/${record.id}`, formData);
+      onSuccess();
+    } catch (error) {
+      showToast(getErrorMessage(error), 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Modal isOpen={true} onClose={onClose} title="Edit Billing History Record" size="max-w-3xl">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Record Info */}
+        <div className="bg-purple-50 border border-purple-200 p-4 rounded-lg">
+          <div className="flex items-center gap-2 mb-2">
+            <History className="w-5 h-5 text-purple-600" />
+            <h4 className="font-medium text-purple-900">Record Information</h4>
+          </div>
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div>
+              <span className="text-purple-700">Date:</span>
+              <span className="ml-2 font-medium text-purple-900">{formatDateTime(record.created_at)}</span>
+            </div>
+            <div>
+              <span className="text-purple-700">Admin:</span>
+              <span className="ml-2 font-medium text-purple-900">{record.admin_email}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Change Type */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Change Type
+          </label>
+          <select
+            name="change_type"
+            value={formData.change_type}
+            onChange={handleChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+          >
+            <option value="billing_update">Billing Update</option>
+            <option value="payment_status">Payment Status</option>
+            <option value="plan_change">Plan Change</option>
+            <option value="amount_adjustment">Amount Adjustment</option>
+            <option value="renewal">Renewal</option>
+          </select>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Payment Status Section */}
+          <div className="md:col-span-2 bg-gray-50 p-4 rounded-lg">
+            <h5 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+              <ChevronRight className="w-4 h-4" />
+              Payment Status Change
+            </h5>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Previous Status
+                </label>
+                <select
+                  name="previous_payment_status"
+                  value={formData.previous_payment_status}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                >
+                  <option value="">None</option>
+                  <option value="Pending">Pending</option>
+                  <option value="VerifiedByCash">Verified By Cash</option>
+                  <option value="VerifiedByUpi">Verified By UPI</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  New Status
+                </label>
+                <select
+                  name="new_payment_status"
+                  value={formData.new_payment_status}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                >
+                  <option value="">None</option>
+                  <option value="Pending">Pending</option>
+                  <option value="VerifiedByCash">Verified By Cash</option>
+                  <option value="VerifiedByUpi">Verified By UPI</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Pending Amount Section */}
+          <div className="md:col-span-2 bg-gray-50 p-4 rounded-lg">
+            <h5 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+              <DollarSign className="w-4 h-4" />
+              Pending Amount Change
+            </h5>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Previous Amount (₹)
+                </label>
+                <input
+                  type="number"
+                  name="previous_old_pending_amount"
+                  value={formData.previous_old_pending_amount}
+                  onChange={handleChange}
+                  min="0"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  New Amount (₹)
+                </label>
+                <input
+                  type="number"
+                  name="new_old_pending_amount"
+                  value={formData.new_old_pending_amount}
+                  onChange={handleChange}
+                  min="0"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Due Date Section */}
+          <div className="md:col-span-2 bg-gray-50 p-4 rounded-lg">
+            <h5 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+              <Calendar className="w-4 h-4" />
+              Payment Due Date Change
+            </h5>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Previous Due Date
+                </label>
+                <input
+                  type="date"
+                  name="previous_payment_due_date"
+                  value={formData.previous_payment_due_date}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  New Due Date
+                </label>
+                <input
+                  type="date"
+                  name="new_payment_due_date"
+                  value={formData.new_payment_due_date}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Plan Change Section */}
+          <div className="md:col-span-2 bg-gray-50 p-4 rounded-lg">
+            <h5 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+              <Wifi className="w-4 h-4" />
+              Plan Change
+            </h5>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Previous Plan
+                </label>
+                <select
+                  name="previous_plan_id"
+                  value={formData.previous_plan_id}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                >
+                  <option value="">None</option>
+                  {plans.map(plan => (
+                    <option key={plan.id} value={plan.id}>
+                      {plan.name} - ₹{plan.price}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  New Plan
+                </label>
+                <select
+                  name="new_plan_id"
+                  value={formData.new_plan_id}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                >
+                  <option value="">None</option>
+                  {plans.map(plan => (
+                    <option key={plan.id} value={plan.id}>
+                      {plan.name} - ₹{plan.price}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Notes
+            </label>
+            <textarea
+              name="notes"
+              value={formData.notes}
+              onChange={handleChange}
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+              placeholder="Add any notes about this billing adjustment..."
+            />
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex justify-end gap-3 pt-4 border-t">
+          <Button type="button" variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={loading}>
+            {loading ? (
+              <span className="flex items-center gap-2">
+                <Loader className="w-4 h-4 animate-spin" />
+                Saving...
+              </span>
+            ) : (
+              'Save Changes'
+            )}
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  );
+};
+
+// ============================================
 // BILLING MODAL
 // ============================================
 
 const BillingModal = ({ user, plans, onClose, onSuccess, showToast }) => {
   const currentPlan = plans.find(p => p.id === user.broadband_plan_id);
-  
+
   const [formData, setFormData] = useState({
     broadband_plan_id: user.broadband_plan_id,
     payment_status: user.payment_status,
@@ -2322,6 +2597,31 @@ const BillingModal = ({ user, plans, onClose, onSuccess, showToast }) => {
     plan_start_date: user.plan_start_date
   });
   const [loading, setLoading] = useState(false);
+  const [userBillingHistory, setUserBillingHistory] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [showHistorySection, setShowHistorySection] = useState(true);
+  const [editingHistoryRecord, setEditingHistoryRecord] = useState(null);
+
+  // Fetch billing history for this user
+  useEffect(() => {
+    fetchUserBillingHistory();
+  }, [user.id]);
+
+  const fetchUserBillingHistory = async () => {
+    setLoadingHistory(true);
+    try {
+      const response = await api.get(`/api/billing-history`);
+      // Filter history for this specific user
+      const userHistory = response.data.filter(record => record.user_id === user.id);
+      // Sort by created_at descending (newest first)
+      userHistory.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      setUserBillingHistory(userHistory);
+    } catch (error) {
+      console.error('Failed to fetch billing history:', error);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
 
   const handleChange = (e) => {
     setFormData({
@@ -2336,6 +2636,9 @@ const BillingModal = ({ user, plans, onClose, onSuccess, showToast }) => {
 
     try {
       await api.put(`/api/users/${user.id}/billing`, formData);
+      showToast('Billing updated successfully', 'success');
+      // Refresh billing history
+      await fetchUserBillingHistory();
       onSuccess();
     } catch (error) {
       showToast(error.response?.data?.detail || 'Failed to update billing', 'error');
@@ -2344,12 +2647,28 @@ const BillingModal = ({ user, plans, onClose, onSuccess, showToast }) => {
     }
   };
 
+  const handleEditHistoryRecord = (record) => {
+    setEditingHistoryRecord(record);
+  };
+
+  const handleDeleteHistoryRecord = async (recordId) => {
+    if (!window.confirm('Are you sure you want to delete this billing history record?')) return;
+
+    try {
+      await api.delete(`/api/billing-history/${recordId}`);
+      showToast('Billing history record deleted successfully', 'success');
+      await fetchUserBillingHistory();
+    } catch (error) {
+      showToast(getErrorMessage(error), 'error');
+    }
+  };
+
   const selectedPlan = plans.find(p => p.id === formData.broadband_plan_id);
   const totalDue = selectedPlan ? selectedPlan.price + parseInt(formData.old_pending_amount) : 0;
 
   return (
-    <Modal isOpen={true} onClose={onClose} title="Billing Adjustment" size="max-w-2xl">
-      <form onSubmit={handleSubmit} className="space-y-6">
+    <Modal isOpen={true} onClose={onClose} title="Billing Adjustment" size="max-w-4xl">
+      <div className="space-y-6">
         {/* User Info */}
         <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
           <h4 className="font-medium text-blue-900 mb-2">Customer Details</h4>
@@ -2375,9 +2694,149 @@ const BillingModal = ({ user, plans, onClose, onSuccess, showToast }) => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Plan Selection */}
-          <div className="md:col-span-2">
+        {/* Billing History Section */}
+        <div className="border border-gray-200 rounded-lg">
+          <div
+            className="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-4 rounded-t-lg cursor-pointer flex items-center justify-between"
+            onClick={() => setShowHistorySection(!showHistorySection)}
+          >
+            <div className="flex items-center gap-2">
+              <History className="w-5 h-5" />
+              <h4 className="font-medium">Billing History ({userBillingHistory.length} records)</h4>
+            </div>
+            <ChevronRight className={`w-5 h-5 transition-transform ${showHistorySection ? 'rotate-90' : ''}`} />
+          </div>
+
+          {showHistorySection && (
+            <div className="p-4 max-h-96 overflow-y-auto">
+              {loadingHistory ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader className="w-6 h-6 animate-spin text-purple-600" />
+                  <span className="ml-2 text-gray-600">Loading history...</span>
+                </div>
+              ) : userBillingHistory.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <FileText className="w-12 h-12 mx-auto mb-2 text-gray-400" />
+                  <p>No billing history found for this customer</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {userBillingHistory.map((record, index) => (
+                    <div
+                      key={record.id}
+                      className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow bg-white"
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Badge variant="default">{record.change_type || 'billing_update'}</Badge>
+                            <span className="text-xs text-gray-500">
+                              {formatDateTime(record.created_at)}
+                            </span>
+                          </div>
+                          <div className="text-xs text-gray-600">
+                            Admin: {record.admin_email}
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleEditHistoryRecord(record)}
+                            className="text-blue-600 hover:text-blue-800 p-1"
+                            title="Edit record"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteHistoryRecord(record.id)}
+                            className="text-red-600 hover:text-red-800 p-1"
+                            title="Delete record"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                        {/* Payment Status Change */}
+                        {record.previous_payment_status && record.new_payment_status && (
+                          <div className="bg-gray-50 p-2 rounded">
+                            <span className="text-gray-600 text-xs font-medium">Payment Status:</span>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Badge variant="warning" className="text-xs">{record.previous_payment_status}</Badge>
+                              <ChevronRight className="w-3 h-3 text-gray-400" />
+                              <Badge variant="success" className="text-xs">{record.new_payment_status}</Badge>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Pending Amount Change */}
+                        {(record.previous_old_pending_amount !== null || record.new_old_pending_amount !== null) && (
+                          <div className="bg-gray-50 p-2 rounded">
+                            <span className="text-gray-600 text-xs font-medium">Pending Amount:</span>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-xs font-medium text-gray-900">
+                                ₹{record.previous_old_pending_amount || 0}
+                              </span>
+                              <ChevronRight className="w-3 h-3 text-gray-400" />
+                              <span className="text-xs font-medium text-orange-600">
+                                ₹{record.new_old_pending_amount || 0}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Due Date Change */}
+                        {record.previous_payment_due_date && record.new_payment_due_date && (
+                          <div className="bg-gray-50 p-2 rounded">
+                            <span className="text-gray-600 text-xs font-medium">Due Date:</span>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-xs text-gray-900">{formatDate(record.previous_payment_due_date)}</span>
+                              <ChevronRight className="w-3 h-3 text-gray-400" />
+                              <span className="text-xs font-medium text-orange-600">{formatDate(record.new_payment_due_date)}</span>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Plan Change */}
+                        {record.previous_plan_name && record.new_plan_name && (
+                          <div className="bg-gray-50 p-2 rounded">
+                            <span className="text-gray-600 text-xs font-medium">Plan:</span>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-xs text-gray-900">{record.previous_plan_name}</span>
+                              <ChevronRight className="w-3 h-3 text-gray-400" />
+                              <span className="text-xs font-medium text-blue-600">{record.new_plan_name}</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {record.notes && (
+                        <div className="mt-3 pt-3 border-t border-gray-200">
+                          <span className="text-xs text-gray-600">Notes: </span>
+                          <span className="text-xs text-gray-900">{record.notes}</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Current Billing Adjustment Form */}
+        <div className="border-t-4 border-orange-500 pt-4">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <DollarSign className="w-5 h-5 text-orange-600" />
+            New Billing Adjustment
+          </h3>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Plan Selection */}
+              <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Broadband Plan
             </label>
@@ -2508,23 +2967,40 @@ const BillingModal = ({ user, plans, onClose, onSuccess, showToast }) => {
           </div>
         </div>
 
-        {/* Actions */}
-        <div className="flex justify-end gap-3 pt-4 border-t">
-          <Button type="button" variant="secondary" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={loading}>
-            {loading ? (
-              <span className="flex items-center gap-2">
-                <Loader className="w-4 h-4 animate-spin" />
-                Updating...
-              </span>
-            ) : (
-              'Update Billing'
-            )}
-          </Button>
+            {/* Actions */}
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <Button type="button" variant="secondary" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={loading}>
+                {loading ? (
+                  <span className="flex items-center gap-2">
+                    <Loader className="w-4 h-4 animate-spin" />
+                    Updating...
+                  </span>
+                ) : (
+                  'Update Billing'
+                )}
+              </Button>
+            </div>
+          </form>
         </div>
-      </form>
+      </div>
+
+      {/* Edit History Record Modal */}
+      {editingHistoryRecord && (
+        <EditBillingHistoryModal
+          record={editingHistoryRecord}
+          plans={plans}
+          onClose={() => setEditingHistoryRecord(null)}
+          onSuccess={() => {
+            setEditingHistoryRecord(null);
+            fetchUserBillingHistory();
+            showToast('Billing history updated successfully', 'success');
+          }}
+          showToast={showToast}
+        />
+      )}
     </Modal>
   );
 };
