@@ -1071,6 +1071,163 @@ const AvatarModal = ({ user, onClose }) => {
 };
 
 // ============================================
+// RENEW PLAN MODAL
+// ============================================
+
+const RenewPlanModal = ({ user, onClose, onSuccess, showToast }) => {
+  const [months, setMonths] = useState(1);
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const response = await api.post(`/api/users/${user.id}/renew`, { months: parseInt(months, 10) });
+      showToast(response.data.message || `Plan renewed for ${months} months`, 'success');
+      onSuccess();
+    } catch (error) {
+      showToast(getErrorMessage(error), 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const calculateNewExpiry = () => {
+    if (!user.plan_expiry_date) return 'N/A';
+    const currentExpiry = new Date(user.plan_expiry_date);
+    currentExpiry.setMonth(currentExpiry.getMonth() + parseInt(months, 10));
+    return currentExpiry.toLocaleDateString('en-IN', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  const renewalOptions = [
+    { value: 1, label: '1 Month', popular: false },
+    { value: 3, label: '3 Months', popular: true },
+    { value: 6, label: '6 Months', popular: true },
+    { value: 12, label: '12 Months', popular: false }
+  ];
+
+  return (
+    <Modal isOpen={true} onClose={onClose} title="Renew Plan" size="max-w-md">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* User Info */}
+        <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+          <h4 className="font-medium text-blue-900 mb-2">Customer Details</h4>
+          <div className="space-y-1 text-sm">
+            <div>
+              <span className="text-blue-700">Name:</span>
+              <span className="ml-2 font-medium text-blue-900">{user.name}</span>
+            </div>
+            <div>
+              <span className="text-blue-700">Customer ID:</span>
+              <span className="ml-2 font-medium text-blue-900">{user.cs_id}</span>
+            </div>
+            <div>
+              <span className="text-blue-700">Current Expiry:</span>
+              <span className="ml-2 font-medium text-blue-900">
+                {user.plan_expiry_date || 'N/A'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Renewal Duration */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-3">
+            Select Renewal Duration
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            {renewalOptions.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setMonths(option.value)}
+                className={`relative p-4 rounded-lg border-2 transition-all ${
+                  months === option.value
+                    ? 'border-orange-500 bg-orange-50'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                {option.popular && (
+                  <span className="absolute -top-2 -right-2 bg-orange-500 text-white text-xs px-2 py-0.5 rounded-full">
+                    Popular
+                  </span>
+                )}
+                <div className="text-center">
+                  <div className={`text-2xl font-bold ${
+                    months === option.value ? 'text-orange-600' : 'text-gray-900'
+                  }`}>
+                    {option.value}
+                  </div>
+                  <div className={`text-xs ${
+                    months === option.value ? 'text-orange-700' : 'text-gray-600'
+                  }`}>
+                    {option.value === 1 ? 'Month' : 'Months'}
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* New Expiry Date Preview */}
+        <div className="bg-green-50 border border-green-200 p-4 rounded-lg">
+          <div className="flex items-center gap-2 mb-2">
+            <Calendar className="w-5 h-5 text-green-600" />
+            <h4 className="font-medium text-green-900">New Expiry Date</h4>
+          </div>
+          <p className="text-2xl font-bold text-green-900">
+            {calculateNewExpiry()}
+          </p>
+          <p className="text-xs text-green-700 mt-1">
+            Extends from current expiry date
+          </p>
+        </div>
+
+        {/* Info */}
+        <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg">
+          <div className="flex gap-2">
+            <Info className="w-5 h-5 text-blue-600 flex-shrink-0" />
+            <div className="text-xs text-blue-800">
+              <p className="font-medium mb-1">Important Notes:</p>
+              <ul className="space-y-0.5">
+                <li>• Renewal extends from current expiry date</li>
+                <li>• Plan status will be set to "Active"</li>
+                <li>• Customer will receive confirmation notification</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex justify-end gap-3 pt-4 border-t">
+          <Button type="button" variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={loading} variant="success">
+            {loading ? (
+              <span className="flex items-center gap-2">
+                <Loader className="w-4 h-4 animate-spin" />
+                Renewing...
+              </span>
+            ) : (
+              <span className="flex items-center gap-2">
+                <RefreshCw className="w-4 h-4" />
+                Renew Plan
+              </span>
+            )}
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  );
+};
+
+// ============================================
 // USERS TAB
 // ============================================
 
@@ -1081,6 +1238,7 @@ const UsersTab = ({ users, plans, onRefresh, showToast }) => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showBillingModal, setShowBillingModal] = useState(false);
+  const [showRenewModal, setShowRenewModal] = useState(false);
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
 
@@ -1132,6 +1290,11 @@ const UsersTab = ({ users, plans, onRefresh, showToast }) => {
     setShowBillingModal(true);
   };
 
+  const handleRenewPlan = (user) => {
+    setSelectedUser(user);
+    setShowRenewModal(true);
+  };
+
   const handleDeleteUser = async (userId) => {
     if (!window.confirm('Are you sure you want to delete this user?')) return;
 
@@ -1144,7 +1307,7 @@ const UsersTab = ({ users, plans, onRefresh, showToast }) => {
     }
   };
 
-  const handleRenewPlan = async (user) => {
+  const handleRenewPlanOld = async (user) => {
     if (!window.confirm(`Renew plan for ${user.name} for 1 month?`)) return;
 
     try {
@@ -1388,6 +1551,13 @@ const UsersTab = ({ users, plans, onRefresh, showToast }) => {
                           BILLING
                         </button>
                         <button
+                          onClick={() => handleRenewPlan(user)}
+                          className="text-green-600 hover:text-green-800 text-[10px] font-bold border border-green-200 hover:border-green-400 px-2 py-1 rounded transition-all"
+                          title="Renew Plan"
+                        >
+                          RENEW
+                        </button>
+                        <button
                           onClick={() => handleGenerateInvoice(user.id)}
                           className="text-purple-600 hover:text-purple-800 text-[10px] font-bold border border-purple-200 hover:border-purple-400 px-2 py-1 rounded transition-all"
                           title="Generate Invoice"
@@ -1581,6 +1751,22 @@ const UsersTab = ({ users, plans, onRefresh, showToast }) => {
             setSelectedUser(null);
             onRefresh();
             showToast('Billing updated successfully', 'success');
+          }}
+          showToast={showToast}
+        />
+      )}
+
+      {showRenewModal && selectedUser && (
+        <RenewPlanModal
+          user={selectedUser}
+          onClose={() => {
+            setShowRenewModal(false);
+            setSelectedUser(null);
+          }}
+          onSuccess={() => {
+            setShowRenewModal(false);
+            setSelectedUser(null);
+            onRefresh();
           }}
           showToast={showToast}
         />
