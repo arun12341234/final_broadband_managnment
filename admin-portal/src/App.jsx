@@ -3807,38 +3807,48 @@ const EngineersTab = ({ engineers, onRefresh, showToast }) => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedEngineer, setSelectedEngineer] = useState(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [engineerToDelete, setEngineerToDelete] = useState(null);
 
   const handleEditEngineer = (engineer) => {
     setSelectedEngineer(engineer);
     setShowEditModal(true);
   };
 
-  const handleDeleteEngineer = async (engineerId) => {
-    if (!window.confirm('Are you sure you want to delete this engineer?')) return;
+  const handleDeleteClick = (engineer) => {
+    setEngineerToDelete(engineer);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!engineerToDelete) return;
 
     try {
-      await api.delete(`/api/engineers/${engineerId}`);
+      await api.delete(`/api/engineers/${engineerToDelete.id}`);
       showToast('Engineer deleted successfully', 'success');
       onRefresh();
     } catch (error) {
       showToast(error.response?.data?.detail || 'Failed to delete engineer', 'error');
+    } finally {
+      setShowDeleteConfirm(false);
+      setEngineerToDelete(null);
     }
   };
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Field Engineers</h1>
-          <p className="text-gray-600 mt-1">{engineers.length} total engineers</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Field Engineers</h1>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">{engineers.length} total engineers</p>
         </div>
-        <div className="flex gap-3">
-          <Button variant="outline" onClick={onRefresh}>
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+          <Button variant="outline" onClick={onRefresh} className="w-full sm:w-auto">
             <RefreshCw className="w-4 h-4 mr-2" />
             Refresh
           </Button>
-          <Button onClick={() => setShowAddModal(true)}>
+          <Button onClick={() => setShowAddModal(true)} className="w-full sm:w-auto">
             <Plus className="w-4 h-4 mr-2" />
             Add Engineer
           </Button>
@@ -3847,7 +3857,7 @@ const EngineersTab = ({ engineers, onRefresh, showToast }) => {
 
       {/* Engineers Grid */}
       {engineers.length === 0 ? (
-        <Card className="p-12">
+        <Card className="p-8 sm:p-12">
           <EmptyState
             icon={Wrench}
             title="No engineers yet"
@@ -3856,31 +3866,33 @@ const EngineersTab = ({ engineers, onRefresh, showToast }) => {
           />
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {engineers.map((engineer) => (
-            <Card key={engineer.id} className="p-6 hover:shadow-lg transition-shadow">
+            <Card key={engineer.id} className="p-4 sm:p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                    <Wrench className="w-6 h-6 text-blue-600" />
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <Wrench className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
                   </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900">{engineer.name}</h3>
-                    <Badge variant={engineer.status === 'Active' ? 'success' : 'danger'}>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate">{engineer.name}</h3>
+                    <Badge variant={engineer.status === 'Active' ? 'success' : engineer.status === 'On Leave' ? 'warning' : 'danger'}>
                       {engineer.status}
                     </Badge>
                   </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-shrink-0 ml-2">
                   <button
                     onClick={() => handleEditEngineer(engineer)}
-                    className="text-blue-600 hover:text-blue-900"
+                    className="text-blue-600 hover:text-blue-900 p-1"
+                    title="Edit Engineer"
                   >
                     <Edit2 className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => handleDeleteEngineer(engineer.id)}
-                    className="text-red-600 hover:text-red-900"
+                    onClick={() => handleDeleteClick(engineer)}
+                    className="text-red-600 hover:text-red-900 p-1"
+                    title="Delete Engineer"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -3889,35 +3901,35 @@ const EngineersTab = ({ engineers, onRefresh, showToast }) => {
 
               <div className="space-y-2 text-sm">
                 <div className="flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-gray-400" />
+                  <Phone className="w-4 h-4 text-gray-400 flex-shrink-0" />
                   <span className="text-gray-700">{engineer.mobile}</span>
                 </div>
                 {engineer.email && (
                   <div className="flex items-center gap-2">
-                    <Mail className="w-4 h-4 text-gray-400" />
-                    <span className="text-gray-700">{engineer.email}</span>
+                    <Mail className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                    <span className="text-gray-700 truncate">{engineer.email}</span>
                   </div>
                 )}
                 {engineer.specialization && (
                   <div className="flex items-center gap-2">
-                    <Wrench className="w-4 h-4 text-gray-400" />
-                    <span className="text-gray-700">{engineer.specialization}</span>
+                    <Wrench className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                    <span className="text-gray-700 truncate">{engineer.specialization}</span>
                   </div>
                 )}
                 <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-gray-400" />
+                  <Calendar className="w-4 h-4 text-gray-400 flex-shrink-0" />
                   <span className="text-gray-700">Joined: {engineer.joining_date}</span>
                 </div>
                 {engineer.emergency_contact && (
                   <div className="flex items-center gap-2">
-                    <Phone className="w-4 h-4 text-gray-400" />
+                    <Phone className="w-4 h-4 text-gray-400 flex-shrink-0" />
                     <span className="text-gray-700">Emergency: {engineer.emergency_contact}</span>
                   </div>
                 )}
                 {engineer.address && (
                   <div className="flex items-start gap-2 pt-2 border-t border-gray-200">
-                    <MapPin className="w-4 h-4 text-gray-400 mt-0.5" />
-                    <span className="text-gray-700 text-xs">{engineer.address}</span>
+                    <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                    <span className="text-gray-700 text-xs line-clamp-2">{engineer.address}</span>
                   </div>
                 )}
               </div>
@@ -3953,6 +3965,23 @@ const EngineersTab = ({ engineers, onRefresh, showToast }) => {
             showToast('Engineer updated successfully', 'success');
           }}
           showToast={showToast}
+        />
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {showDeleteConfirm && engineerToDelete && (
+        <ConfirmDialog
+          isOpen={showDeleteConfirm}
+          onClose={() => {
+            setShowDeleteConfirm(false);
+            setEngineerToDelete(null);
+          }}
+          onConfirm={handleConfirmDelete}
+          title="Delete Engineer"
+          message={`Are you sure you want to delete ${engineerToDelete.name}? This action cannot be undone.`}
+          confirmText="Delete"
+          cancelText="Cancel"
+          variant="danger"
         />
       )}
     </div>
