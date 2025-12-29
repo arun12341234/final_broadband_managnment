@@ -2278,6 +2278,7 @@ const AddUserModal = ({ plans, onClose, onSuccess, showToast }) => {
 
 const EditUserModal = ({ user, plans, onClose, onSuccess, showToast }) => {
   const [formData, setFormData] = useState({
+    cs_id: user.cs_id,
     name: user.name,
     phone: user.phone,
     email: user.email,
@@ -2392,15 +2393,26 @@ const EditUserModal = ({ user, plans, onClose, onSuccess, showToast }) => {
   return (
     <Modal isOpen={true} onClose={onClose} title="Edit User" size="max-w-3xl">
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* User Info Display */}
-        <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-orange-700 font-medium">Customer ID:</span>
-            <span className="font-bold text-orange-900">{user.cs_id}</span>
-          </div>
-        </div>
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Customer ID - Now Editable */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Customer ID *
+            </label>
+            <input
+              type="text"
+              name="cs_id"
+              value={formData.cs_id}
+              onChange={handleChange}
+              placeholder="CS_XXXX"
+              pattern="^CS_\d+$"
+              title="Customer ID must be in format CS_XXXX (e.g., CS_1234)"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              required
+            />
+            <p className="text-xs text-gray-500 mt-1">Format: CS_XXXX (e.g., CS_1234)</p>
+          </div>
+
           {/* Name */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">

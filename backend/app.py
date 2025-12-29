@@ -445,6 +445,7 @@ async def get_user(
 @app.put("/api/users/{user_id}", response_model=UserResponse, tags=["Users"])
 async def update_user(
     user_id: str,
+    cs_id: Optional[str] = Form(None),
     name: Optional[str] = Form(None),
     phone: Optional[str] = Form(None),
     email: Optional[str] = Form(None),
@@ -469,6 +470,16 @@ async def update_user(
         raise HTTPException(status_code=404, detail="User not found")
 
     # Update text fields
+    if cs_id and cs_id != user.cs_id:
+        # Validate CS ID format
+        import re
+        if not re.match(r'^CS_\d+$', cs_id):
+            raise HTTPException(status_code=400, detail="Customer ID must be in format CS_XXXX")
+        # Check if cs_id is taken by another user
+        existing = db.query(User).filter(User.cs_id == cs_id, User.id != user_id).first()
+        if existing:
+            raise HTTPException(status_code=400, detail=f"Customer ID {cs_id} already exists")
+        user.cs_id = cs_id
     if name:
         user.name = name
     if phone:
