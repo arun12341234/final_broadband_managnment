@@ -26,6 +26,7 @@ import {
   debounce,
   formatCurrency,
   formatDate,
+  formatDateTime,
   getDaysUntilExpiry,
   isExpiringSoon,
   isExpired,
@@ -3513,16 +3514,145 @@ const EditEngineerModal = ({ engineer, onClose, onSuccess, showToast }) => {
 
 const BillingTab = ({ billingHistory, users, plans, onRefresh, showToast }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [dateFilter, setDateFilter] = useState('all'); // all, today, week, month
+  const [changeTypeFilter, setChangeTypeFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [sortBy, setSortBy] = useState('date_desc'); // date_desc, date_asc, customer
 
-  const filteredHistory = billingHistory.filter(record => {
-    const user = users.find(u => u.id === record.user_id);
-    const matchesSearch = 
-      (user && user.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (user && user.cs_id.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      record.admin_email.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    return matchesSearch;
-  });
+  // Debounced search
+  const debouncedSearchTerm = useDebounce(searchTerm);
+
+  // Create user and plan lookup maps for O(1) access instead of O(n) find()
+  const userMap = useMemo(() => {
+    return users.reduce((map, user) => {
+      map[user.id] = user;
+      return map;
+    }, {});
+  }, [users]);
+
+  const planMap = useMemo(() => {
+    return plans.reduce((map, plan) => {
+      map[plan.id] = plan;
+      return map;
+    }, {});
+  }, [plans]);
+
+  // Helper function to get change type label
+  const getChangeTypeLabel = (changeType) => {
+    const labels = {
+      payment_status: 'Payment Status',
+      plan_change: 'Plan Change',
+      amount_adjustment: 'Amount Adjustment',
+      renewal: 'Plan Renewal',
+    };
+    return labels[changeType] || changeType;
+  };
+
+  // Filter by date range
+  const filterByDate = useCallback((record) => {
+    if (dateFilter === 'all') return true;
+
+    const recordDate = new Date(record.changed_at);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    switch (dateFilter) {
+      case 'today':
+        return recordDate >= today;
+      case 'week':
+        const weekAgo = new Date(today);
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        return recordDate >= weekAgo;
+      case 'month':
+        const monthAgo = new Date(today);
+        monthAgo.setMonth(monthAgo.getMonth() - 1);
+        return recordDate >= monthAgo;
+      default:
+        return true;
+    }
+  }, [dateFilter]);
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchTerm, dateFilter, changeTypeFilter]);
+
+  // Memoized filtered and sorted history
+  const { filteredHistory, statistics } = useMemo(() => {
+    let filtered = billingHistory.filter(record => {
+      const user = userMap[record.user_id];
+      const matchesSearch =
+        (user && user.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase())) ||
+        (user && user.cs_id.toLowerCase().includes(debouncedSearchTerm.toLowerCase())) ||
+        record.admin_email.toLowerCase().includes(debouncedSearchTerm.toLowerCase());
+
+      const matchesChangeType = changeTypeFilter === 'all' || record.change_type === changeTypeFilter;
+      const matchesDate = filterByDate(record);
+
+      return matchesSearch && matchesChangeType && matchesDate;
+    });
+
+    // Sort
+    filtered.sort((a, b) => {
+      if (sortBy === 'date_desc') {
+        return new Date(b.changed_at) - new Date(a.changed_at);
+      } else if (sortBy === 'date_asc') {
+        return new Date(a.changed_at) - new Date(b.changed_at);
+      } else if (sortBy === 'customer') {
+        const userA = userMap[a.user_id];
+        const userB = userMap[b.user_id];
+        const nameA = userA ? userA.name : '';
+        const nameB = userB ? userB.name : '';
+        return nameA.localeCompare(nameB);
+      }
+      return 0;
+    });
+
+    // Calculate statistics
+    const stats = {
+      total: filtered.length,
+      today: filtered.filter(r => {
+        const recordDate = new Date(r.changed_at);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return recordDate >= today;
+      }).length,
+      paymentChanges: filtered.filter(r => r.change_type === 'payment_status').length,
+      planChanges: filtered.filter(r => r.change_type === 'plan_change').length,
+    };
+
+    return { filteredHistory: filtered, statistics: stats };
+  }, [billingHistory, userMap, debouncedSearchTerm, changeTypeFilter, dateFilter, filterByDate, sortBy]);
+
+  // Pagination
+  const { totalPages, paginatedHistory } = useMemo(() => {
+    const total = Math.ceil(filteredHistory.length / PAGINATION.ITEMS_PER_PAGE);
+    const paginated = filteredHistory.slice(
+      (currentPage - 1) * PAGINATION.ITEMS_PER_PAGE,
+      currentPage * PAGINATION.ITEMS_PER_PAGE
+    );
+    return { totalPages: total, paginatedHistory: paginated };
+  }, [filteredHistory, currentPage]);
+
+  // Export billing history
+  const handleExportBillingHistory = async () => {
+    try {
+      const response = await api.get('/api/export/billing-history', {
+        responseType: 'blob'
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `billing_history_${new Date().toISOString().split('T')[0]}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      showToast('Billing history exported successfully', 'success');
+    } catch (error) {
+      showToast('Failed to export billing history', 'error');
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -3532,29 +3662,117 @@ const BillingTab = ({ billingHistory, users, plans, onRefresh, showToast }) => {
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Billing History</h1>
           <p className="text-gray-600 mt-1">{billingHistory.length} total records</p>
         </div>
-        <Button variant="outline" onClick={onRefresh}>
-          <RefreshCw className="w-4 h-4 sm:mr-2" />
-          <span className="hidden sm:inline">Refresh</span>
-        </Button>
+        <div className="flex gap-2 flex-wrap">
+          <Button variant="success" onClick={handleExportBillingHistory}>
+            <Download className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline">Export Excel</span>
+          </Button>
+          <Button variant="outline" onClick={onRefresh}>
+            <RefreshCw className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline">Refresh</span>
+          </Button>
+        </div>
       </div>
 
-      {/* Search */}
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-blue-700">Total Changes</p>
+              <p className="text-2xl font-bold text-blue-900 mt-1">{statistics.total}</p>
+            </div>
+            <Activity className="w-10 h-10 text-blue-600 opacity-50" />
+          </div>
+        </Card>
+
+        <Card className="p-4 bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-green-700">Today</p>
+              <p className="text-2xl font-bold text-green-900 mt-1">{statistics.today}</p>
+            </div>
+            <Calendar className="w-10 h-10 text-green-600 opacity-50" />
+          </div>
+        </Card>
+
+        <Card className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-purple-700">Payment Changes</p>
+              <p className="text-2xl font-bold text-purple-900 mt-1">{statistics.paymentChanges}</p>
+            </div>
+            <DollarSign className="w-10 h-10 text-purple-600 opacity-50" />
+          </div>
+        </Card>
+
+        <Card className="p-4 bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-orange-700">Plan Changes</p>
+              <p className="text-2xl font-bold text-orange-900 mt-1">{statistics.planChanges}</p>
+            </div>
+            <Package className="w-10 h-10 text-orange-600 opacity-50" />
+          </div>
+        </Card>
+      </div>
+
+      {/* Filters */}
       <Card className="p-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-          <input
-            type="text"
-            placeholder="Search by customer name, ID, or admin email..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-          />
+        <div className="flex flex-col lg:flex-row gap-4">
+          {/* Search */}
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <input
+              type="text"
+              placeholder="Search by customer name, ID, or admin email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+            />
+          </div>
+
+          {/* Date Filter */}
+          <select
+            value={dateFilter}
+            onChange={(e) => setDateFilter(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+          >
+            <option value="all">All Time</option>
+            <option value="today">Today</option>
+            <option value="week">Last 7 Days</option>
+            <option value="month">Last 30 Days</option>
+          </select>
+
+          {/* Change Type Filter */}
+          <select
+            value={changeTypeFilter}
+            onChange={(e) => setChangeTypeFilter(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+          >
+            <option value="all">All Changes</option>
+            <option value="payment_status">Payment Status</option>
+            <option value="plan_change">Plan Change</option>
+            <option value="amount_adjustment">Amount Adjustment</option>
+            <option value="renewal">Renewals</option>
+          </select>
+
+          {/* Sort */}
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+          >
+            <option value="date_desc">Newest First</option>
+            <option value="date_asc">Oldest First</option>
+            <option value="customer">By Customer</option>
+          </select>
         </div>
       </Card>
 
       {/* Billing History Table */}
       <Card className="p-6">
-        {filteredHistory.length === 0 ? (
+        {paginatedHistory.length === 0 ? (
           <EmptyState
             icon={FileText}
             title="No billing records found"
@@ -3564,10 +3782,10 @@ const BillingTab = ({ billingHistory, users, plans, onRefresh, showToast }) => {
           <>
             {/* Mobile Card View */}
             <div className="block lg:hidden space-y-4">
-              {filteredHistory.map((record) => {
-                const user = users.find(u => u.id === record.user_id);
-                const oldPlan = plans.find(p => p.id === record.old_plan_id);
-                const newPlan = plans.find(p => p.id === record.new_plan_id);
+              {paginatedHistory.map((record) => {
+                const user = userMap[record.user_id];
+                const oldPlan = planMap[record.old_plan_id];
+                const newPlan = planMap[record.new_plan_id];
 
                 return (
                   <div key={record.id} className="bg-white border border-gray-200 rounded-lg p-4">
@@ -3584,13 +3802,13 @@ const BillingTab = ({ billingHistory, users, plans, onRefresh, showToast }) => {
                         record.change_type === 'payment_status' ? 'info' :
                         record.change_type === 'plan_change' ? 'warning' : 'default'
                       }>
-                        {record.change_type}
+                        {getChangeTypeLabel(record.change_type)}
                       </Badge>
                     </div>
                     <div className="space-y-2 text-sm">
                       <div>
                         <span className="text-gray-600">Date:</span>
-                        <p className="font-medium text-gray-900">{record.changed_at}</p>
+                        <p className="font-medium text-gray-900">{formatDateTime(record.changed_at)}</p>
                       </div>
                       {record.old_payment_status && record.new_payment_status && (
                         <div>
@@ -3648,15 +3866,15 @@ const BillingTab = ({ billingHistory, users, plans, onRefresh, showToast }) => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredHistory.map((record) => {
-                    const user = users.find(u => u.id === record.user_id);
-                    const oldPlan = plans.find(p => p.id === record.old_plan_id);
-                    const newPlan = plans.find(p => p.id === record.new_plan_id);
+                  {paginatedHistory.map((record) => {
+                    const user = userMap[record.user_id];
+                    const oldPlan = planMap[record.old_plan_id];
+                    const newPlan = planMap[record.new_plan_id];
 
                     return (
                       <tr key={record.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{record.changed_at}</div>
+                          <div className="text-sm text-gray-900">{formatDateTime(record.changed_at)}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">
@@ -3671,7 +3889,7 @@ const BillingTab = ({ billingHistory, users, plans, onRefresh, showToast }) => {
                             record.change_type === 'payment_status' ? 'info' :
                             record.change_type === 'plan_change' ? 'warning' : 'default'
                           }>
-                            {record.change_type}
+                            {getChangeTypeLabel(record.change_type)}
                           </Badge>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -3701,6 +3919,34 @@ const BillingTab = ({ billingHistory, users, plans, onRefresh, showToast }) => {
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="mt-4 flex items-center justify-between border-t border-gray-200 pt-4">
+                <p className="text-sm text-gray-500">
+                  Showing {((currentPage - 1) * PAGINATION.ITEMS_PER_PAGE) + 1} to {Math.min(currentPage * PAGINATION.ITEMS_PER_PAGE, filteredHistory.length)} of {filteredHistory.length} records
+                </p>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <span className="px-4 py-1 border border-gray-300 rounded-lg bg-white">
+                    {currentPage} / {totalPages}
+                  </span>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
           </>
         )}
       </Card>
