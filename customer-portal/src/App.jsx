@@ -91,16 +91,16 @@ const Modal = ({ isOpen, onClose, title, children }) => {
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex items-center justify-center min-h-screen px-4">
+      <div className="flex items-center justify-center min-h-screen px-4 py-4">
         <div className="fixed inset-0 bg-black opacity-50" onClick={onClose}></div>
-        <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-          <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
-            <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-              <X className="w-6 h-6" />
+        <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto my-4">
+          <div className="sticky top-0 bg-white border-b border-gray-200 px-4 sm:px-6 py-4 flex items-center justify-between z-10">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 pr-4">{title}</h3>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 flex-shrink-0">
+              <X className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
           </div>
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             {children}
           </div>
         </div>
@@ -422,13 +422,13 @@ const DashboardTab = ({ userData, bills, onRefresh, showToast }) => {
   return (
     <div className="space-y-6">
       {/* Welcome Section */}
-      <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg p-6 shadow-lg">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold mb-2">Welcome, {userData.name}! 👋</h2>
-            <p className="text-orange-100">Customer ID: {userData.cs_id}</p>
+      <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg p-4 sm:p-6 shadow-lg">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex-1">
+            <h2 className="text-xl sm:text-2xl font-bold mb-2">Welcome, {userData.name}! 👋</h2>
+            <p className="text-sm sm:text-base text-orange-100">Customer ID: {userData.cs_id}</p>
           </div>
-          <Button variant="outline" onClick={onRefresh} className="bg-white bg-opacity-20 border-white text-white hover:bg-white hover:bg-opacity-30">
+          <Button variant="outline" onClick={onRefresh} className="bg-white bg-opacity-20 border-white text-white hover:bg-white hover:bg-opacity-30 w-full sm:w-auto flex-shrink-0">
             <RefreshCw className="w-4 h-4 mr-2" />
             Refresh
           </Button>
@@ -473,66 +473,66 @@ const DashboardTab = ({ userData, bills, onRefresh, showToast }) => {
       )}
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="p-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+        <Card className="p-4 sm:p-6">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Plan Status</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
+            <div className="flex-1">
+              <p className="text-xs sm:text-sm text-gray-600">Plan Status</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900 mt-1">
                 {userData.is_plan_active ? 'Active' : 'Expired'}
               </p>
             </div>
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+            <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
               userData.is_plan_active ? 'bg-green-100' : 'bg-red-100'
             }`}>
               {userData.is_plan_active ? (
-                <CheckCircle className="w-6 h-6 text-green-600" />
+                <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
               ) : (
-                <AlertTriangle className="w-6 h-6 text-red-600" />
+                <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />
               )}
             </div>
           </div>
         </Card>
 
-        <Card className="p-6">
+        <Card className="p-4 sm:p-6">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Days Remaining</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
+            <div className="flex-1">
+              <p className="text-xs sm:text-sm text-gray-600">Days Remaining</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900 mt-1">
                 {daysUntilExpiry > 0 ? daysUntilExpiry : 0}
               </p>
             </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <Calendar className="w-6 h-6 text-blue-600" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+              <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
             </div>
           </div>
         </Card>
 
-        <Card className="p-6">
+        <Card className="p-4 sm:p-6">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Pending Amount</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
+            <div className="flex-1 min-w-0">
+              <p className="text-xs sm:text-sm text-gray-600">Pending Amount</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900 mt-1 truncate">
                 ₹{(userData.old_pending_amount || 0).toLocaleString()}
               </p>
             </div>
-            <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-              <DollarSign className="w-6 h-6 text-orange-600" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
+              <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600" />
             </div>
           </div>
         </Card>
       </div>
 
       {/* Current Plan Details */}
-      <Card className="p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">Current Plan</h3>
+      <Card className="p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 mb-4">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900">Current Plan</h3>
           <Badge variant={userData.is_plan_active ? 'success' : 'danger'}>
             {userData.status}
           </Badge>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
           <div className="space-y-4">
             <div className="flex items-start gap-3">
               <Wifi className="w-5 h-5 text-gray-400 mt-0.5" />
@@ -622,16 +622,16 @@ const DashboardTab = ({ userData, bills, onRefresh, showToast }) => {
       )}
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <button className="p-6 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all shadow-lg">
-          <CreditCard className="w-8 h-8 mb-2" />
-          <p className="font-semibold text-lg">Pay Bill</p>
-          <p className="text-sm text-orange-100 mt-1">Make a payment now</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+        <button className="p-4 sm:p-6 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all shadow-lg text-left">
+          <CreditCard className="w-6 h-6 sm:w-8 sm:h-8 mb-2" />
+          <p className="font-semibold text-base sm:text-lg">Pay Bill</p>
+          <p className="text-xs sm:text-sm text-orange-100 mt-1">Make a payment now</p>
         </button>
-        <button className="p-6 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all shadow-lg">
-          <FileText className="w-8 h-8 mb-2" />
-          <p className="font-semibold text-lg">View Bills</p>
-          <p className="text-sm text-blue-100 mt-1">Download invoices</p>
+        <button className="p-4 sm:p-6 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all shadow-lg text-left">
+          <FileText className="w-6 h-6 sm:w-8 sm:h-8 mb-2" />
+          <p className="font-semibold text-base sm:text-lg">View Bills</p>
+          <p className="text-xs sm:text-sm text-blue-100 mt-1">Download invoices</p>
         </button>
       </div>
     </div>
@@ -678,50 +678,50 @@ const BillsTab = ({ bills, userData, onRefresh, showToast }) => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">My Bills</h2>
-          <p className="text-gray-600 mt-1">{safeBills.length} total bills</p>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">My Bills</h2>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">{safeBills.length} total bills</p>
         </div>
-        <Button onClick={onRefresh}>
+        <Button onClick={onRefresh} className="w-full sm:w-auto">
           <RefreshCw className="w-4 h-4 mr-2" />
           Refresh
         </Button>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="p-6 bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+        <Card className="p-4 sm:p-6 bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-orange-700">Total Bills</p>
-              <p className="text-3xl font-bold text-orange-900 mt-1">{safeBills.length}</p>
+              <p className="text-xs sm:text-sm text-orange-700">Total Bills</p>
+              <p className="text-2xl sm:text-3xl font-bold text-orange-900 mt-1">{safeBills.length}</p>
             </div>
-            <Receipt className="w-12 h-12 text-orange-600 opacity-50" />
+            <Receipt className="w-10 h-10 sm:w-12 sm:h-12 text-orange-600 opacity-50" />
           </div>
         </Card>
 
-        <Card className="p-6 bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
+        <Card className="p-4 sm:p-6 bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-yellow-700">Pending</p>
-              <p className="text-3xl font-bold text-yellow-900 mt-1">
+              <p className="text-xs sm:text-sm text-yellow-700">Pending</p>
+              <p className="text-2xl sm:text-3xl font-bold text-yellow-900 mt-1">
                 {safeBills.filter(b => b.payment_status === 'Pending').length}
               </p>
             </div>
-            <Clock className="w-12 h-12 text-yellow-600 opacity-50" />
+            <Clock className="w-10 h-10 sm:w-12 sm:h-12 text-yellow-600 opacity-50" />
           </div>
         </Card>
 
-        <Card className="p-6 bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+        <Card className="p-4 sm:p-6 bg-gradient-to-br from-green-50 to-green-100 border-green-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-green-700">Paid</p>
-              <p className="text-3xl font-bold text-green-900 mt-1">
+              <p className="text-xs sm:text-sm text-green-700">Paid</p>
+              <p className="text-2xl sm:text-3xl font-bold text-green-900 mt-1">
                 {safeBills.filter(b => b.payment_status !== 'Pending').length}
               </p>
             </div>
-            <CheckCircle className="w-12 h-12 text-green-600 opacity-50" />
+            <CheckCircle className="w-10 h-10 sm:w-12 sm:h-12 text-green-600 opacity-50" />
           </div>
         </Card>
       </div>
@@ -771,17 +771,17 @@ const BillsTab = ({ bills, userData, onRefresh, showToast }) => {
                   </div>
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                   {bill.payment_status === 'Pending' && (
-                    <Button onClick={() => handlePayBill(bill)} className="whitespace-nowrap">
+                    <Button onClick={() => handlePayBill(bill)} className="whitespace-nowrap w-full sm:w-auto">
                       <CreditCard className="w-4 h-4 mr-2" />
                       Pay Now
                     </Button>
                   )}
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     onClick={() => handleDownloadInvoice(bill.id)}
-                    className="whitespace-nowrap"
+                    className="whitespace-nowrap w-full sm:w-auto"
                   >
                     <Download className="w-4 h-4 mr-2" />
                     Invoice
@@ -988,14 +988,14 @@ const ProfileTab = ({ userData }) => {
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       {/* Profile Header */}
-      <Card className="p-6">
-        <div className="flex items-center gap-4">
-          <div className="w-20 h-20 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center text-white text-3xl font-bold">
+      <Card className="p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
+          <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center text-white text-2xl sm:text-3xl font-bold flex-shrink-0">
             {userData.name.charAt(0).toUpperCase()}
           </div>
-          <div className="flex-1">
-            <h2 className="text-2xl font-bold text-gray-900">{userData.name}</h2>
-            <p className="text-gray-600">Customer ID: {userData.cs_id}</p>
+          <div className="flex-1 text-center sm:text-left">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{userData.name}</h2>
+            <p className="text-sm sm:text-base text-gray-600 mt-1">Customer ID: {userData.cs_id}</p>
             <Badge variant={userData.is_plan_active ? 'success' : 'danger'} className="mt-2">
               {userData.status}
             </Badge>
@@ -1004,43 +1004,43 @@ const ProfileTab = ({ userData }) => {
       </Card>
 
       {/* Contact Information */}
-      <Card className="p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <User className="w-5 h-5 text-orange-600" />
+      <Card className="p-4 sm:p-6">
+        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <User className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
           Contact Information
         </h3>
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-            <Phone className="w-5 h-5 text-gray-400" />
-            <div>
-              <p className="text-sm text-gray-600">Mobile Number</p>
-              <p className="font-medium text-gray-900">{userData.phone}</p>
+            <Phone className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs sm:text-sm text-gray-600">Mobile Number</p>
+              <p className="font-medium text-sm sm:text-base text-gray-900">{userData.phone}</p>
             </div>
           </div>
           <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-            <Mail className="w-5 h-5 text-gray-400" />
-            <div>
-              <p className="text-sm text-gray-600">Email Address</p>
-              <p className="font-medium text-gray-900">{userData.email || 'Not provided'}</p>
+            <Mail className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs sm:text-sm text-gray-600">Email Address</p>
+              <p className="font-medium text-sm sm:text-base text-gray-900 break-all">{userData.email || 'Not provided'}</p>
             </div>
           </div>
           <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-            <MapPin className="w-5 h-5 text-gray-400 mt-0.5" />
-            <div>
-              <p className="text-sm text-gray-600">Address</p>
-              <p className="font-medium text-gray-900">{userData.address}</p>
+            <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 mt-0.5 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs sm:text-sm text-gray-600">Address</p>
+              <p className="font-medium text-sm sm:text-base text-gray-900">{userData.address}</p>
             </div>
           </div>
         </div>
       </Card>
 
       {/* Account Details */}
-      <Card className="p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <Settings className="w-5 h-5 text-orange-600" />
+      <Card className="p-4 sm:p-6">
+        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <Settings className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
           Account Details
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           <div className="p-3 bg-gray-50 rounded-lg">
             <p className="text-sm text-gray-600">Account Created</p>
             <p className="font-medium text-gray-900">{userData.created_at}</p>

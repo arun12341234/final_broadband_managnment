@@ -1,3 +1,68 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer components {
+  /* Input field styles */
+  .input {
+    @apply w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all;
+  }
+
+  /* Label styles */
+  .label {
+    @apply block text-sm font-medium text-gray-700 mb-2;
+  }
+
+  /* Payment method button styles */
+  .payment-method {
+    @apply w-full p-4 border-2 border-gray-200 rounded-lg hover:border-orange-300 hover:bg-orange-50 transition-all cursor-pointer flex items-center justify-between;
+  }
+
+  .payment-method.selected {
+    @apply border-orange-500 bg-orange-50;
+  }
+
+  /* Toast notification styles */
+  .toast {
+    @apply fixed bottom-4 right-4 bg-white rounded-lg shadow-2xl border p-4 max-w-sm w-full mx-4 z-50 animate-slide-up;
+  }
+
+  .toast-success {
+    @apply border-green-200 bg-green-50;
+  }
+
+  .toast-error {
+    @apply border-red-200 bg-red-50;
+  }
+
+  .toast-warning {
+    @apply border-yellow-200 bg-yellow-50;
+  }
+
+  .toast-info {
+    @apply border-blue-200 bg-blue-50;
+  }
+}
+
+/* Custom animations */
+@keyframes slide-up {
+  from {
+    transform: translateY(100px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
+/* Mobile responsive fixes */
+@media (max-width: 640px) {
+  .toast {
+    @apply left-4 right-4 bottom-4 max-w-none;
+  }
+}
