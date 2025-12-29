@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Users, Wifi, DollarSign, Settings, LogOut, Plus, Edit2, Trash2,
   Search, Download, FileText, Bell, AlertTriangle, CheckCircle,
@@ -10,35 +9,41 @@ import {
   Home, BarChart3, FileSpreadsheet, Wrench, Send, Info, Menu, Upload
 } from 'lucide-react';
 
+// Import utilities and configurations
+import { api, batchRequests } from './utils/api';
+import { CONFIG, PAGINATION, TOAST, FILE_UPLOAD } from './constants';
+import {
+  validatePhone,
+  validateEmail,
+  validatePassword,
+  validateCustomerId,
+  validatePhotoFile,
+  validateDocuments,
+  validateAmount,
+  sanitizeFilename
+} from './utils/validation';
+import {
+  debounce,
+  formatCurrency,
+  formatDate,
+  getDaysUntilExpiry,
+  isExpiringSoon,
+  isExpired,
+  getErrorMessage,
+  downloadBlob
+} from './utils/helpers';
+import { useDebounce } from './hooks/useDebounce';
+import ErrorBoundary from './components/ErrorBoundary';
+
 // ============================================
 // API CONFIGURATION
 // ============================================
-
-const api = axios.create({
-  baseURL: 'http://localhost:8000',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('admin_token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('admin_token');
-      window.location.reload();
-    }
-    return Promise.reject(error);
-  }
-);
+// API instance is now imported from ./utils/api with:
+// - Environment-based baseURL
+// - Request/response interceptors
+// - Retry logic with exponential backoff
+// - Timeout handling (30s default)
+// - Better error handling
 
 // ============================================
 // UTILITY COMPONENTS
@@ -96,9 +101,10 @@ const Modal = ({ isOpen, onClose, title, children, size = 'max-w-2xl' }) => {
 
 const Toast = ({ message, type = 'success', onClose }) => {
   useEffect(() => {
-    const timer = setTimeout(onClose, 5000);
+    const duration = TOAST[`${type.toUpperCase()}_DURATION`] || TOAST.SUCCESS_DURATION;
+    const timer = setTimeout(onClose, duration);
     return () => clearTimeout(timer);
-  }, [onClose]);
+  }, [onClose, type]);
 
   const icons = {
     success: <CheckCircle className="w-5 h-5 text-green-500" />,
@@ -190,7 +196,7 @@ function App() {
 
   const fetchAllData = async () => {
     try {
-      const [usersRes, plansRes, engineersRes, statsRes, historyRes] = await Promise.all([
+      const results = await Promise.allSettled([
         api.get('/api/users'),
         api.get('/api/plans'),
         api.get('/api/engineers'),
@@ -198,14 +204,46 @@ function App() {
         api.get('/api/billing-history')
       ]);
 
-      setUsers(usersRes.data);
-      setPlans(plansRes.data);
-      setEngineers(engineersRes.data);
-      setDashboardStats(statsRes.data);
-      setBillingHistory(historyRes.data);
+      // Handle users
+      if (results[0].status === 'fulfilled') {
+        setUsers(results[0].value.data);
+      } else {
+        console.error('Failed to fetch users:', results[0].reason);
+        showToast('Failed to load users', 'error');
+      }
+
+      // Handle plans
+      if (results[1].status === 'fulfilled') {
+        setPlans(results[1].value.data);
+      } else {
+        console.error('Failed to fetch plans:', results[1].reason);
+        showToast('Failed to load plans', 'error');
+      }
+
+      // Handle engineers
+      if (results[2].status === 'fulfilled') {
+        setEngineers(results[2].value.data);
+      } else {
+        console.error('Failed to fetch engineers:', results[2].reason);
+      }
+
+      // Handle dashboard stats
+      if (results[3].status === 'fulfilled') {
+        setDashboardStats(results[3].value.data);
+      } else {
+        console.error('Failed to fetch stats:', results[3].reason);
+      }
+
+      // Handle billing history
+      if (results[4].status === 'fulfilled') {
+        setBillingHistory(results[4].value.data);
+      } else {
+        console.error('Failed to fetch billing history:', results[4].reason);
+      }
+
     } catch (error) {
       console.error('Error fetching data:', error);
-      showToast('Failed to load data', 'error');
+      showToast(getErrorMessage(error), 'error');
     } finally {
       setLoading(false);
     }
@@ -975,26 +1013,40 @@ const UsersTab = ({ users, plans, onRefresh, showToast }) => {
   const [showBillingModal, setShowBillingModal] = useState(false);
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
-  const itemsPerPage = 5;
 
-  const filteredUsers = users.filter(user => {
-    const matchesSearch =
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.phone.includes(searchTerm) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.cs_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.address.toLowerCase().includes(searchTerm.toLowerCase());
+  // Use debounced search for better performance
+  const debouncedSearchTerm = useDebounce(searchTerm);
 
-    const matchesFilter = paymentFilter === 'All' || user.payment_status === paymentFilter;
+  // Reset pagination when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchTerm, paymentFilter]);
 
-    return matchesSearch && matchesFilter;
-  });
+  // Memoize filtered users for performance
+  const filteredUsers = useMemo(() => {
+    return users.filter(user => {
+      const matchesSearch =
+        user.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+        user.phone.includes(debouncedSearchTerm) ||
+        user.email.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+        user.cs_id.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+        user.address.toLowerCase().includes(debouncedSearchTerm.toLowerCase());
 
-  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
-  const paginatedUsers = filteredUsers.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+      const matchesFilter = paymentFilter === 'All' || user.payment_status === paymentFilter;
+
+      return matchesSearch && matchesFilter;
+    });
+  }, [users, debouncedSearchTerm, paymentFilter]);
+
+  // Memoize pagination calculations
+  const { totalPages, paginatedUsers } = useMemo(() => {
+    const total = Math.ceil(filteredUsers.length / PAGINATION.ITEMS_PER_PAGE);
+    const paginated = filteredUsers.slice(
+      (currentPage - 1) * PAGINATION.ITEMS_PER_PAGE,
+      currentPage * PAGINATION.ITEMS_PER_PAGE
+    );
+    return { totalPages: total, paginatedUsers: paginated };
+  }, [filteredUsers, currentPage]);
 
   const handleAddUser = () => {
     setShowAddModal(true);
@@ -4079,9 +4131,15 @@ const SettingsTab = ({ showToast }) => {
 };
 
 // ============================================
-// EXPORT DEFAULT
+// EXPORT WITH ERROR BOUNDARY
 // ============================================
 
-export default App;
+const AppWithErrorBoundary = () => (
+  <ErrorBoundary>
+    <App />
+  </ErrorBoundary>
+);
+
+export default AppWithErrorBoundary;
 
 
