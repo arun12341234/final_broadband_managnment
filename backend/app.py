@@ -95,7 +95,7 @@ app.add_middleware(
 
 # Import models and database
 from database import engine, SessionLocal, get_db, Base
-from models import Admin, User, BroadbandPlan, Engineer, BillingHistory, Installation
+from models import Admin, User, BroadbandPlan, Engineer, BillingHistory, Installation, Invoice
 from schemas import *
 from auth import get_password_hash, verify_password, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
 from auth_helpers import get_current_admin, get_current_customer, get_current_engineer
@@ -607,7 +607,10 @@ async def renew_user_plan(
     current_admin: Admin = Depends(get_current_admin),
     db: Session = Depends(get_db)
 ):
-    """Renew or reduce user's plan (positive months = extend, negative = reduce)"""
+    """Renew or reduce user's plan (positive months = extend, negative = reduce)
+
+    When extending (positive months), automatically generates a PAID invoice with old pending amount.
+    """
 
     user = db.query(User).filter(User.id == user_id).first()
 
@@ -629,10 +632,110 @@ async def renew_user_plan(
             detail=f"Cannot reduce plan below current date. Minimum expiry: {date.today().strftime('%Y-%m-%d')}"
         )
 
+    old_expiry = user.plan_expiry_date
     user.plan_expiry_date = new_expiry.strftime("%Y-%m-%d")
     user.is_plan_active = True
     user.status = "Active"
     user.last_renewal_date = date.today().strftime("%Y-%m-%d")
+
+    # Generate invoice for plan extensions (not reductions)
+    invoice_number = None
+    invoice_id = None
+    if renewal_data.months > 0:
+        # Get plan details
+        plan = db.query(BroadbandPlan).filter(BroadbandPlan.id == user.broadband_plan_id).first()
+        if not plan:
+            raise HTTPException(status_code=404, detail="Plan not found")
+
+        # Calculate amounts
+        old_pending = user.old_pending_amount or 0
+        plan_price = plan.price * renewal_data.months  # Price for multiple months
+        subtotal = plan_price + old_pending
+        gst_rate = 18.0
+        gst_amount = round(subtotal * gst_rate / 100, 2)
+        total_amount = round(subtotal + gst_amount, 2)
+
+        # Generate invoice number
+        today = datetime.now()
+        invoice_count = db.query(func.count(Invoice.id)).filter(
+            func.date(Invoice.created_at) == today.date()
+        ).scalar() or 0
+        invoice_number = f"INV-{today.strftime('%Y%m%d')}-{invoice_count + 1:04d}"
+
+        # Calculate billing period
+        start_date = datetime.strptime(old_expiry, "%Y-%m-%d") + relativedelta(days=1)
+        end_date = new_expiry
+        if renewal_data.months == 1:
+            billing_period = start_date.strftime("%B %Y")
+        else:
+            billing_period = f"{start_date.strftime('%b %Y')} - {end_date.strftime('%b %Y')}"
+
+        # Create invoice record - marked as PAID
+        new_invoice = Invoice(
+            invoice_number=invoice_number,
+            user_id=user.id,
+            plan_id=plan.id,
+            plan_name=plan.name,
+            plan_price=plan_price,
+            old_pending_amount=old_pending,
+            subtotal=subtotal,
+            gst_rate=gst_rate,
+            gst_amount=gst_amount,
+            total_amount=total_amount,
+            payment_status="Paid",  # Marked as PAID for renewals
+            payment_method="Renewal",
+            payment_date=today.strftime("%Y-%m-%d"),
+            invoice_date=today.strftime("%Y-%m-%d"),
+            due_date=new_expiry.strftime("%Y-%m-%d"),
+            billing_period=billing_period,
+            months_renewed=renewal_data.months,
+            old_expiry_date=old_expiry,
+            new_expiry_date=new_expiry.strftime("%Y-%m-%d"),
+            generated_by=current_admin.email,
+            notes=f"Plan renewal for {renewal_data.months} month(s)"
+        )
+
+        db.add(new_invoice)
+        db.commit()
+        db.refresh(new_invoice)
+        invoice_id = new_invoice.id
+
+        # Generate PDF invoice in background (optional)
+        try:
+            from pdf_generator import generate_invoice_pdf
+
+            user_data = {
+                "name": user.name,
+                "cs_id": user.cs_id,
+                "mobile": user.phone,
+                "email": user.email or "",
+                "address": user.address or ""
+            }
+
+            plan_data = {
+                "name": plan.name,
+                "speed": plan.speed,
+                "data_limit": plan.data_limit,
+                "price": plan_price
+            }
+
+            billing_data = {
+                "invoice_number": invoice_number,
+                "invoice_date": today.strftime("%d-%b-%Y"),
+                "due_date": new_expiry.strftime("%d-%b-%Y"),
+                "billing_period": billing_period,
+                "old_pending": old_pending
+            }
+
+            pdf_path = generate_invoice_pdf(user_data, plan_data, billing_data)
+            new_invoice.pdf_filepath = pdf_path
+            db.commit()
+
+            logger.info(f"✅ Invoice PDF generated: {invoice_number}")
+        except Exception as e:
+            logger.warning(f"⚠️  Invoice PDF generation failed: {str(e)}")
+
+        logger.info(f"✅ Invoice {invoice_number} created for {user.name}: ₹{total_amount} (includes ₹{old_pending} old pending)")
 
     db.commit()
 
@@ -640,11 +743,18 @@ async def renew_user_plan(
     abs_months = abs(renewal_data.months)
     logger.info(f"✅ Plan {action} for {user.name}: {renewal_data.months:+d} months by {current_admin.email}")
 
-    return {
+    response = {
         "message": f"Plan {action} by {abs_months} month{'s' if abs_months != 1 else ''}",
         "new_expiry_date": new_expiry.strftime("%Y-%m-%d"),
         "action": action
     }
+
+    if invoice_number:
+        response["invoice_number"] = invoice_number
+        response["invoice_id"] = invoice_id
+        response["invoice_generated"] = True
+
+    return response
 
 @app.get("/api/billing-history", response_model=List[BillingHistoryResponse], tags=["Billing"])
 async def get_billing_history(
@@ -709,6 +819,61 @@ async def delete_billing_history(
 
     logger.info(f"Billing history record {history_id} deleted by {current_admin.email}")
     return {"message": "Billing history record deleted successfully"}
+
+# ============================================
+# INVOICE MANAGEMENT
+# ============================================
+
+@app.get("/api/invoices", response_model=List[InvoiceResponse], tags=["Invoices"])
+async def get_all_invoices(
+    current_admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """Get all invoices"""
+    invoices = db.query(Invoice).order_by(Invoice.created_at.desc()).all()
+    return invoices
+
+@app.get("/api/invoices/user/{user_id}", response_model=List[InvoiceResponse], tags=["Invoices"])
+async def get_user_invoices(
+    user_id: str,
+    current_admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """Get all invoices for a specific user"""
+    invoices = db.query(Invoice).filter(Invoice.user_id == user_id).order_by(Invoice.created_at.desc()).all()
+    return invoices
+
+@app.get("/api/invoices/{invoice_id}", response_model=InvoiceResponse, tags=["Invoices"])
+async def get_invoice(
+    invoice_id: int,
+    current_admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """Get a specific invoice by ID"""
+    invoice = db.query(Invoice).filter(Invoice.id == invoice_id).first()
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    return invoice
+
+@app.get("/api/invoices/{invoice_id}/download", tags=["Invoices"])
+async def download_invoice_pdf(
+    invoice_id: int,
+    current_admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """Download invoice PDF"""
+    invoice = db.query(Invoice).filter(Invoice.id == invoice_id).first()
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+
+    if not invoice.pdf_filepath or not Path(invoice.pdf_filepath).exists():
+        raise HTTPException(status_code=404, detail="Invoice PDF not found")
+
+    return FileResponse(
+        invoice.pdf_filepath,
+        media_type="application/pdf",
+        filename=f"{invoice.invoice_number}.pdf"
+    )
 
 # ============================================
 # ENGINEER MANAGEMENT

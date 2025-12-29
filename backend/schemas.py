@@ -238,6 +238,48 @@ class CustomerDashboardResponse(BaseModel):
 
 
 # ============================================
+# INVOICE SCHEMAS
+# ============================================
+
+class InvoiceResponse(BaseModel):
+    id: int
+    invoice_number: str
+    user_id: str
+    plan_id: str
+    plan_name: str
+    plan_price: float
+    old_pending_amount: int
+    subtotal: float
+    gst_rate: float
+    gst_amount: float
+    total_amount: float
+    payment_status: str
+    payment_method: Optional[str]
+    transaction_id: Optional[str]
+    payment_date: Optional[str]
+    invoice_date: str
+    due_date: str
+    billing_period: str
+    months_renewed: int
+    old_expiry_date: Optional[str]
+    new_expiry_date: Optional[str]
+    generated_by: str
+    pdf_filepath: Optional[str]
+    notes: Optional[str]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class InvoiceCreate(BaseModel):
+    user_id: str
+    months: int = Field(..., ge=1, le=12)
+    payment_method: str = "Renewal"  # How the renewal was paid
+    notes: Optional[str] = None
+
+
+# ============================================
 # OAUTH2 SCHEMA
 # ============================================
 
