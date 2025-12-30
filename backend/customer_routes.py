@@ -286,14 +286,43 @@ async def download_invoice(
     current_user: User = Depends(get_current_customer),
     db: Session = Depends(get_db)
 ):
-    """Get download URL for invoice PDF"""
-    
-    # In a real implementation, generate PDF here
-    # For now, return a placeholder URL
-    
-    logger.info(f"📄 Invoice download request: Bill #{bill_id} for {current_user.name}")
-    
-    return {
-        "download_url": f"/api/customer/invoices/{bill_id}.pdf",
-        "message": "Invoice ready for download"
-    }
+    """Download invoice PDF file"""
+    from models import Invoice
+    from fastapi.responses import FileResponse
+    from pathlib import Path
+
+    # Find invoice by ID
+    invoice = db.query(Invoice).filter(Invoice.id == bill_id).first()
+
+    if not invoice:
+        logger.warning(f"❌ Invoice #{bill_id} not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Invoice not found"
+        )
+
+    # Security check: Ensure invoice belongs to current user
+    if invoice.user_id != current_user.id:
+        logger.warning(f"❌ User {current_user.cs_id} attempted to access invoice for user {invoice.user_id}")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to access this invoice"
+        )
+
+    # Check if PDF file exists
+    pdf_path = Path(invoice.pdf_filepath)
+    if not pdf_path.exists():
+        logger.error(f"❌ PDF file not found: {pdf_path}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Invoice PDF file not found. Please contact support."
+        )
+
+    logger.info(f"📄 Serving invoice {invoice.invoice_number} to {current_user.name} ({current_user.cs_id})")
+
+    # Return PDF file
+    return FileResponse(
+        str(pdf_path),
+        media_type="application/pdf",
+        filename=f"invoice_{current_user.cs_id}_{invoice.invoice_number}.pdf"
+    )
