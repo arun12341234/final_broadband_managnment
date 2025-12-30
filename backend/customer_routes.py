@@ -95,12 +95,15 @@ async def get_customer_profile(
         "plan_speed": plan.speed if plan else None,
         "plan_data_limit": plan.data_limit if plan else None,
         "plan_id": current_user.broadband_plan_id,  # Added plan_id for reference
+        "plan_start_date": current_user.plan_start_date,  # Plan start date
         "plan_expiry_date": current_user.plan_expiry_date,
+        "last_renewal_date": current_user.last_renewal_date,  # Last renewal date
         "is_plan_active": current_user.is_plan_active,
         "payment_status": current_user.payment_status,
         "old_pending_amount": current_user.old_pending_amount,
         "payment_due_date": current_user.payment_due_date,
-        "status": current_user.status
+        "status": current_user.status,
+        "created_at": current_user.created_at  # Account creation date
     }
 
 
