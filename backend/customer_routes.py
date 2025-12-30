@@ -225,31 +225,51 @@ async def pay_bill(
         f"Expected: ₹{expected_amount}"
     )
     
-    # Update payment status based on method
+    # Determine payment status based on method
     if payment.payment_method.lower() == 'upi':
-        current_user.payment_status = "VerifiedByUpi"
+        new_payment_status = "VerifiedByUpi"
     elif payment.payment_method.lower() == 'card':
-        current_user.payment_status = "VerifiedByUpi"  # Treat card as UPI
+        new_payment_status = "VerifiedByUpi"  # Treat card as UPI
     elif payment.payment_method.lower() == 'netbanking':
-        current_user.payment_status = "VerifiedByUpi"  # Treat netbanking as UPI
+        new_payment_status = "VerifiedByUpi"  # Treat netbanking as UPI
     else:
-        current_user.payment_status = "VerifiedByCash"
-    
+        new_payment_status = "VerifiedByCash"
+
+    # Check if this payment is for an invoice (bill_id > 0 indicates invoice)
+    from models import Invoice
+    invoice = None
+    if payment.bill_id and payment.bill_id > 0:
+        invoice = db.query(Invoice).filter(
+            Invoice.id == payment.bill_id,
+            Invoice.user_id == current_user.id  # Security: Ensure invoice belongs to user
+        ).first()
+
+        if invoice:
+            # Update invoice with payment details
+            invoice.payment_status = new_payment_status
+            invoice.payment_method = payment.payment_method
+            invoice.payment_date = datetime.now().strftime("%Y-%m-%d")
+            invoice.transaction_id = payment.transaction_id or f"TXN-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+            logger.info(f"💰 Invoice {invoice.invoice_number} marked as paid via {payment.payment_method}")
+
+    # Update user payment status
+    current_user.payment_status = new_payment_status
+
     # Save old values for billing history
     old_payment_status = "Pending"
     old_pending = current_user.old_pending_amount
     old_due_date = current_user.payment_due_date
-    
+
     # Update user
     current_user.payment_due_date = "Paid"
     current_user.old_pending_amount = 0
-    
+
     # Create billing history entry
     billing_record = BillingHistory(
         user_id=current_user.id,
         admin_email="customer_self_payment",
         previous_payment_status=old_payment_status,
-        new_payment_status=current_user.payment_status,
+        new_payment_status=new_payment_status,
         previous_old_pending_amount=old_pending,
         new_old_pending_amount=0,
         previous_payment_due_date=old_due_date,
@@ -260,8 +280,9 @@ async def pay_bill(
         new_plan_name=plan.name,
         change_type="payment_verification",
         notes=f"Customer self-payment via {payment.payment_method}. Transaction: {payment.transaction_id or 'N/A'}"
+        + (f" | Invoice: {invoice.invoice_number}" if invoice else "")
     )
-    
+
     db.add(billing_record)
     db.commit()
     
