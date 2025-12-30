@@ -30,6 +30,37 @@ export const validateMobile = (mobile) => {
     };
   }
 
+  // Check if mobile number starts with valid Indian prefix (6, 7, 8, 9)
+  if (!/^[6-9]/.test(cleaned)) {
+    return {
+      valid: false,
+      error: 'Mobile number must start with 6, 7, 8, or 9'
+    };
+  }
+
+  // Check for all same digits (0000000000, 1111111111, etc.)
+  if (/^(\d)\1{9}$/.test(cleaned)) {
+    return {
+      valid: false,
+      error: 'Invalid mobile number pattern'
+    };
+  }
+
+  // Check for sequential patterns (1234567890, 0123456789)
+  const isSequential = cleaned.split('').every((digit, i, arr) => {
+    if (i === 0) return true;
+    const prev = parseInt(arr[i - 1]);
+    const curr = parseInt(digit);
+    return curr === (prev + 1) % 10;
+  });
+
+  if (isSequential) {
+    return {
+      valid: false,
+      error: 'Invalid mobile number pattern'
+    };
+  }
+
   return { valid: true };
 };
 

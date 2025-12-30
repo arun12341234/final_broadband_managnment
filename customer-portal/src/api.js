@@ -139,17 +139,47 @@ export const checkRateLimit = (key, maxRequests, windowMs) => {
   return true;
 };
 
-// Clean up old rate limit entries periodically
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, requests] of rateLimitMap.entries()) {
-    const filtered = requests.filter(timestamp => timestamp > now - 60000); // Keep last minute
-    if (filtered.length === 0) {
-      rateLimitMap.delete(key);
-    } else {
-      rateLimitMap.set(key, filtered);
+// Clean up old rate limit entries periodically - with cleanup on visibility change
+let cleanupInterval = null;
+
+const startCleanup = () => {
+  if (cleanupInterval) return; // Already running
+
+  cleanupInterval = setInterval(() => {
+    const now = Date.now();
+    for (const [key, requests] of rateLimitMap.entries()) {
+      const filtered = requests.filter(timestamp => timestamp > now - 60000); // Keep last minute
+      if (filtered.length === 0) {
+        rateLimitMap.delete(key);
+      } else {
+        rateLimitMap.set(key, filtered);
+      }
     }
+  }, 60000); // Clean up every minute
+};
+
+const stopCleanup = () => {
+  if (cleanupInterval) {
+    clearInterval(cleanupInterval);
+    cleanupInterval = null;
   }
-}, 60000); // Clean up every minute
+};
+
+// Start cleanup only when page is visible
+if (typeof document !== 'undefined') {
+  startCleanup();
+
+  // Stop cleanup when page is hidden to save resources
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      stopCleanup();
+    } else {
+      startCleanup();
+    }
+  });
+
+  // Cleanup on page unload
+  window.addEventListener('beforeunload', stopCleanup);
+}
 
 export default api;

@@ -71,7 +71,7 @@ export const formatDate = (dateString) => {
 
   try {
     const date = new Date(dateString);
-    if (isNaN(date.getTime())) return 'Invalid Date';
+    if (isNaN(date.getTime())) return 'N/A';
 
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -79,7 +79,7 @@ export const formatDate = (dateString) => {
 
     return `${day}/${month}/${year}`;
   } catch {
-    return 'Invalid Date';
+    return 'N/A';
   }
 };
 
@@ -91,7 +91,7 @@ export const formatRelativeDate = (dateString) => {
 
   try {
     const date = new Date(dateString);
-    if (isNaN(date.getTime())) return 'Invalid Date';
+    if (isNaN(date.getTime())) return 'N/A';
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -109,7 +109,7 @@ export const formatRelativeDate = (dateString) => {
 
     return formatDate(dateString);
   } catch {
-    return 'Invalid Date';
+    return 'N/A';
   }
 };
 
@@ -168,12 +168,33 @@ export const formatCurrency = (amount) => {
 
 /**
  * Sanitize string input to prevent XSS
+ * Removes HTML tags, script tags, and dangerous characters
  */
 export const sanitizeInput = (input) => {
   if (typeof input !== 'string') return input;
 
   return input
-    .replace(/[<>]/g, '') // Remove < and >
+    // Remove any HTML tags
+    .replace(/<[^>]*>/g, '')
+    // Remove script tags and content
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    // Remove event handlers (onclick, onerror, etc.)
+    .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '')
+    // Remove javascript: protocol
+    .replace(/javascript:/gi, '')
+    // Remove data: protocol (can be used for XSS)
+    .replace(/data:text\/html/gi, '')
+    // Encode special characters
+    .replace(/[&<>"']/g, (char) => {
+      const escapeMap = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#x27;'
+      };
+      return escapeMap[char] || char;
+    })
     .trim()
     .slice(0, 1000); // Limit length
 };

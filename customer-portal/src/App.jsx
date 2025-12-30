@@ -309,6 +309,12 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
+  // Toast notification function - defined early to avoid dependency issues
+  const showToast = useCallback((message, type = 'success') => {
+    const safeMessage = typeof message === 'string' ? message : getErrorMessage(message);
+    setToast({ message: safeMessage, type });
+  }, []);
+
   // Listen for auth logout events from api.js
   useEffect(() => {
     const handleAuthLogout = (event) => {
@@ -320,7 +326,7 @@ function App() {
 
     window.addEventListener('auth:logout', handleAuthLogout);
     return () => window.removeEventListener('auth:logout', handleAuthLogout);
-  }, [logout]);
+  }, [logout, showToast]);
 
   const fetchUserData = useCallback(async () => {
     try {
@@ -375,7 +381,7 @@ function App() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [showToast]);
 
   useEffect(() => {
     if (isAuthenticated && !authLoading) {
@@ -384,11 +390,6 @@ function App() {
       setLoading(false);
     }
   }, [isAuthenticated, authLoading, fetchUserData]);
-
-  const showToast = useCallback((message, type = 'success') => {
-    const safeMessage = typeof message === 'string' ? message : getErrorMessage(message);
-    setToast({ message: safeMessage, type });
-  }, []);
 
   const handleLogin = async (mobile, password, rememberMe) => {
     try {
