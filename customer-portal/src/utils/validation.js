@@ -195,15 +195,24 @@ export const validateUserData = (userData) => {
     return { valid: false, error: 'User data is missing' };
   }
 
-  const requiredFields = ['id', 'name', 'phone', 'cs_id'];
+  // Check for id
+  if (!userData.id) {
+    return { valid: false, error: 'Missing required field: id' };
+  }
 
-  for (const field of requiredFields) {
-    if (!userData[field]) {
-      return {
-        valid: false,
-        error: `Missing required field: ${field}`
-      };
-    }
+  // Check for name
+  if (!userData.name) {
+    return { valid: false, error: 'Missing required field: name' };
+  }
+
+  // Check for phone/mobile (backend might use either field name)
+  if (!userData.phone && !userData.mobile) {
+    return { valid: false, error: 'Missing required field: phone/mobile' };
+  }
+
+  // Check for cs_id (customer service ID)
+  if (!userData.cs_id) {
+    return { valid: false, error: 'Missing required field: cs_id' };
   }
 
   return { valid: true };

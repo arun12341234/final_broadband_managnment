@@ -1766,7 +1766,7 @@ const ProfileTab = ({ userData, showToast }) => {
             <Phone className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0" aria-hidden="true" />
             <div className="flex-1 min-w-0">
               <p className="text-xs sm:text-sm text-gray-600">Mobile Number</p>
-              <p className="font-medium text-sm sm:text-base text-gray-900">{formatPhone(userData.phone)}</p>
+              <p className="font-medium text-sm sm:text-base text-gray-900">{formatPhone(userData.phone || userData.mobile)}</p>
             </div>
           </div>
           <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
