@@ -4,60 +4,92 @@
  */
 
 /**
+ * Sanitize error message to prevent leaking sensitive backend details
+ * Removes stack traces, file paths, SQL errors, and internal server info
+ */
+const sanitizeErrorMessage = (message) => {
+  if (typeof message !== 'string') return 'An error occurred';
+
+  // Remove stack traces
+  let sanitized = message.split('\n')[0]; // Only keep first line
+
+  // Remove file paths (e.g., /usr/local/app/src/...)
+  sanitized = sanitized.replace(/\/[\w\-./]+\.(py|js|ts|java|php|rb)/gi, '[file]');
+
+  // Remove SQL error details
+  sanitized = sanitized.replace(/SQL.*?(?=\s|$)/gi, 'Database error');
+
+  // Remove internal server references
+  sanitized = sanitized.replace(/\b(localhost|127\.0\.0\.1|0\.0\.0\.0):[\d]+/gi, 'server');
+
+  // Remove debug/trace IDs
+  sanitized = sanitized.replace(/\b[a-f0-9]{32,}\b/gi, '[trace]');
+
+  // Generic error messages for sensitive issues
+  const sensitivePatterns = [
+    { pattern: /connection refused/i, replacement: 'Service temporarily unavailable' },
+    { pattern: /timeout/i, replacement: 'Request timed out. Please try again.' },
+    { pattern: /database|postgres|mysql|mongo/i, replacement: 'Data service error' },
+    { pattern: /internal server error/i, replacement: 'Server error. Please try again later.' },
+    { pattern: /500|502|503|504/i, replacement: 'Service unavailable' }
+  ];
+
+  for (const { pattern, replacement } of sensitivePatterns) {
+    if (pattern.test(sanitized)) {
+      return replacement;
+    }
+  }
+
+  // Limit length to prevent information disclosure
+  if (sanitized.length > 150) {
+    sanitized = sanitized.substring(0, 147) + '...';
+  }
+
+  return sanitized;
+};
+
+/**
  * Safely format error messages from various error types
  * Handles Pydantic validation errors, axios errors, and general errors
  * Prevents circular reference errors and React rendering errors
+ * Sanitizes messages to prevent backend information leakage
  */
 export const getErrorMessage = (error) => {
   // Handle string errors
-  if (typeof error === 'string') return error;
+  if (typeof error === 'string') return sanitizeErrorMessage(error);
   if (!error) return 'An unexpected error occurred';
 
   // Handle arrays (Pydantic validation errors)
   if (Array.isArray(error)) {
-    return error.map(err => {
-      if (typeof err === 'string') return err;
-      if (err.msg) return err.msg;
-      if (err.message) return err.message;
-      // Avoid circular reference by using controlled stringify
-      try {
-        return JSON.stringify(err);
-      } catch {
-        return 'Validation error';
-      }
-    }).join(', ');
+    const messages = error.map(err => {
+      if (typeof err === 'string') return sanitizeErrorMessage(err);
+      if (err.msg) return sanitizeErrorMessage(err.msg);
+      if (err.message) return sanitizeErrorMessage(err.message);
+      return 'Validation error';
+    });
+    return messages.join(', ');
   }
 
   // Handle error objects with nested detail
   if (error.response?.data?.detail) {
     const detail = error.response.data.detail;
     if (Array.isArray(detail)) {
-      return detail.map(err => err.msg || err.message || String(err)).join(', ');
+      const messages = detail.map(err => {
+        const msg = err.msg || err.message || String(err);
+        return sanitizeErrorMessage(msg);
+      });
+      return messages.join(', ');
     }
     if (typeof detail === 'object' && detail !== null) {
-      if (detail.message) return detail.message;
-      if (detail.msg) return detail.msg;
-      try {
-        return JSON.stringify(detail);
-      } catch {
-        return 'Server error';
-      }
+      const msg = detail.message || detail.msg || 'Server error';
+      return sanitizeErrorMessage(msg);
     }
-    if (typeof detail === 'string') return detail;
+    if (typeof detail === 'string') return sanitizeErrorMessage(detail);
   }
 
-  if (error.response?.data?.message) return error.response.data.message;
-  if (error.message) return error.message;
-  if (error.msg) return error.msg;
-
-  // Last resort - controlled stringify to avoid circular references
-  if (typeof error === 'object' && error !== null) {
-    try {
-      return JSON.stringify(error);
-    } catch {
-      return 'An error occurred';
-    }
-  }
+  if (error.response?.data?.message) return sanitizeErrorMessage(error.response.data.message);
+  if (error.message) return sanitizeErrorMessage(error.message);
+  if (error.msg) return sanitizeErrorMessage(error.msg);
 
   return 'An unexpected error occurred';
 };

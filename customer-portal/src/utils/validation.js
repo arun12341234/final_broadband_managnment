@@ -1,6 +1,29 @@
 /**
  * Customer Portal Validation Functions
  * All input validation logic
+ *
+ * SECURITY WARNING - Client-Side Validation Limitations:
+ * These validation functions provide user experience improvements and basic input checking,
+ * but they are NOT sufficient for security on their own.
+ *
+ * CRITICAL: All validation must be duplicated on the server side because:
+ * - Client-side code can be bypassed by attackers
+ * - Users can modify JavaScript or make direct API calls
+ * - Browser DevTools can disable validation
+ * - Automated tools can bypass frontend checks
+ *
+ * Client-side validation should be used for:
+ * ✓ Immediate user feedback
+ * ✓ Preventing unnecessary server requests
+ * ✓ Improving user experience
+ *
+ * Server-side validation is REQUIRED for:
+ * ✓ Security enforcement
+ * ✓ Data integrity
+ * ✓ Protection against malicious inputs
+ * ✓ Business logic enforcement
+ *
+ * Never trust client-side validation alone. Always validate on the server.
  */
 
 import { VALIDATION } from './constants';

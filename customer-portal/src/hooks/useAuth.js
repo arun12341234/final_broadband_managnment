@@ -2,6 +2,29 @@
  * useAuth Hook
  * Manages authentication state and session timeout
  * FIXED: Dependency issues, circular dependencies, missing cleanup
+ *
+ * SECURITY NOTE - localStorage Token Storage:
+ * Currently using localStorage to store JWT tokens. This approach has a known XSS vulnerability:
+ * - If an attacker injects malicious JavaScript, they can access localStorage and steal tokens
+ * - Tokens are accessible to any JavaScript code running on the page
+ *
+ * RECOMMENDED SOLUTION (requires backend changes):
+ * - Use httpOnly cookies for token storage (immune to XSS attacks)
+ * - Implement CSRF protection with SameSite=Strict cookies
+ * - Use secure=true flag for cookies in production
+ *
+ * CURRENT MITIGATIONS IN PLACE:
+ * - Comprehensive XSS prevention through sanitizeInput() in helpers.js
+ * - Content Security Policy should be configured at server level
+ * - Session timeout (30 minutes default) limits exposure window
+ * - Remember me tokens expire after 30 days
+ * - All user inputs are sanitized before rendering
+ *
+ * To implement httpOnly cookies:
+ * 1. Backend: Set token as httpOnly cookie in login response
+ * 2. Backend: Include CSRF token in response headers
+ * 3. Frontend: Remove localStorage token storage
+ * 4. Frontend: Send CSRF token with each request
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
