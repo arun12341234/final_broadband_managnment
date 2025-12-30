@@ -61,6 +61,7 @@ export const PAYMENT_METHODS = [
 export const BILL_STATUS = {
   PENDING: 'Pending',
   VERIFIED_BY_CASH: 'VerifiedByCash',
+  VERIFIED_BY_UPI: 'VerifiedByUpi',  // Added - backend returns this for UPI/Card/NetBanking payments
   PAID: 'Paid',
   ONLINE: 'Online'
 };

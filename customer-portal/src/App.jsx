@@ -1399,20 +1399,17 @@ const BillsTab = ({ bills, userData, onRefresh, showToast }) => {
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div className="flex items-start gap-4">
                     <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                      bill.payment_status === BILL_STATUS.PENDING ? 'bg-yellow-100' :
-                      bill.payment_status === BILL_STATUS.VERIFIED_BY_CASH ? 'bg-green-100' : 'bg-blue-100'
+                      bill.payment_status === BILL_STATUS.PENDING ? 'bg-yellow-100' : 'bg-green-100'
                     }`}>
                       <Receipt className={`w-6 h-6 ${
-                        bill.payment_status === BILL_STATUS.PENDING ? 'text-yellow-600' :
-                        bill.payment_status === BILL_STATUS.VERIFIED_BY_CASH ? 'text-green-600' : 'text-blue-600'
+                        bill.payment_status === BILL_STATUS.PENDING ? 'text-yellow-600' : 'text-green-600'
                       }`} aria-hidden="true" />
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
                         <h3 className="font-semibold text-gray-900 text-lg">{formatCurrency(bill.amount)}</h3>
                         <Badge variant={
-                          bill.payment_status === BILL_STATUS.PENDING ? 'warning' :
-                          bill.payment_status === BILL_STATUS.VERIFIED_BY_CASH ? 'success' : 'info'
+                          bill.payment_status === BILL_STATUS.PENDING ? 'warning' : 'success'
                         }>
                           {bill.payment_status}
                         </Badge>
