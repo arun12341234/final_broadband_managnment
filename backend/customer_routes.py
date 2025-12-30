@@ -84,6 +84,7 @@ async def get_customer_profile(
     
     return {
         "id": current_user.id,
+        "cs_id": current_user.cs_id,  # Added for frontend validation
         "name": current_user.name,
         "email": current_user.email,
         "mobile": current_user.phone,
@@ -93,6 +94,7 @@ async def get_customer_profile(
         "plan_price": plan.price if plan else None,
         "plan_speed": plan.speed if plan else None,
         "plan_data_limit": plan.data_limit if plan else None,
+        "plan_id": current_user.broadband_plan_id,  # Added plan_id for reference
         "plan_expiry_date": current_user.plan_expiry_date,
         "is_plan_active": current_user.is_plan_active,
         "payment_status": current_user.payment_status,
@@ -133,7 +135,7 @@ async def get_customer_bills(
             "id": 0,  # Current bill
             "month": datetime.now().strftime("%B %Y"),
             "amount": current_bill_amount,
-            "status": "Unpaid",
+            "payment_status": "Pending",  # Changed from "status" to "payment_status"
             "due_date": current_user.payment_due_date,
             "payment_method": None,
             "paid_date": None
@@ -148,14 +150,14 @@ async def get_customer_bills(
                 "amount": record.previous_old_pending_amount + (
                     plan.price if plan else 0
                 ),
-                "status": "Paid",
+                "payment_status": record.new_payment_status,  # Changed from "status" to "payment_status", use actual payment status
                 "due_date": record.previous_payment_due_date,
                 "payment_method": record.new_payment_status,
                 "paid_date": record.created_at.strftime("%Y-%m-%d")
             })
     
     # Calculate total due (only unpaid bills)
-    total_due = sum(bill["amount"] for bill in bills if bill["status"] == "Unpaid")
+    total_due = sum(bill["amount"] for bill in bills if bill["payment_status"] == "Pending")
     
     return {
         "bills": bills,
