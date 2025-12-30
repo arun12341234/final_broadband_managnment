@@ -336,20 +336,30 @@ function App() {
         api.get('/api/plans')
       ]);
 
-      // Validate and set user data
-      if (profileRes.status === 'fulfilled') {
-        const userData = profileRes.value.data;
-        const validation = validateUserData(userData);
-
-        if (validation.valid) {
-          setUserData(userData);
-        } else {
-          console.error('Invalid user data:', validation.error);
-          showToast('Failed to load profile data', 'error');
-        }
+      // Check if critical profile endpoint failed
+      if (profileRes.status === 'rejected') {
+        console.error('Failed to load profile:', profileRes.reason);
+        const errorMsg = getErrorMessage(profileRes.reason?.response?.data?.detail || profileRes.reason);
+        showToast(`Failed to load profile: ${errorMsg}`, 'error');
+        // Don't continue if profile failed - it's critical
+        logout();
+        return;
       }
 
-      // Validate and set bills
+      // Validate and set user data
+      const userData = profileRes.value.data;
+      const validation = validateUserData(userData);
+
+      if (validation.valid) {
+        setUserData(userData);
+      } else {
+        console.error('Invalid user data:', validation.error);
+        showToast('Failed to load profile data', 'error');
+        logout();
+        return;
+      }
+
+      // Validate and set bills (non-critical - continue on failure)
       if (billsRes.status === 'fulfilled') {
         const billsData = billsRes.value.data;
         let billsArray = [];
@@ -360,19 +370,25 @@ function App() {
           billsArray = billsData.bills;
         }
 
-        const validation = validateBillsData(billsArray);
-        if (validation.valid) {
+        const billsValidation = validateBillsData(billsArray);
+        if (billsValidation.valid) {
           setBills(billsArray);
         } else {
-          console.error('Invalid bills data:', validation.error);
+          console.error('Invalid bills data:', billsValidation.error);
           setBills([]);
         }
+      } else {
+        console.warn('Failed to load bills:', billsRes.reason);
+        setBills([]);
       }
 
-      // Set plans
+      // Set plans (non-critical - continue on failure)
       if (plansRes.status === 'fulfilled') {
         const plansData = plansRes.value.data;
         setPlans(Array.isArray(plansData) ? plansData : []);
+      } else {
+        console.warn('Failed to load plans:', plansRes.reason);
+        setPlans([]);
       }
 
     } catch (error) {
@@ -381,7 +397,7 @@ function App() {
     } finally {
       setLoading(false);
     }
-  }, [showToast]);
+  }, [showToast, logout]);
 
   useEffect(() => {
     if (isAuthenticated && !authLoading) {
@@ -763,6 +779,7 @@ const LoginScreen = ({ onLogin, showToast }) => {
 
 const DashboardTab = ({ userData, bills, plans, onRefresh, showToast, onNavigate }) => {
   const [refreshing, setRefreshing] = useState(false);
+  const lastRefreshRef = useRef(0);
 
   // Safe data with null checks
   const safeBills = useMemo(() => Array.isArray(bills) ? bills : [], [bills]);
@@ -795,6 +812,14 @@ const DashboardTab = ({ userData, bills, plans, onRefresh, showToast, onNavigate
   }, [safeBills]);
 
   const handleRefresh = async () => {
+    // Throttle refreshes to prevent spam (3 second minimum between refreshes)
+    const now = Date.now();
+    if (now - lastRefreshRef.current < 3000) {
+      showToast('Please wait before refreshing again', 'warning');
+      return;
+    }
+
+    lastRefreshRef.current = now;
     setRefreshing(true);
     try {
       await onRefresh();
@@ -1075,6 +1100,7 @@ const DashboardTab = ({ userData, bills, plans, onRefresh, showToast, onNavigate
 
 const BillsTab = ({ bills, userData, onRefresh, showToast }) => {
   const safeBills = useMemo(() => Array.isArray(bills) ? bills : [], [bills]);
+  const lastRefreshRef = useRef(0);
 
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedBill, setSelectedBill] = useState(null);
@@ -1101,12 +1127,18 @@ const BillsTab = ({ bills, userData, onRefresh, showToast }) => {
       });
     }
 
-    // Filter by status
+    // Filter by status (case-insensitive)
     if (filterStatus !== 'all') {
       if (filterStatus === 'pending') {
-        filtered = filtered.filter(b => b.payment_status === BILL_STATUS.PENDING);
+        filtered = filtered.filter(b => {
+          const status = String(b.payment_status || '').toLowerCase();
+          return status === BILL_STATUS.PENDING.toLowerCase();
+        });
       } else if (filterStatus === 'paid') {
-        filtered = filtered.filter(b => b.payment_status !== BILL_STATUS.PENDING);
+        filtered = filtered.filter(b => {
+          const status = String(b.payment_status || '').toLowerCase();
+          return status !== BILL_STATUS.PENDING.toLowerCase();
+        });
       }
     }
 
@@ -1121,8 +1153,11 @@ const BillsTab = ({ bills, userData, onRefresh, showToast }) => {
           return Number(b.amount || 0) - Number(a.amount || 0);
         case 'amount_low':
           return Number(a.amount || 0) - Number(b.amount || 0);
-        case 'status_pending':
-          return (b.payment_status === BILL_STATUS.PENDING ? 1 : 0) - (a.payment_status === BILL_STATUS.PENDING ? 1 : 0);
+        case 'status_pending': {
+          const bPending = String(b.payment_status || '').toLowerCase() === BILL_STATUS.PENDING.toLowerCase();
+          const aPending = String(a.payment_status || '').toLowerCase() === BILL_STATUS.PENDING.toLowerCase();
+          return (bPending ? 1 : 0) - (aPending ? 1 : 0);
+        }
         default:
           return 0;
       }
@@ -1141,6 +1176,14 @@ const BillsTab = ({ bills, userData, onRefresh, showToast }) => {
   const totalPages = Math.ceil(processedBills.length / PAGINATION.BILLS_PER_PAGE);
 
   const handleRefresh = async () => {
+    // Throttle refreshes to prevent spam (3 second minimum between refreshes)
+    const now = Date.now();
+    if (now - lastRefreshRef.current < 3000) {
+      showToast('Please wait before refreshing again', 'warning');
+      return;
+    }
+
+    lastRefreshRef.current = now;
     setRefreshing(true);
     try {
       await onRefresh();
@@ -1163,20 +1206,21 @@ const BillsTab = ({ bills, userData, onRefresh, showToast }) => {
       return;
     }
 
+    let url = null;
+    let link = null;
+
     try {
       showToast('Downloading invoice...', 'info');
       const response = await api.get(`/api/customer/download-invoice/${bill.id}`, {
         responseType: 'blob'
       });
 
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
+      url = window.URL.createObjectURL(new Blob([response.data]));
+      link = document.createElement('a');
       link.href = url;
       link.setAttribute('download', `invoice_${bill.id}.pdf`);
       document.body.appendChild(link);
       link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
 
       showToast('Invoice downloaded successfully!', 'success');
     } catch (error) {
@@ -1186,6 +1230,14 @@ const BillsTab = ({ bills, userData, onRefresh, showToast }) => {
         ? 'You do not have permission to download this invoice'
         : getErrorMessage(error);
       showToast(errorMsg, 'error');
+    } finally {
+      // Always cleanup DOM and memory
+      if (link && link.parentNode) {
+        link.remove();
+      }
+      if (url) {
+        window.URL.revokeObjectURL(url);
+      }
     }
   };
 
@@ -1249,7 +1301,10 @@ const BillsTab = ({ bills, userData, onRefresh, showToast }) => {
               id="search-bills"
               type="text"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1); // Reset pagination on search
+              }}
               placeholder="Search by amount, date, status..."
               className="input"
             />
@@ -1260,7 +1315,10 @@ const BillsTab = ({ bills, userData, onRefresh, showToast }) => {
             <select
               id="filter-status"
               value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
+              onChange={(e) => {
+                setFilterStatus(e.target.value);
+                setCurrentPage(1); // Reset pagination on filter
+              }}
               className="input"
             >
               {FILTER_OPTIONS.map(option => (
@@ -1274,7 +1332,10 @@ const BillsTab = ({ bills, userData, onRefresh, showToast }) => {
             <select
               id="sort-bills"
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
+              onChange={(e) => {
+                setSortBy(e.target.value);
+                setCurrentPage(1); // Reset pagination on sort
+              }}
               className="input"
             >
               {SORT_OPTIONS.map(option => (
@@ -1436,8 +1497,8 @@ const PaymentModal = ({ bill, userData, onClose, onSuccess, showToast }) => {
         bill_id: bill.id
       });
 
-      // Show confirmation with transaction ID
-      setTransactionId(response.data.transaction_id || `TXN${Date.now()}`);
+      // Show confirmation with transaction ID from backend (never generate client-side)
+      setTransactionId(response.data.transaction_id || null);
       setShowConfirmation(true);
     } catch (error) {
       const errorMsg = getErrorMessage(error.response?.data?.detail || error);
@@ -1465,17 +1526,19 @@ const PaymentModal = ({ bill, userData, onClose, onSuccess, showToast }) => {
               <div className="flex justify-between">
                 <span className="text-gray-700">Transaction ID:</span>
                 <span className="font-mono font-medium text-gray-900 flex items-center gap-2">
-                  {transactionId}
-                  <button
-                    onClick={async () => {
-                      const success = await copyToClipboard(transactionId);
-                      showToast(success ? 'Transaction ID copied!' : 'Failed to copy', success ? 'success' : 'error');
-                    }}
-                    className="text-blue-600 hover:text-blue-700 icon-btn p-1"
-                    aria-label="Copy transaction ID"
-                  >
-                    <Copy className="w-4 h-4" />
-                  </button>
+                  {transactionId || 'Processing...'}
+                  {transactionId && (
+                    <button
+                      onClick={async () => {
+                        const success = await copyToClipboard(transactionId);
+                        showToast(success ? 'Transaction ID copied!' : 'Failed to copy', success ? 'success' : 'error');
+                      }}
+                      className="text-blue-600 hover:text-blue-700 icon-btn p-1"
+                      aria-label="Copy transaction ID"
+                    >
+                      <Copy className="w-4 h-4" />
+                    </button>
+                  )}
                 </span>
               </div>
               <div className="flex justify-between">

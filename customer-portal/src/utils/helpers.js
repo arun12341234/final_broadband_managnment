@@ -210,32 +210,50 @@ export const isDevelopment = () => {
 };
 
 /**
- * Copy text to clipboard
+ * Copy text to clipboard with permission handling
  */
 export const copyToClipboard = async (text) => {
+  if (!text) return false;
+
   try {
+    // Check if clipboard API is available and we're in a secure context
     if (navigator.clipboard && window.isSecureContext) {
-      await navigator.clipboard.writeText(text);
-      return true;
-    } else {
-      // Fallback for older browsers
-      const textArea = document.createElement('textarea');
-      textArea.value = text;
-      textArea.style.position = 'fixed';
-      textArea.style.left = '-999999px';
-      document.body.appendChild(textArea);
-      textArea.focus();
-      textArea.select();
       try {
-        document.execCommand('copy');
-        textArea.remove();
+        await navigator.clipboard.writeText(text);
         return true;
       } catch (err) {
-        textArea.remove();
-        return false;
+        // Handle permission denied or other clipboard errors
+        if (err.name === 'NotAllowedError') {
+          console.warn('Clipboard permission denied, trying fallback');
+        }
+        // Fall through to fallback method
       }
     }
+
+    // Fallback for older browsers or if clipboard API failed
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    textArea.setAttribute('readonly', '');
+    document.body.appendChild(textArea);
+
+    // iOS requires focus + select
+    textArea.focus();
+    textArea.select();
+
+    try {
+      const successful = document.execCommand('copy');
+      textArea.remove();
+      return successful;
+    } catch (err) {
+      console.error('Fallback copy failed:', err);
+      textArea.remove();
+      return false;
+    }
   } catch (err) {
+    console.error('Copy to clipboard failed:', err);
     return false;
   }
 };
