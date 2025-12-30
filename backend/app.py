@@ -886,6 +886,106 @@ async def download_invoice_pdf(
         filename=f"{invoice.invoice_number}.pdf"
     )
 
+@app.post("/api/invoice/generate/{user_id}", tags=["Invoices"])
+async def generate_invoice_for_user(
+    user_id: str,
+    current_admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """Generate and download invoice PDF for a user"""
+    from pdf_generator import generate_invoice_pdf
+    from datetime import datetime
+
+    # Get user
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Get user's plan
+    plan = None
+    if user.broadband_plan_id:
+        plan = db.query(BroadbandPlan).filter(BroadbandPlan.id == user.broadband_plan_id).first()
+
+    # Prepare data for PDF generation
+    today = datetime.now()
+
+    # Generate invoice number
+    invoice_count = db.query(func.count(Invoice.id)).filter(
+        Invoice.invoice_date >= today.strftime("%Y-%m-01")
+    ).scalar()
+    invoice_number = f"INV-{today.strftime('%Y%m%d')}-{invoice_count + 1:04d}"
+
+    user_data = {
+        "cs_id": user.cs_id,
+        "name": user.name,
+        "phone": user.phone,
+        "email": user.email or "N/A",
+        "address": user.address or "N/A"
+    }
+
+    plan_data = {
+        "name": plan.name if plan else "No Plan",
+        "speed": plan.speed if plan else "N/A",
+        "price": plan.price if plan else 0,
+        "data_limit": plan.data_limit if plan else "N/A"
+    }
+
+    billing_data = {
+        "invoice_number": invoice_number,
+        "invoice_date": today.strftime("%d-%b-%Y"),
+        "due_date": user.payment_due_date if user.payment_due_date != "Paid" else "N/A",
+        "amount": (plan.price if plan else 0) + user.old_pending_amount,
+        "old_pending": user.old_pending_amount,
+        "current_charges": plan.price if plan else 0,
+        "total": (plan.price if plan else 0) + user.old_pending_amount,
+        "payment_status": user.payment_status
+    }
+
+    try:
+        # Generate PDF
+        pdf_path = generate_invoice_pdf(user_data, plan_data, billing_data)
+
+        # Create invoice record in database
+        new_invoice = Invoice(
+            invoice_number=invoice_number,
+            user_id=user.id,
+            cs_id=user.cs_id,
+            customer_name=user.name,
+            customer_phone=user.phone,
+            customer_email=user.email or "N/A",
+            customer_address=user.address or "N/A",
+            plan_name=plan.name if plan else "No Plan",
+            plan_speed=plan.speed if plan else "N/A",
+            plan_price=plan.price if plan else 0,
+            plan_data_limit=plan.data_limit if plan else "N/A",
+            billing_period_start=today.strftime("%Y-%m-01"),
+            billing_period_end=user.plan_expiry_date if user.plan_expiry_date else today.strftime("%Y-%m-%d"),
+            previous_balance=user.old_pending_amount,
+            current_charges=plan.price if plan else 0,
+            total_amount=(plan.price if plan else 0) + user.old_pending_amount,
+            payment_status=user.payment_status,
+            invoice_date=today.strftime("%Y-%m-%d"),
+            due_date=user.payment_due_date if user.payment_due_date != "Paid" else "N/A",
+            pdf_filepath=str(pdf_path),
+            generated_by_admin=current_admin.email
+        )
+
+        db.add(new_invoice)
+        db.commit()
+        db.refresh(new_invoice)
+
+        logger.info(f"✅ Invoice {invoice_number} generated for user {user.cs_id} by admin {current_admin.email}")
+
+        # Return PDF file
+        return FileResponse(
+            str(pdf_path),
+            media_type="application/pdf",
+            filename=f"invoice_{user.cs_id}_{invoice_number}.pdf"
+        )
+    except Exception as e:
+        logger.error(f"❌ Failed to generate invoice for user {user_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate invoice: {str(e)}")
+
 # ============================================
 # ENGINEER MANAGEMENT
 # ============================================
