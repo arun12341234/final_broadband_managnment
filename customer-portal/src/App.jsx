@@ -152,7 +152,12 @@ const Toast = ({ message, type = 'success', onClose }) => {
   const safeMessage = typeof message === 'string' ? message : getErrorMessage(message);
 
   return (
-    <div className={`toast toast-${type}`} role="alert" aria-live="polite">
+    <div
+      className={`toast toast-${type}`}
+      role="alert"
+      aria-live={type === 'error' || type === 'warning' ? 'assertive' : 'polite'}
+      aria-atomic="true"
+    >
       <div className="flex items-center gap-3">
         {icons[type]}
         <p className="flex-1 text-sm text-gray-700">{safeMessage}</p>
@@ -183,18 +188,28 @@ const LoadingSpinner = ({ size = 'default' }) => {
 };
 
 const SkeletonCard = () => (
-  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 animate-pulse">
+  <div
+    className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 animate-pulse"
+    role="status"
+    aria-label="Loading content"
+    aria-live="polite"
+  >
     <div className="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
     <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+    <span className="sr-only">Loading...</span>
   </div>
 );
 
 const Modal = ({ isOpen, onClose, title, children }) => {
   const modalRef = React.useRef(null);
+  const previousActiveElementRef = React.useRef(null);
 
-  // Focus trap
+  // Focus trap and focus restoration
   useEffect(() => {
     if (!isOpen) return;
+
+    // Save the currently focused element before opening modal
+    previousActiveElementRef.current = document.activeElement;
 
     const modal = modalRef.current;
     if (!modal) return;
@@ -236,6 +251,11 @@ const Modal = ({ isOpen, onClose, title, children }) => {
     return () => {
       document.removeEventListener('keydown', handleTabKey);
       document.removeEventListener('keydown', handleEscapeKey);
+
+      // Restore focus to the element that was focused before modal opened
+      if (previousActiveElementRef.current && typeof previousActiveElementRef.current.focus === 'function') {
+        previousActiveElementRef.current.focus();
+      }
     };
   }, [isOpen, onClose]);
 
@@ -477,27 +497,38 @@ function App() {
         <NavigationTabs activeTab={activeTab} onTabChange={handleTabChange} />
 
         {/* Main Content */}
-        <main id="main-content" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <main
+          id="main-content"
+          className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"
+          role="main"
+          aria-busy={loading}
+        >
           {activeTab === TABS.HOME && (
-            <DashboardTab
-              userData={userData}
-              bills={bills}
-              plans={plans}
-              onRefresh={fetchUserData}
-              showToast={showToast}
-              onNavigate={handleTabChange}
-            />
+            <div role="tabpanel" id="home-panel" aria-labelledby="home-tab">
+              <DashboardTab
+                userData={userData}
+                bills={bills}
+                plans={plans}
+                onRefresh={fetchUserData}
+                showToast={showToast}
+                onNavigate={handleTabChange}
+              />
+            </div>
           )}
           {activeTab === TABS.BILLS && (
-            <BillsTab
-              bills={bills}
-              userData={userData}
-              onRefresh={fetchUserData}
-              showToast={showToast}
-            />
+            <div role="tabpanel" id="bills-panel" aria-labelledby="bills-tab">
+              <BillsTab
+                bills={bills}
+                userData={userData}
+                onRefresh={fetchUserData}
+                showToast={showToast}
+              />
+            </div>
           )}
           {activeTab === TABS.PROFILE && (
-            <ProfileTab userData={userData} showToast={showToast} />
+            <div role="tabpanel" id="profile-panel" aria-labelledby="profile-tab">
+              <ProfileTab userData={userData} showToast={showToast} />
+            </div>
           )}
         </main>
 
@@ -571,6 +602,7 @@ const NavigationTabs = ({ activeTab, onTabChange }) => {
           {tabs.map(tab => (
             <button
               key={tab.id}
+              id={`${tab.id}-tab`}
               role="tab"
               aria-selected={activeTab === tab.id}
               aria-controls={`${tab.id}-panel`}
