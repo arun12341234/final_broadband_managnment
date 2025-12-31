@@ -956,6 +956,7 @@ async def generate_invoice_for_user(
             "pin_code": billing_settings.pin_code,
             "gstin": billing_settings.gstin,
             "contact_number": billing_settings.contact_number,
+            "upi_id": billing_settings.upi_id,
             "qr_code_data": billing_settings.qr_code_data
         }
 

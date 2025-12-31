@@ -5802,7 +5802,8 @@ const AddressBillingTab = ({ showToast }) => {
     country: 'India',
     pin_code: '',
     gstin: '',
-    contact_number: ''
+    contact_number: '',
+    upi_id: ''
   });
 
   const [errors, setErrors] = useState({});
@@ -5825,7 +5826,8 @@ const AddressBillingTab = ({ showToast }) => {
         country: data.country || 'India',
         pin_code: data.pin_code || '',
         gstin: data.gstin || '',
-        contact_number: data.contact_number || ''
+        contact_number: data.contact_number || '',
+        upi_id: data.upi_id || ''
       });
       setUiLayout(data.ui_layout || 'card');
     } catch (error) {
@@ -5956,7 +5958,7 @@ const AddressBillingTab = ({ showToast }) => {
     { title: 'Basic Info', fields: ['full_name', 'contact_number'] },
     { title: 'Address', fields: ['street', 'city', 'state'] },
     { title: 'Location', fields: ['country', 'pin_code'] },
-    { title: 'Tax Info', fields: ['gstin'] }
+    { title: 'Tax & Payment', fields: ['gstin', 'upi_id'] }
   ];
 
   const renderStepperContent = () => {
@@ -5972,7 +5974,8 @@ const AddressBillingTab = ({ showToast }) => {
             state: 'State',
             country: 'Country',
             pin_code: 'Pin Code',
-            gstin: 'GSTIN (Optional)'
+            gstin: 'GSTIN (Optional)',
+            upi_id: 'UPI ID (Optional)'
           };
           return (
             <div key={field}>
@@ -5981,7 +5984,7 @@ const AddressBillingTab = ({ showToast }) => {
                 labels[field],
                 'text',
                 labels[field],
-                field !== 'gstin' && field !== 'contact_number'
+                field !== 'gstin' && field !== 'contact_number' && field !== 'upi_id'
               )}
             </div>
           );
@@ -6028,13 +6031,17 @@ const AddressBillingTab = ({ showToast }) => {
 
       <Card className="p-6">
         <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <FileText className="w-5 h-5 text-orange-600" />
-          Tax Information
+          <CreditCard className="w-5 h-5 text-orange-600" />
+          Tax & Payment Information
         </h3>
         <div className="space-y-4">
           {renderFormField('gstin', 'GSTIN', 'text', 'GST Identification Number (Optional)', false)}
           <div className="text-xs text-gray-500">
             Format: 22AAAAA0000A1Z5
+          </div>
+          {renderFormField('upi_id', 'UPI ID', 'text', 'UPI ID for payments (e.g., yourname@upi)', false)}
+          <div className="text-xs text-gray-500">
+            This UPI ID will be used in invoices and payment QR codes
           </div>
         </div>
       </Card>
@@ -6139,6 +6146,7 @@ const AddressBillingTab = ({ showToast }) => {
           {renderFormField('country', 'Country', 'text', 'Country')}
           {renderFormField('pin_code', 'Pin Code', 'text', '6-digit pin code')}
           {renderFormField('gstin', 'GSTIN', 'text', 'GST Identification Number (Optional)', false)}
+          {renderFormField('upi_id', 'UPI ID', 'text', 'UPI ID for payments (e.g., yourname@upi)', false)}
         </div>
         <div className="mt-6">
           <Button type="submit" disabled={saving} className="w-full">
@@ -6176,6 +6184,7 @@ const AddressBillingTab = ({ showToast }) => {
                 {renderFormField('contact_number', 'Contact', 'tel', '10-digit', false)}
               </div>
               {renderFormField('gstin', 'GSTIN (Optional)', 'text', 'GST Number', false)}
+              {renderFormField('upi_id', 'UPI ID (Optional)', 'text', 'yourname@upi', false)}
             </div>
             <div className="mt-6">
               <Button type="submit" disabled={saving} className="w-full">
@@ -6301,6 +6310,7 @@ const AddressBillingTab = ({ showToast }) => {
                 <p>{settings.country}</p>
                 {settings.contact_number && <p>Contact: {settings.contact_number}</p>}
                 {settings.gstin && <p>GSTIN: {settings.gstin}</p>}
+                {settings.upi_id && <p>UPI: {settings.upi_id}</p>}
               </div>
             </div>
           </div>

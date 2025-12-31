@@ -175,10 +175,13 @@ def generate_invoice_pdf(user_data: dict, plan_data: dict, billing_data: dict, c
     elements.append(items_table)
     elements.append(Spacer(1, 0.5 * inch))
     
-    # Payment Information
+    # Payment Information - use company data if available
+    upi_id = company_data.get('upi_id', '4youbroadband@upi') if company_data and company_data.get('upi_id') else '4youbroadband@upi'
+    company_name_for_upi = company_data.get('name', '4You Broadband') if company_data else '4You Broadband'
+
     payment_info = Paragraph(
         "<b>Payment Information:</b><br/>"
-        "UPI: 4youbroadband@upi<br/>"
+        f"UPI: {upi_id}<br/>"
         "Account: 1234567890<br/>"
         "IFSC: HDFC0001234<br/>"
         "Bank: HDFC Bank, Mumbai",
@@ -186,10 +189,10 @@ def generate_invoice_pdf(user_data: dict, plan_data: dict, billing_data: dict, c
     )
     elements.append(payment_info)
     elements.append(Spacer(1, 0.3 * inch))
-    
+
     # Generate QR Code for UPI payment
     try:
-        upi_string = f"upi://pay?pa=4youbroadband@upi&pn=4You Broadband&am={total_amount}&cu=INR"
+        upi_string = f"upi://pay?pa={upi_id}&pn={company_name_for_upi}&am={total_amount}&cu=INR"
         qr = qrcode.QRCode(version=1, box_size=3, border=2)
         qr.add_data(upi_string)
         qr.make(fit=True)

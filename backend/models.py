@@ -217,6 +217,7 @@ class BillingSettings(Base):
     pin_code = Column(String, nullable=False)
     gstin = Column(String, nullable=True)  # Optional GST number
     contact_number = Column(String, nullable=True)  # Optional contact
+    upi_id = Column(String, nullable=True)  # UPI ID for payments
 
     # UI Layout preference
     ui_layout = Column(String, default="card")  # card, stepper, fullwidth, compact

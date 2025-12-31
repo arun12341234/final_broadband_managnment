@@ -40,6 +40,9 @@ def generate_qr_code(address_data: dict) -> str:
     if address_data.get('gstin'):
         address_text += f"\nGSTIN: {address_data['gstin']}"
 
+    if address_data.get('upi_id'):
+        address_text += f"\nUPI: {address_data['upi_id']}"
+
     # Generate QR code
     qr = qrcode.QRCode(
         version=1,
@@ -116,7 +119,8 @@ async def create_billing_settings(
         'country': settings.country,
         'pin_code': settings.pin_code,
         'contact_number': settings.contact_number,
-        'gstin': settings.gstin
+        'gstin': settings.gstin,
+        'upi_id': settings.upi_id
     }
 
     qr_code_data = generate_qr_code(address_data)
@@ -131,6 +135,7 @@ async def create_billing_settings(
         pin_code=settings.pin_code,
         gstin=settings.gstin,
         contact_number=settings.contact_number,
+        upi_id=settings.upi_id,
         ui_layout=settings.ui_layout,
         qr_code_data=qr_code_data
     )
@@ -175,7 +180,7 @@ async def update_billing_settings(
     for field, value in update_data.items():
         if value is not None:
             setattr(db_settings, field, value)
-            if field in ['full_name', 'street', 'city', 'state', 'country', 'pin_code', 'contact_number', 'gstin']:
+            if field in ['full_name', 'street', 'city', 'state', 'country', 'pin_code', 'contact_number', 'gstin', 'upi_id']:
                 address_changed = True
 
     # Regenerate QR code if address changed
@@ -188,7 +193,8 @@ async def update_billing_settings(
             'country': db_settings.country,
             'pin_code': db_settings.pin_code,
             'contact_number': db_settings.contact_number,
-            'gstin': db_settings.gstin
+            'gstin': db_settings.gstin,
+            'upi_id': db_settings.upi_id
         }
         db_settings.qr_code_data = generate_qr_code(address_data)
         logger.info("🔄 QR code regenerated due to address change")

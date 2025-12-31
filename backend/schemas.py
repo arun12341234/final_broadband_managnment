@@ -294,6 +294,7 @@ class BillingSettingsCreate(BaseModel):
     pin_code: str = Field(..., min_length=6, max_length=6)
     gstin: Optional[str] = Field(None, min_length=15, max_length=15)
     contact_number: Optional[str] = Field(None, min_length=10, max_length=10)
+    upi_id: Optional[str] = Field(None, max_length=100)
     ui_layout: str = Field(default="card")
 
     @validator('pin_code')
@@ -337,6 +338,7 @@ class BillingSettingsUpdate(BaseModel):
     pin_code: Optional[str] = Field(None, min_length=6, max_length=6)
     gstin: Optional[str] = Field(None, min_length=15, max_length=15)
     contact_number: Optional[str] = Field(None, min_length=10, max_length=10)
+    upi_id: Optional[str] = Field(None, max_length=100)
     ui_layout: Optional[str] = None
 
     @validator('pin_code')
@@ -381,6 +383,7 @@ class BillingSettingsResponse(BaseModel):
     pin_code: str
     gstin: Optional[str]
     contact_number: Optional[str]
+    upi_id: Optional[str]
     ui_layout: str
     qr_code_data: Optional[str]
     created_at: datetime
