@@ -966,25 +966,40 @@ const AddCustomerTab = ({ showToast, onSuccess, plans }) => {
               {/* Display selected documents */}
               {kycDocuments.length > 0 && (
                 <div className="space-y-2">
-                  {kycDocuments.map((doc, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
-                      <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <FileText className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                        <span className="text-sm text-gray-700 truncate">{doc.name}</span>
-                        <span className="text-xs text-gray-500 flex-shrink-0">
-                          ({(doc.size / 1024 / 1024).toFixed(2)} MB)
-                        </span>
+                  {kycDocuments.map((doc, index) => {
+                    const isImage = doc.type.startsWith('image/');
+                    const previewUrl = isImage ? URL.createObjectURL(doc) : null;
+
+                    return (
+                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          {isImage && previewUrl ? (
+                            <img
+                              src={previewUrl}
+                              alt={doc.name}
+                              className="w-12 h-12 object-cover rounded border border-gray-300 flex-shrink-0"
+                            />
+                          ) : (
+                            <FileText className="w-12 h-12 text-blue-600 flex-shrink-0 p-2" />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-700 truncate">{doc.name}</p>
+                            <p className="text-xs text-gray-500">
+                              {(doc.size / 1024 / 1024).toFixed(2)} MB
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveDocument(index)}
+                          className="w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 flex-shrink-0 ml-2"
+                          aria-label={`Remove ${doc.name}`}
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveDocument(index)}
-                        className="w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 flex-shrink-0 ml-2"
-                        aria-label={`Remove ${doc.name}`}
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
