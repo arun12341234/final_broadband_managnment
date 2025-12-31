@@ -97,6 +97,8 @@ class UserResponse(BaseModel):
     phone: str
     email: Optional[str]
     address: Optional[str]
+    photo: Optional[str] = None  # User photo URL
+    documents: Optional[str] = None  # JSON string of documents
     broadband_plan_id: str
     payment_status: str
     old_pending_amount: int
@@ -106,7 +108,7 @@ class UserResponse(BaseModel):
     is_plan_active: bool
     status: str
     created_at: str
-    
+
     class Config:
         from_attributes = True
 
