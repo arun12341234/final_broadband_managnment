@@ -203,3 +203,30 @@ class Invoice(Base):
 
     def __repr__(self):
         return f"<Invoice(invoice_number='{self.invoice_number}', total={self.total_amount})>"
+
+
+class BillingSettings(Base):
+    __tablename__ = "billing_settings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    full_name = Column(String, nullable=False)
+    street = Column(Text, nullable=False)  # Street / Building / Area
+    city = Column(String, nullable=False)
+    state = Column(String, nullable=False)
+    country = Column(String, nullable=False, default="India")
+    pin_code = Column(String, nullable=False)
+    gstin = Column(String, nullable=True)  # Optional GST number
+    contact_number = Column(String, nullable=True)  # Optional contact
+
+    # UI Layout preference
+    ui_layout = Column(String, default="card")  # card, stepper, fullwidth, compact
+
+    # QR Code data
+    qr_code_data = Column(Text, nullable=True)  # Base64 encoded QR code image
+
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<BillingSettings(name='{self.full_name}', city='{self.city}')>"

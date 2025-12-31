@@ -13,16 +13,17 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def generate_invoice_pdf(user_data: dict, plan_data: dict, billing_data: dict, output_dir: Path = None):
+def generate_invoice_pdf(user_data: dict, plan_data: dict, billing_data: dict, company_data: dict = None, output_dir: Path = None):
     """
     Generate professional invoice PDF
-    
+
     Args:
         user_data: Dict with user information
         plan_data: Dict with plan information
         billing_data: Dict with billing information
+        company_data: Dict with company/billing settings information (optional)
         output_dir: Output directory (default: exports/)
-    
+
     Returns:
         str: Path to generated PDF
     """
@@ -53,19 +54,36 @@ def generate_invoice_pdf(user_data: dict, plan_data: dict, billing_data: dict, o
         alignment=TA_CENTER
     )
     
-    # Header
-    elements.append(Paragraph("4You Broadband", title_style))
+    # Header - use company name from billing settings if available
+    company_name = company_data.get("name", "4You Broadband") if company_data else "4You Broadband"
+    elements.append(Paragraph(company_name, title_style))
     elements.append(Paragraph("TAX INVOICE", styles['Heading2']))
     elements.append(Spacer(1, 0.3 * inch))
-    
-    # Company & Customer Info
-    info_data = [
-        ["From:", "To:"],
-        ["4You Broadband", user_data.get("name", "")],
-        ["Mumbai, Maharashtra", user_data.get("address", "")],
-        ["India - 400001", f"Mobile: {user_data.get('mobile', '')}"],
-        ["GSTIN: 27XXXXX1234X1Z5", f"Email: {user_data.get('email', '')}"],
-    ]
+
+    # Company & Customer Info - use billing settings if available
+    if company_data:
+        company_address = f"{company_data.get('street', '')}"
+        company_city_state = f"{company_data.get('city', '')}, {company_data.get('state', '')}"
+        company_country_pin = f"{company_data.get('country', '')} - {company_data.get('pin_code', '')}"
+        company_gstin = f"GSTIN: {company_data.get('gstin', 'N/A')}" if company_data.get('gstin') else "GSTIN: Not Registered"
+
+        info_data = [
+            ["From:", "To:"],
+            [company_name, user_data.get("name", "")],
+            [company_address, user_data.get("address", "")],
+            [company_city_state, f"Mobile: {user_data.get('mobile', '')}"],
+            [company_country_pin, f"Email: {user_data.get('email', '')}"],
+            [company_gstin, ""],
+        ]
+    else:
+        # Fallback to hardcoded values
+        info_data = [
+            ["From:", "To:"],
+            ["4You Broadband", user_data.get("name", "")],
+            ["Mumbai, Maharashtra", user_data.get("address", "")],
+            ["India - 400001", f"Mobile: {user_data.get('mobile', '')}"],
+            ["GSTIN: 27XXXXX1234X1Z5", f"Email: {user_data.get('email', '')}"],
+        ]
     
     info_table = Table(info_data, colWidths=[3 * inch, 3 * inch])
     info_table.setStyle(TableStyle([

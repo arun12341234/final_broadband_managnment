@@ -427,11 +427,16 @@ function App() {
             />
           )}
           {activeTab === 'billing' && (
-            <BillingTab 
+            <BillingTab
               billingHistory={billingHistory}
               users={users}
               plans={plans}
               onRefresh={fetchAllData}
+              showToast={showToast}
+            />
+          )}
+          {activeTab === 'address-billing' && (
+            <AddressBillingTab
               showToast={showToast}
             />
           )}
@@ -562,6 +567,7 @@ const Sidebar = ({ activeTab, setActiveTab, onLogout, sidebarOpen, setSidebarOpe
     { id: 'plans', icon: Package, label: 'Plans' },
     { id: 'engineers', icon: Wrench, label: 'Engineers' },
     { id: 'billing', icon: FileText, label: 'Billing History' },
+    { id: 'address-billing', icon: MapPin, label: 'Address & Billing' },
     { id: 'notifications', icon: Bell, label: 'Notifications' },
     { id: 'settings', icon: Settings, label: 'System Config' },
   ];
@@ -5772,6 +5778,534 @@ const SettingsTab = ({ showToast }) => {
           </div>
         </div>
       </Card>
+    </div>
+  );
+};
+
+// ============================================
+// ADDRESS & BILLING TAB
+// ============================================
+
+const AddressBillingTab = ({ showToast }) => {
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [settings, setSettings] = useState(null);
+  const [uiLayout, setUiLayout] = useState('card');
+  const [currentStep, setCurrentStep] = useState(0);
+
+  // Form state
+  const [formData, setFormData] = useState({
+    full_name: '',
+    street: '',
+    city: '',
+    state: '',
+    country: 'India',
+    pin_code: '',
+    gstin: '',
+    contact_number: ''
+  });
+
+  const [errors, setErrors] = useState({});
+
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
+  const fetchSettings = async () => {
+    setLoading(true);
+    try {
+      const response = await api.get('/api/billing-settings');
+      const data = response.data;
+      setSettings(data);
+      setFormData({
+        full_name: data.full_name || '',
+        street: data.street || '',
+        city: data.city || '',
+        state: data.state || '',
+        country: data.country || 'India',
+        pin_code: data.pin_code || '',
+        gstin: data.gstin || '',
+        contact_number: data.contact_number || ''
+      });
+      setUiLayout(data.ui_layout || 'card');
+    } catch (error) {
+      if (error.response?.status === 404) {
+        // No settings exist yet - that's OK
+        console.log('No billing settings found - will create new');
+      } else {
+        showToast('Failed to fetch billing settings', 'error');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!formData.full_name || formData.full_name.length < 2) {
+      newErrors.full_name = 'Full name must be at least 2 characters';
+    }
+
+    if (!formData.street || formData.street.length < 5) {
+      newErrors.street = 'Street address must be at least 5 characters';
+    }
+
+    if (!formData.city || formData.city.length < 2) {
+      newErrors.city = 'City is required';
+    }
+
+    if (!formData.state || formData.state.length < 2) {
+      newErrors.state = 'State is required';
+    }
+
+    if (!formData.pin_code || !/^\d{6}$/.test(formData.pin_code)) {
+      newErrors.pin_code = 'Pin code must be exactly 6 digits';
+    }
+
+    if (formData.contact_number && !/^\d{10}$/.test(formData.contact_number)) {
+      newErrors.contact_number = 'Contact number must be exactly 10 digits';
+    }
+
+    if (formData.gstin && !/^\d{2}[A-Z]{5}\d{4}[A-Z]{1}[A-Z\d]{1}[Z]{1}[A-Z\d]{1}$/.test(formData.gstin)) {
+      newErrors.gstin = 'Invalid GSTIN format (e.g., 22AAAAA0000A1Z5)';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!validateForm()) {
+      showToast('Please fix validation errors', 'error');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const payload = {
+        ...formData,
+        ui_layout: uiLayout
+      };
+
+      let response;
+      if (settings && settings.id) {
+        // Update existing
+        response = await api.put(`/api/billing-settings/${settings.id}`, payload);
+        showToast('Billing settings updated successfully', 'success');
+      } else {
+        // Create new
+        response = await api.post('/api/billing-settings', payload);
+        showToast('Billing settings created successfully', 'success');
+      }
+
+      setSettings(response.data);
+      fetchSettings(); // Refresh to get QR code
+    } catch (error) {
+      const message = error.response?.data?.detail || 'Failed to save settings';
+      showToast(message, 'error');
+      console.error('Save error:', error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleInputChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    // Clear error for this field
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  };
+
+  const renderFormField = (field, label, type = 'text', placeholder = '', required = true) => (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+      {field === 'street' ? (
+        <textarea
+          value={formData[field]}
+          onChange={(e) => handleInputChange(field, e.target.value)}
+          placeholder={placeholder}
+          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
+            errors[field] ? 'border-red-500' : 'border-gray-300'
+          }`}
+          rows={3}
+        />
+      ) : (
+        <input
+          type={type}
+          value={formData[field]}
+          onChange={(e) => handleInputChange(field, e.target.value)}
+          placeholder={placeholder}
+          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
+            errors[field] ? 'border-red-500' : 'border-gray-300'
+          }`}
+        />
+      )}
+      {errors[field] && (
+        <p className="text-xs text-red-500 mt-1">{errors[field]}</p>
+      )}
+    </div>
+  );
+
+  const stepperSteps = [
+    { title: 'Basic Info', fields: ['full_name', 'contact_number'] },
+    { title: 'Address', fields: ['street', 'city', 'state'] },
+    { title: 'Location', fields: ['country', 'pin_code'] },
+    { title: 'Tax Info', fields: ['gstin'] }
+  ];
+
+  const renderStepperContent = () => {
+    const step = stepperSteps[currentStep];
+    return (
+      <div className="space-y-4">
+        {step.fields.map(field => {
+          const labels = {
+            full_name: 'Full Name / Business Name',
+            contact_number: 'Contact Number',
+            street: 'Street / Building / Area',
+            city: 'City',
+            state: 'State',
+            country: 'Country',
+            pin_code: 'Pin Code',
+            gstin: 'GSTIN (Optional)'
+          };
+          return (
+            <div key={field}>
+              {renderFormField(
+                field,
+                labels[field],
+                'text',
+                labels[field],
+                field !== 'gstin' && field !== 'contact_number'
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  const renderCardLayout = () => (
+    <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <Card className="p-6">
+        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <Users className="w-5 h-5 text-orange-600" />
+          Business Information
+        </h3>
+        <div className="space-y-4">
+          {renderFormField('full_name', 'Full Name / Business Name', 'text', 'Enter full name')}
+          {renderFormField('contact_number', 'Contact Number', 'tel', '10-digit number', false)}
+        </div>
+      </Card>
+
+      <Card className="p-6">
+        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <MapPin className="w-5 h-5 text-orange-600" />
+          Address Details
+        </h3>
+        <div className="space-y-4">
+          {renderFormField('street', 'Street / Building / Area', 'text', 'Complete street address')}
+          {renderFormField('city', 'City', 'text', 'City name')}
+        </div>
+      </Card>
+
+      <Card className="p-6">
+        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <Globe className="w-5 h-5 text-orange-600" />
+          Location
+        </h3>
+        <div className="space-y-4">
+          {renderFormField('state', 'State', 'text', 'State name')}
+          {renderFormField('country', 'Country', 'text', 'Country')}
+          {renderFormField('pin_code', 'Pin Code', 'text', '6-digit pin code')}
+        </div>
+      </Card>
+
+      <Card className="p-6">
+        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <FileText className="w-5 h-5 text-orange-600" />
+          Tax Information
+        </h3>
+        <div className="space-y-4">
+          {renderFormField('gstin', 'GSTIN', 'text', 'GST Identification Number (Optional)', false)}
+          <div className="text-xs text-gray-500">
+            Format: 22AAAAA0000A1Z5
+          </div>
+        </div>
+      </Card>
+
+      <div className="md:col-span-2">
+        <Button type="submit" disabled={saving} className="w-full">
+          {saving ? (
+            <span className="flex items-center justify-center gap-2">
+              <Loader className="w-4 h-4 animate-spin" />
+              Saving...
+            </span>
+          ) : (
+            <span className="flex items-center justify-center gap-2">
+              <Check className="w-4 h-4" />
+              Save Settings
+            </span>
+          )}
+        </Button>
+      </div>
+    </form>
+  );
+
+  const renderStepperLayout = () => (
+    <div>
+      {/* Stepper Progress */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between">
+          {stepperSteps.map((step, index) => (
+            <React.Fragment key={index}>
+              <div className="flex flex-col items-center">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${
+                  index <= currentStep ? 'bg-orange-600 text-white' : 'bg-gray-200 text-gray-500'
+                }`}>
+                  {index + 1}
+                </div>
+                <span className="text-xs mt-2 text-gray-600">{step.title}</span>
+              </div>
+              {index < stepperSteps.length - 1 && (
+                <div className={`flex-1 h-1 mx-2 ${
+                  index < currentStep ? 'bg-orange-600' : 'bg-gray-200'
+                }`} />
+              )}
+            </React.Fragment>
+          ))}
+        </div>
+      </div>
+
+      {/* Step Content */}
+      <Card className="p-6 min-h-[300px]">
+        <h3 className="text-lg font-semibold mb-4">{stepperSteps[currentStep].title}</h3>
+        {renderStepperContent()}
+      </Card>
+
+      {/* Navigation Buttons */}
+      <div className="flex justify-between mt-6">
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={() => setCurrentStep(prev => Math.max(0, prev - 1))}
+          disabled={currentStep === 0}
+        >
+          <ChevronLeft className="w-4 h-4 mr-1" />
+          Previous
+        </Button>
+
+        {currentStep < stepperSteps.length - 1 ? (
+          <Button
+            type="button"
+            onClick={() => setCurrentStep(prev => Math.min(stepperSteps.length - 1, prev + 1))}
+          >
+            Next
+            <ChevronRight className="w-4 h-4 ml-1" />
+          </Button>
+        ) : (
+          <Button type="button" onClick={handleSubmit} disabled={saving}>
+            {saving ? (
+              <span className="flex items-center gap-2">
+                <Loader className="w-4 h-4 animate-spin" />
+                Saving...
+              </span>
+            ) : (
+              <span className="flex items-center gap-2">
+                <Check className="w-4 h-4" />
+                Save Settings
+              </span>
+            )}
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderFullwidthLayout = () => (
+    <form onSubmit={handleSubmit}>
+      <Card className="p-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {renderFormField('full_name', 'Full Name / Business Name', 'text', 'Enter full name')}
+          {renderFormField('contact_number', 'Contact Number', 'tel', '10-digit number', false)}
+          {renderFormField('street', 'Street / Building / Area', 'text', 'Complete street address')}
+          {renderFormField('city', 'City', 'text', 'City name')}
+          {renderFormField('state', 'State', 'text', 'State name')}
+          {renderFormField('country', 'Country', 'text', 'Country')}
+          {renderFormField('pin_code', 'Pin Code', 'text', '6-digit pin code')}
+          {renderFormField('gstin', 'GSTIN', 'text', 'GST Identification Number (Optional)', false)}
+        </div>
+        <div className="mt-6">
+          <Button type="submit" disabled={saving} className="w-full">
+            {saving ? (
+              <span className="flex items-center justify-center gap-2">
+                <Loader className="w-4 h-4 animate-spin" />
+                Saving...
+              </span>
+            ) : (
+              <span className="flex items-center justify-center gap-2">
+                <Check className="w-4 h-4" />
+                Save Settings
+              </span>
+            )}
+          </Button>
+        </div>
+      </Card>
+    </form>
+  );
+
+  const renderCompactLayout = () => (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="lg:col-span-2">
+        <form onSubmit={handleSubmit}>
+          <Card className="p-6">
+            <div className="space-y-4">
+              {renderFormField('full_name', 'Full Name', 'text', 'Enter full name')}
+              {renderFormField('street', 'Address', 'text', 'Street address')}
+              <div className="grid grid-cols-2 gap-4">
+                {renderFormField('city', 'City', 'text', 'City')}
+                {renderFormField('state', 'State', 'text', 'State')}
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                {renderFormField('pin_code', 'Pin Code', 'text', '6-digit')}
+                {renderFormField('contact_number', 'Contact', 'tel', '10-digit', false)}
+              </div>
+              {renderFormField('gstin', 'GSTIN (Optional)', 'text', 'GST Number', false)}
+            </div>
+            <div className="mt-6">
+              <Button type="submit" disabled={saving} className="w-full">
+                {saving ? 'Saving...' : 'Save Settings'}
+              </Button>
+            </div>
+          </Card>
+        </form>
+      </div>
+
+      <div>
+        <Card className="p-6">
+          <h3 className="text-sm font-semibold mb-4 text-gray-700">Quick Info</h3>
+          <div className="space-y-3 text-sm">
+            <div>
+              <span className="text-gray-500">Name:</span>
+              <p className="font-medium">{formData.full_name || '-'}</p>
+            </div>
+            <div>
+              <span className="text-gray-500">City:</span>
+              <p className="font-medium">{formData.city || '-'}</p>
+            </div>
+            <div>
+              <span className="text-gray-500">Pin Code:</span>
+              <p className="font-medium">{formData.pin_code || '-'}</p>
+            </div>
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader className="w-8 h-8 animate-spin text-orange-600" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Address & Billing Settings</h1>
+          <p className="text-gray-600 mt-1">Manage your billing address and invoice details</p>
+        </div>
+
+        {/* Layout Switcher */}
+        <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-lg">
+          <button
+            type="button"
+            onClick={() => setUiLayout('card')}
+            className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
+              uiLayout === 'card' ? 'bg-white text-orange-600 shadow' : 'text-gray-600 hover:text-gray-900'
+            }`}
+            title="Card Layout"
+          >
+            Card
+          </button>
+          <button
+            type="button"
+            onClick={() => setUiLayout('stepper')}
+            className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
+              uiLayout === 'stepper' ? 'bg-white text-orange-600 shadow' : 'text-gray-600 hover:text-gray-900'
+            }`}
+            title="Stepper Wizard"
+          >
+            Stepper
+          </button>
+          <button
+            type="button"
+            onClick={() => setUiLayout('fullwidth')}
+            className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
+              uiLayout === 'fullwidth' ? 'bg-white text-orange-600 shadow' : 'text-gray-600 hover:text-gray-900'
+            }`}
+            title="Full Width"
+          >
+            Full
+          </button>
+          <button
+            type="button"
+            onClick={() => setUiLayout('compact')}
+            className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
+              uiLayout === 'compact' ? 'bg-white text-orange-600 shadow' : 'text-gray-600 hover:text-gray-900'
+            }`}
+            title="Compact Sidebar"
+          >
+            Compact
+          </button>
+        </div>
+      </div>
+
+      {/* Form based on selected layout */}
+      {uiLayout === 'card' && renderCardLayout()}
+      {uiLayout === 'stepper' && renderStepperLayout()}
+      {uiLayout === 'fullwidth' && renderFullwidthLayout()}
+      {uiLayout === 'compact' && renderCompactLayout()}
+
+      {/* QR Code Display */}
+      {settings && settings.qr_code_data && (
+        <Card className="p-6">
+          <div className="flex items-start gap-6">
+            <div>
+              <h3 className="text-lg font-semibold mb-2">QR Code for Address</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                This QR code contains your billing address. It will be included in invoices.
+              </p>
+              <img
+                src={settings.qr_code_data}
+                alt="Address QR Code"
+                className="border rounded-lg p-2 bg-white"
+                style={{ maxWidth: '200px' }}
+              />
+            </div>
+            <div className="flex-1">
+              <h4 className="font-medium text-gray-700 mb-2">Address Preview:</h4>
+              <div className="bg-gray-50 p-4 rounded-lg space-y-1 text-sm">
+                <p className="font-semibold">{settings.full_name}</p>
+                <p>{settings.street}</p>
+                <p>{settings.city}, {settings.state} - {settings.pin_code}</p>
+                <p>{settings.country}</p>
+                {settings.contact_number && <p>Contact: {settings.contact_number}</p>}
+                {settings.gstin && <p>GSTIN: {settings.gstin}</p>}
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
     </div>
   );
 };

@@ -95,7 +95,7 @@ app.add_middleware(
 
 # Import models and database
 from database import engine, SessionLocal, get_db, Base
-from models import Admin, User, BroadbandPlan, Engineer, BillingHistory, Installation, Invoice
+from models import Admin, User, BroadbandPlan, Engineer, BillingHistory, Installation, Invoice, BillingSettings
 from schemas import *
 from auth import get_password_hash, verify_password, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
 from auth_helpers import get_current_admin, get_current_customer, get_current_engineer
@@ -103,10 +103,12 @@ from auth_helpers import get_current_admin, get_current_customer, get_current_en
 # Import routers
 from customer_routes import router as customer_router
 from engineer_routes import router as engineer_router
+from billing_routes import router as billing_router
 
 # Include routers
 app.include_router(customer_router)
 app.include_router(engineer_router)
+app.include_router(billing_router)
 
 # Startup Event
 @app.on_event("startup")
@@ -941,9 +943,25 @@ async def generate_invoice_for_user(
         "payment_status": user.payment_status
     }
 
+    # Get billing settings for company address
+    billing_settings = db.query(BillingSettings).order_by(BillingSettings.id.desc()).first()
+    company_data = None
+    if billing_settings:
+        company_data = {
+            "name": billing_settings.full_name,
+            "street": billing_settings.street,
+            "city": billing_settings.city,
+            "state": billing_settings.state,
+            "country": billing_settings.country,
+            "pin_code": billing_settings.pin_code,
+            "gstin": billing_settings.gstin,
+            "contact_number": billing_settings.contact_number,
+            "qr_code_data": billing_settings.qr_code_data
+        }
+
     try:
-        # Generate PDF
-        pdf_path = generate_invoice_pdf(user_data, plan_data, billing_data)
+        # Generate PDF with company data
+        pdf_path = generate_invoice_pdf(user_data, plan_data, billing_data, company_data)
 
         # Calculate amounts (matching Invoice model)
         from datetime import timedelta

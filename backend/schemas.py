@@ -282,6 +282,115 @@ class InvoiceCreate(BaseModel):
 
 
 # ============================================
+# BILLING SETTINGS SCHEMAS
+# ============================================
+
+class BillingSettingsCreate(BaseModel):
+    full_name: str = Field(..., min_length=2, max_length=100)
+    street: str = Field(..., min_length=5, max_length=500)
+    city: str = Field(..., min_length=2, max_length=100)
+    state: str = Field(..., min_length=2, max_length=100)
+    country: str = Field(default="India", max_length=100)
+    pin_code: str = Field(..., min_length=6, max_length=6)
+    gstin: Optional[str] = Field(None, min_length=15, max_length=15)
+    contact_number: Optional[str] = Field(None, min_length=10, max_length=10)
+    ui_layout: str = Field(default="card")
+
+    @validator('pin_code')
+    def validate_pin_code(cls, v):
+        if not v.isdigit():
+            raise ValueError('Pin code must contain only digits')
+        if len(v) != 6:
+            raise ValueError('Pin code must be exactly 6 digits')
+        return v
+
+    @validator('contact_number')
+    def validate_contact(cls, v):
+        if v and not v.isdigit():
+            raise ValueError('Contact number must contain only digits')
+        if v and len(v) != 10:
+            raise ValueError('Contact number must be exactly 10 digits')
+        return v
+
+    @validator('gstin')
+    def validate_gstin(cls, v):
+        if v:
+            # GSTIN format: 2 digits (state) + 10 chars (PAN) + 1 digit (entity) + 1 char (Z) + 1 check digit
+            if not re.match(r'^\d{2}[A-Z]{5}\d{4}[A-Z]{1}[A-Z\d]{1}[Z]{1}[A-Z\d]{1}$', v):
+                raise ValueError('Invalid GSTIN format. Example: 22AAAAA0000A1Z5')
+        return v
+
+    @validator('ui_layout')
+    def validate_layout(cls, v):
+        allowed = ['card', 'stepper', 'fullwidth', 'compact']
+        if v not in allowed:
+            raise ValueError(f'UI layout must be one of: {allowed}')
+        return v
+
+
+class BillingSettingsUpdate(BaseModel):
+    full_name: Optional[str] = Field(None, min_length=2, max_length=100)
+    street: Optional[str] = Field(None, min_length=5, max_length=500)
+    city: Optional[str] = Field(None, min_length=2, max_length=100)
+    state: Optional[str] = Field(None, min_length=2, max_length=100)
+    country: Optional[str] = Field(None, max_length=100)
+    pin_code: Optional[str] = Field(None, min_length=6, max_length=6)
+    gstin: Optional[str] = Field(None, min_length=15, max_length=15)
+    contact_number: Optional[str] = Field(None, min_length=10, max_length=10)
+    ui_layout: Optional[str] = None
+
+    @validator('pin_code')
+    def validate_pin_code(cls, v):
+        if v and not v.isdigit():
+            raise ValueError('Pin code must contain only digits')
+        if v and len(v) != 6:
+            raise ValueError('Pin code must be exactly 6 digits')
+        return v
+
+    @validator('contact_number')
+    def validate_contact(cls, v):
+        if v and not v.isdigit():
+            raise ValueError('Contact number must contain only digits')
+        if v and len(v) != 10:
+            raise ValueError('Contact number must be exactly 10 digits')
+        return v
+
+    @validator('gstin')
+    def validate_gstin(cls, v):
+        if v:
+            if not re.match(r'^\d{2}[A-Z]{5}\d{4}[A-Z]{1}[A-Z\d]{1}[Z]{1}[A-Z\d]{1}$', v):
+                raise ValueError('Invalid GSTIN format. Example: 22AAAAA0000A1Z5')
+        return v
+
+    @validator('ui_layout')
+    def validate_layout(cls, v):
+        if v:
+            allowed = ['card', 'stepper', 'fullwidth', 'compact']
+            if v not in allowed:
+                raise ValueError(f'UI layout must be one of: {allowed}')
+        return v
+
+
+class BillingSettingsResponse(BaseModel):
+    id: int
+    full_name: str
+    street: str
+    city: str
+    state: str
+    country: str
+    pin_code: str
+    gstin: Optional[str]
+    contact_number: Optional[str]
+    ui_layout: str
+    qr_code_data: Optional[str]
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# ============================================
 # OAUTH2 SCHEMA
 # ============================================
 
