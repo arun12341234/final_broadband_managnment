@@ -1932,18 +1932,27 @@ const AddUserModal = ({ plans, onClose, onSuccess, showToast }) => {
 
   const handleDocumentsChange = (e) => {
     const files = Array.from(e.target.files);
-    // Validate total number of files (max 5)
-    if (files.length > 5) {
-      showToast('Maximum 5 documents allowed', 'error');
+    if (files.length === 0) return;
+
+    // Validate total number of files (max 5 including already selected)
+    if (documents.length + files.length > 5) {
+      showToast(`Maximum 5 documents allowed. You have ${documents.length} selected, trying to add ${files.length} more.`, 'error');
       return;
     }
+
     // Validate each file size (10MB max per file)
     const oversizedFiles = files.filter(file => file.size > 10 * 1024 * 1024);
     if (oversizedFiles.length > 0) {
       showToast('Each document must be less than 10MB', 'error');
       return;
     }
-    setDocuments(files);
+
+    // Add new files to existing documents
+    setDocuments(prev => [...prev, ...files]);
+    showToast(`${files.length} document(s) added successfully`, 'success');
+
+    // Reset input to allow re-selecting the same files
+    e.target.value = '';
   };
 
   const removePhoto = () => {
@@ -2221,34 +2230,48 @@ const AddUserModal = ({ plans, onClose, onSuccess, showToast }) => {
               {/* Document List */}
               {documents.length > 0 && (
                 <div className="space-y-2">
-                  {documents.map((doc, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
-                    >
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <FileText className="w-5 h-5 text-orange-600 flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">
-                            {doc.name}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {(doc.size / 1024).toFixed(1)} KB
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => removeDocument(index)}
-                        className="text-red-600 hover:text-red-800 p-1"
+                  {documents.map((doc, index) => {
+                    const isImage = doc.type.startsWith('image/');
+                    const previewUrl = isImage ? URL.createObjectURL(doc) : null;
+
+                    return (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
                       >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          {isImage && previewUrl ? (
+                            <img
+                              src={previewUrl}
+                              alt={doc.name}
+                              className="w-12 h-12 object-cover rounded border border-gray-300 flex-shrink-0"
+                            />
+                          ) : (
+                            <FileText className="w-12 h-12 text-orange-600 flex-shrink-0 p-2" />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">
+                              {doc.name}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {(doc.size / 1024 / 1024).toFixed(2)} MB
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeDocument(index)}
+                          className="text-red-600 hover:text-red-800 p-1"
+                          aria-label={`Remove ${doc.name}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    );
+                  })}
                   <p className="text-xs text-gray-500 flex items-center gap-1">
                     <CheckCircle className="w-3 h-3 text-green-600" />
-                    {documents.length} document{documents.length > 1 ? 's' : ''} selected
+                    {documents.length} document{documents.length > 1 ? 's' : ''} selected (max 5)
                   </p>
                 </div>
               )}
@@ -2326,16 +2349,27 @@ const EditUserModal = ({ user, plans, onClose, onSuccess, showToast }) => {
 
   const handleDocumentsChange = (e) => {
     const files = Array.from(e.target.files);
-    if (files.length > 5) {
-      showToast('Maximum 5 documents allowed', 'error');
+    if (files.length === 0) return;
+
+    // Validate total number of files (max 5 including already selected)
+    if (documents.length + files.length > 5) {
+      showToast(`Maximum 5 documents allowed. You have ${documents.length} selected, trying to add ${files.length} more.`, 'error');
       return;
     }
+
+    // Validate each file size (10MB max per file)
     const oversizedFiles = files.filter(file => file.size > 10 * 1024 * 1024);
     if (oversizedFiles.length > 0) {
       showToast('Each document must be less than 10MB', 'error');
       return;
     }
-    setDocuments(files);
+
+    // Add new files to existing documents
+    setDocuments(prev => [...prev, ...files]);
+    showToast(`${files.length} document(s) added successfully`, 'success');
+
+    // Reset input to allow re-selecting the same files
+    e.target.value = '';
   };
 
   const removePhoto = () => {
@@ -2609,34 +2643,48 @@ const EditUserModal = ({ user, plans, onClose, onSuccess, showToast }) => {
 
               {documents.length > 0 && (
                 <div className="space-y-2">
-                  {documents.map((doc, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
-                    >
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <FileText className="w-5 h-5 text-orange-600 flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">
-                            {doc.name}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {(doc.size / 1024).toFixed(1)} KB
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => removeDocument(index)}
-                        className="text-red-600 hover:text-red-800 p-1"
+                  {documents.map((doc, index) => {
+                    const isImage = doc.type.startsWith('image/');
+                    const previewUrl = isImage ? URL.createObjectURL(doc) : null;
+
+                    return (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
                       >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          {isImage && previewUrl ? (
+                            <img
+                              src={previewUrl}
+                              alt={doc.name}
+                              className="w-12 h-12 object-cover rounded border border-gray-300 flex-shrink-0"
+                            />
+                          ) : (
+                            <FileText className="w-12 h-12 text-orange-600 flex-shrink-0 p-2" />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">
+                              {doc.name}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {(doc.size / 1024 / 1024).toFixed(2)} MB
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeDocument(index)}
+                          className="text-red-600 hover:text-red-800 p-1"
+                          aria-label={`Remove ${doc.name}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    );
+                  })}
                   <p className="text-xs text-gray-500 flex items-center gap-1">
                     <CheckCircle className="w-3 h-3 text-green-600" />
-                    {documents.length} new document{documents.length > 1 ? 's' : ''} selected
+                    {documents.length} new document{documents.length > 1 ? 's' : ''} selected (max 5)
                   </p>
                 </div>
               )}
