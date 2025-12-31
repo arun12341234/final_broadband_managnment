@@ -1075,6 +1075,107 @@ const AvatarModal = ({ user, onClose }) => {
   );
 };
 
+// Documents Modal Component
+const DocumentsModal = ({ user, onClose }) => {
+  let documents = [];
+  try {
+    documents = user.documents ? JSON.parse(user.documents) : [];
+  } catch (e) {
+    documents = [];
+  }
+
+  const isImageFile = (url) => {
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+    return imageExtensions.some(ext => url.toLowerCase().endsWith(ext));
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-900">{user.name}'s Documents ({documents.length})</h3>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+
+        <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+          <div className="flex items-center gap-2 text-sm text-blue-800">
+            <FileText className="w-4 h-4" />
+            <span>CS ID: {user.cs_id} | Email: {user.email}</span>
+          </div>
+        </div>
+
+        {documents.length === 0 ? (
+          <div className="text-center py-12">
+            <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-500">No documents uploaded for this user</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {documents.map((doc, index) => (
+              <div key={index} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <FileText className="w-5 h-5 text-orange-600 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">{doc.name}</p>
+                      <p className="text-xs text-gray-500">{doc.type || 'Document'}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Preview for images */}
+                {isImageFile(doc.url) ? (
+                  <div className="mb-3 bg-gray-50 rounded-lg overflow-hidden flex items-center justify-center" style={{ minHeight: '150px' }}>
+                    <img
+                      src={doc.url}
+                      alt={doc.name}
+                      className="max-w-full max-h-48 object-contain"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.nextSibling.style.display = 'flex';
+                      }}
+                    />
+                    <div className="hidden items-center justify-center w-full h-32">
+                      <FileText className="w-12 h-12 text-gray-300" />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mb-3 bg-gray-50 rounded-lg flex items-center justify-center h-32">
+                    <FileText className="w-12 h-12 text-gray-300" />
+                  </div>
+                )}
+
+                {/* Download button */}
+                <a
+                  href={doc.url}
+                  download={doc.name}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium"
+                >
+                  <Download className="w-4 h-4" />
+                  Download
+                </a>
+
+                {doc.uploaded_at && (
+                  <p className="text-xs text-gray-400 mt-2 text-center">
+                    Uploaded: {new Date(doc.uploaded_at).toLocaleDateString()}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // ============================================
 // RENEW PLAN MODAL
 // ============================================
@@ -1331,6 +1432,7 @@ const UsersTab = ({ users, plans, onRefresh, showToast }) => {
   const [showBillingModal, setShowBillingModal] = useState(false);
   const [showRenewModal, setShowRenewModal] = useState(false);
   const [showAvatarModal, setShowAvatarModal] = useState(false);
+  const [showDocumentsModal, setShowDocumentsModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
 
   // Use debounced search for better performance
@@ -1569,6 +1671,7 @@ const UsersTab = ({ users, plans, onRefresh, showToast }) => {
                 <th className="px-4 py-3 text-left text-xs font-bold uppercase">Old Pending</th>
                 <th className="px-4 py-3 text-left text-xs font-bold uppercase">Due Date</th>
                 <th className="px-4 py-3 text-left text-xs font-bold uppercase">Plan Status</th>
+                <th className="px-4 py-3 text-center text-xs font-bold uppercase">Documents</th>
                 <th className="px-4 py-3 text-center text-xs font-bold uppercase">Actions</th>
               </tr>
             </thead>
@@ -1624,6 +1727,38 @@ const UsersTab = ({ users, plans, onRefresh, showToast }) => {
                           RENEW
                         </button>
                       )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-center">
+                        {(() => {
+                          let documents = [];
+                          try {
+                            documents = user.documents ? JSON.parse(user.documents) : [];
+                          } catch (e) {
+                            documents = [];
+                          }
+
+                          if (documents.length > 0) {
+                            return (
+                              <button
+                                onClick={() => {
+                                  setSelectedUser(user);
+                                  setShowDocumentsModal(true);
+                                }}
+                                className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs font-medium"
+                                title="View documents"
+                              >
+                                <FileText className="w-4 h-4" />
+                                <span>{documents.length}</span>
+                              </button>
+                            );
+                          } else {
+                            return (
+                              <span className="text-xs text-gray-400">No docs</span>
+                            );
+                          }
+                        })()}
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-center space-x-1">
@@ -1868,6 +2003,16 @@ const UsersTab = ({ users, plans, onRefresh, showToast }) => {
           user={selectedUser}
           onClose={() => {
             setShowAvatarModal(false);
+            setSelectedUser(null);
+          }}
+        />
+      )}
+
+      {showDocumentsModal && selectedUser && (
+        <DocumentsModal
+          user={selectedUser}
+          onClose={() => {
+            setShowDocumentsModal(false);
             setSelectedUser(null);
           }}
         />
