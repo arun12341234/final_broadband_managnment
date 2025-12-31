@@ -601,9 +601,8 @@ const AddCustomerTab = ({ showToast, onSuccess, plans }) => {
     password: ''
   });
   const [userPhoto, setUserPhoto] = useState(null);
-  const [kycDocument, setKycDocument] = useState(null);
+  const [kycDocuments, setKycDocuments] = useState([]);  // Changed to array for multiple files
   const [photoPreview, setPhotoPreview] = useState(null);
-  const [docPreview, setDocPreview] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
@@ -629,18 +628,32 @@ const AddCustomerTab = ({ showToast, onSuccess, plans }) => {
   };
 
   const handleDocChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
 
-    // Validate file
-    const validation = validateDocumentFile(file);
-    if (!validation.valid) {
-      showToast(validation.error, 'error');
-      return;
+    // Validate each file
+    const validFiles = [];
+    for (const file of files) {
+      const validation = validateDocumentFile(file);
+      if (!validation.valid) {
+        showToast(`${file.name}: ${validation.error}`, 'error');
+        continue;
+      }
+      validFiles.push(file);
     }
 
-    setKycDocument(file);
-    setDocPreview(file.name);
+    if (validFiles.length > 0) {
+      setKycDocuments(prev => [...prev, ...validFiles]);
+      showToast(`${validFiles.length} document(s) added successfully`, 'success');
+    }
+
+    // Reset input to allow re-selecting the same files
+    e.target.value = '';
+  };
+
+  const handleRemoveDocument = (index) => {
+    setKycDocuments(prev => prev.filter((_, i) => i !== index));
+    showToast('Document removed', 'info');
   };
 
   const handleGeneratePassword = () => {
@@ -702,8 +715,12 @@ const AddCustomerTab = ({ showToast, onSuccess, plans }) => {
       if (userPhoto) {
         submitData.append('user_photo', userPhoto);
       }
-      if (kycDocument) {
-        submitData.append('kyc_document', kycDocument);
+
+      // Append all KYC documents
+      if (kycDocuments && kycDocuments.length > 0) {
+        kycDocuments.forEach((doc) => {
+          submitData.append('kyc_documents', doc);
+        });
       }
 
       const response = await api.post('/api/engineer/add-customer', submitData, {
@@ -725,9 +742,8 @@ const AddCustomerTab = ({ showToast, onSuccess, plans }) => {
         password: ''
       });
       setUserPhoto(null);
-      setKycDocument(null);
+      setKycDocuments([]);  // Reset to empty array
       setPhotoPreview(null);
-      setDocPreview(null);
 
       if (onSuccess) onSuccess();
     } catch (error) {
@@ -927,36 +943,49 @@ const AddCustomerTab = ({ showToast, onSuccess, plans }) => {
           <div>
             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <FileText className="w-5 h-5 text-blue-600" />
-              KYC Document (Optional)
+              KYC Documents (Optional) {kycDocuments.length > 0 && `(${kycDocuments.length} selected)`}
             </h3>
-            <div className="flex items-center gap-4">
-              <label className="block flex-1">
+            <div className="space-y-3">
+              <label className="block">
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-500 transition-colors cursor-pointer">
                   <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                   <p className="text-sm text-gray-600">
-                    {docPreview || 'Upload Aadhaar / ID Proof'}
+                    Upload Aadhaar / ID Proof / Multiple Documents
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">PDF, JPG, PNG (Max: 10MB)</p>
+                  <p className="text-xs text-gray-500 mt-1">Select multiple files: PDF, JPG, PNG (Max: 10MB each)</p>
                 </div>
                 <input
                   type="file"
                   accept=".pdf,.jpg,.jpeg,.png"
                   onChange={handleDocChange}
                   className="hidden"
+                  multiple
                 />
               </label>
-              {kycDocument && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setKycDocument(null);
-                    setDocPreview(null);
-                  }}
-                  className="w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 flex-shrink-0"
-                  aria-label="Remove document"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+
+              {/* Display selected documents */}
+              {kycDocuments.length > 0 && (
+                <div className="space-y-2">
+                  {kycDocuments.map((doc, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <FileText className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                        <span className="text-sm text-gray-700 truncate">{doc.name}</span>
+                        <span className="text-xs text-gray-500 flex-shrink-0">
+                          ({(doc.size / 1024 / 1024).toFixed(2)} MB)
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveDocument(index)}
+                        className="w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 flex-shrink-0 ml-2"
+                        aria-label={`Remove ${doc.name}`}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           </div>
@@ -994,9 +1023,8 @@ const AddCustomerTab = ({ showToast, onSuccess, plans }) => {
                   password: ''
                 });
                 setUserPhoto(null);
-                setKycDocument(null);
+                setKycDocuments([]);  // Reset to empty array
                 setPhotoPreview(null);
-                setDocPreview(null);
               }}
               className="flex-1"
             >

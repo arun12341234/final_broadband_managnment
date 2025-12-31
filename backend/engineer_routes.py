@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File,
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import List
 import shutil
 import re
 import os
@@ -157,7 +158,7 @@ async def add_new_customer(
     plan: str = Form(...),
     password: str = Form(...),
     user_photo: UploadFile = File(None),
-    kyc_document: UploadFile = File(None),
+    kyc_documents: List[UploadFile] = File(None),  # Changed to support multiple files
     current_engineer: Engineer = Depends(get_current_engineer),
     db: Session = Depends(get_db)
 ):
@@ -200,40 +201,50 @@ async def add_new_customer(
     
     # Validate file sizes
     await validate_file_size(user_photo, MAX_PHOTO_SIZE, "Photo")
-    await validate_file_size(kyc_document, MAX_DOCUMENT_SIZE, "Document")
-    
+
+    # Validate all KYC documents
+    if kyc_documents:
+        for doc in kyc_documents:
+            if doc:
+                await validate_file_size(doc, MAX_DOCUMENT_SIZE, "Document")
+
     # Handle photo upload
     photo_url = None
     if user_photo:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         photo_filename = f"{timestamp}_{user_photo.filename}"
         photo_path = PHOTOS_DIR / photo_filename
-        
+
         with open(photo_path, "wb") as buffer:
             shutil.copyfileobj(user_photo.file, buffer)
-        
+
         photo_url = f"/uploads/photos/{photo_filename}"
         logger.info(f"📷 Photo uploaded: {photo_filename}")
-    
-    # Handle document upload
+
+    # Handle multiple document uploads
     documents = []
-    if kyc_document:
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        doc_filename = f"{timestamp}_{kyc_document.filename}"
-        doc_path = DOCUMENTS_DIR / doc_filename
-        
-        with open(doc_path, "wb") as buffer:
-            shutil.copyfileobj(kyc_document.file, buffer)
-        
-        doc_url = f"/uploads/documents/{doc_filename}"
-        documents.append({
-            "id": f"doc_{timestamp}",
-            "name": kyc_document.filename,
-            "type": "KYC Document",
-            "url": doc_url,
-            "uploaded_at": datetime.now().isoformat()
-        })
-        logger.info(f"📄 Document uploaded: {doc_filename}")
+    if kyc_documents:
+        for idx, kyc_document in enumerate(kyc_documents):
+            if kyc_document and kyc_document.filename:
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                doc_filename = f"{timestamp}_{idx}_{kyc_document.filename}"
+                doc_path = DOCUMENTS_DIR / doc_filename
+
+                with open(doc_path, "wb") as buffer:
+                    shutil.copyfileobj(kyc_document.file, buffer)
+
+                doc_url = f"/uploads/documents/{doc_filename}"
+                documents.append({
+                    "id": f"doc_{timestamp}_{idx}",
+                    "name": kyc_document.filename,
+                    "type": "KYC Document",
+                    "url": doc_url,
+                    "uploaded_at": datetime.now().isoformat()
+                })
+                logger.info(f"📄 Document {idx+1} uploaded: {doc_filename}")
+
+    if documents:
+        logger.info(f"✅ Total {len(documents)} KYC document(s) uploaded")
     
     # Find plan by name (fuzzy match)
     plan_obj = db.query(BroadbandPlan).filter(
