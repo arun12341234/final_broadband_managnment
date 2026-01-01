@@ -1,11 +1,13 @@
 import axios from 'axios';
 
 // Create axios instance
+const BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
 const api = axios.create({
-  baseURL: 'http://localhost:8000',
+  baseURL: BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 30000,
 });
 
 // Request interceptor to add token
@@ -17,9 +19,7 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
 // Response interceptor for error handling

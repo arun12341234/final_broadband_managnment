@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, status, Request, Header
+from fastapi import FastAPI, Depends, HTTPException, status, Request, Header, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -10,7 +10,9 @@ from pathlib import Path
 from typing import List, Optional
 import logging
 import os
+import shutil
 from dotenv import load_dotenv
+import json
 
 # Rate Limiting
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -42,13 +44,13 @@ def validate_config():
     admin_password = os.getenv("ADMIN_PASSWORD")
     
     if not secret_key or "CHANGE_THIS" in secret_key:
-        logger.error("❌ SECRET_KEY not configured! Run: python generate_config.py")
+        logger.error("SECRET_KEY not configured! Run: python generate_config.py")
         raise ValueError("SECRET_KEY not properly configured")
     
     if not admin_password or "CHANGE_THIS" in admin_password:
-        logger.warning("⚠️  ADMIN_PASSWORD is default. Please change it!")
+        logger.warning("ADMIN_PASSWORD is default. Please change it!")
     
-    logger.info("✅ Configuration validated")
+    logger.info("Configuration validated")
 
 # Validate on startup
 try:
@@ -84,6 +86,9 @@ FRONTEND_URLS = [
     os.getenv("FRONTEND_ENGINEER_URL", "http://localhost:5175"),
 ]
 
+# Public Base URL for serving uploaded assets
+BASE_URL = os.getenv("BACKEND_BASE_URL", "http://localhost:8000")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=FRONTEND_URLS,
@@ -93,8 +98,8 @@ app.add_middleware(
 )
 
 # Import models and database
-from database import engine, SessionLocal, get_db, Base
-from models import Admin, User, BroadbandPlan, Engineer, BillingHistory, Installation
+from database import engine, SessionLocal, get_db, Base, DATABASE_URL
+from models import Admin, User, BroadbandPlan, Engineer, BillingHistory, Installation, Invoice, BillingSettings
 from schemas import *
 from auth import get_password_hash, verify_password, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
 from auth_helpers import get_current_admin, get_current_customer, get_current_engineer
@@ -102,17 +107,51 @@ from auth_helpers import get_current_admin, get_current_customer, get_current_en
 # Import routers
 from customer_routes import router as customer_router
 from engineer_routes import router as engineer_router
+from billing_routes import router as billing_router
+from plan_routes import router as plan_router
 
 # Include routers
 app.include_router(customer_router)
 app.include_router(engineer_router)
+app.include_router(billing_router)
+app.include_router(plan_router)
+
+# ============================================
+# Helpers
+# ============================================
+
+def generate_unique_invoice_number(db: Session) -> str:
+    """Generate a unique invoice number for today in the format INV-YYYYMMDD-####.
+
+    It finds the max existing sequence for today's date and increments it.
+    """
+    today_str = datetime.now().strftime("%Y%m%d")
+    prefix = f"INV-{today_str}-"
+
+    # Fetch existing invoice_numbers for today
+    existing_numbers = [row[0] for row in db.query(Invoice.invoice_number)
+                        .filter(Invoice.invoice_number.like(f"{prefix}%")).all()]
+
+    max_seq = 0
+    for inv in existing_numbers:
+        try:
+            seq_str = inv.split("-")[-1]
+            seq = int(seq_str)
+            if seq > max_seq:
+                max_seq = seq
+        except Exception:
+            # Skip malformed invoice numbers
+            continue
+
+    next_seq = max_seq + 1
+    return f"{prefix}{next_seq:04d}"
 
 # Startup Event
 @app.on_event("startup")
 async def startup_event():
     """Initialize application on startup"""
     
-    logger.info("🚀 Starting 4You Broadband API...")
+    logger.info("Starting 4You Broadband API...")
     
     # Create directories
     directories = [
@@ -125,19 +164,35 @@ async def startup_event():
     
     for directory in directories:
         directory.mkdir(parents=True, exist_ok=True)
-        logger.info(f"✅ Directory created/verified: {directory}")
+        logger.info(f"Directory created/verified: {directory}")
     
     # Create startup backup
     try:
         from backup import create_daily_backup
         create_daily_backup()
-        logger.info("✅ Startup backup created")
+        logger.info("Startup backup created")
     except Exception as e:
-        logger.warning(f"⚠️  Startup backup failed: {e}")
+        logger.warning(f"Startup backup failed: {e}")
     
     # Initialize database
     Base.metadata.create_all(bind=engine)
-    logger.info("✅ Database initialized")
+    logger.info("Database initialized")
+
+    # Migration: ensure billing_settings has is_primary column
+    try:
+        if engine.dialect.name == "sqlite":
+            conn = engine.raw_connection()
+            cur = conn.cursor()
+            cur.execute("PRAGMA table_info(billing_settings)")
+            columns = [row[1] for row in cur.fetchall()]
+            if "is_primary" not in columns:
+                cur.execute("ALTER TABLE billing_settings ADD COLUMN is_primary BOOLEAN DEFAULT 0")
+                conn.commit()
+                logger.info("Added is_primary column to billing_settings")
+            cur.close()
+            conn.close()
+    except Exception as e:
+        logger.warning(f"Migration for billing_settings.is_primary failed: {e}")
     
     # Create default admin if not exists
     db = SessionLocal()
@@ -153,33 +208,33 @@ async def startup_event():
             )
             db.add(admin)
             db.commit()
-            logger.info(f"✅ Default admin created: {admin_email}")
+            logger.info(f"Default admin created: {admin_email}")
         else:
-            logger.info("✅ Admin already exists")
+            logger.info("Admin already exists")
     finally:
         db.close()
     
     # Start scheduler
     from notification_service import start_scheduler
     start_scheduler()
-    logger.info("✅ Scheduler started")
+    logger.info("Scheduler started")
     
-    logger.info("✅ Application startup complete")
-    logger.info(f"📡 API running on http://localhost:8000")
-    logger.info(f"📚 API Docs at http://localhost:8000/docs")
+    logger.info("Application startup complete")
+    logger.info(f"API running on http://localhost:8000")
+    logger.info(f"API Docs at http://localhost:8000/docs")
 
 # Shutdown Event
 @app.on_event("shutdown")
 async def shutdown_event():
     """Cleanup on shutdown"""
-    logger.info("👋 Shutting down application...")
+    logger.info("Shutting down application...")
     
     try:
         from backup import create_daily_backup
         create_daily_backup()
-        logger.info("✅ Shutdown backup created")
+        logger.info("Shutdown backup created")
     except Exception as e:
-        logger.warning(f"⚠️  Shutdown backup failed: {e}")
+        logger.warning(f"Shutdown backup failed: {e}")
 
 # Health Check
 @app.get("/health", tags=["System"])
@@ -194,6 +249,27 @@ async def health_check():
 # Serve uploaded files
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
+# Proxy download for uploads with explicit CORS headers
+@app.get("/api/uploads/{file_path:path}", tags=["Uploads"])
+async def download_upload(file_path: str, request: Request):
+    """Serve uploaded files through API to ensure CORS headers and content disposition."""
+    full_path = Path("uploads") / file_path
+    if not full_path.exists() or not full_path.is_file():
+        origin = request.headers.get("origin", "*")
+        allow_origin = origin if origin in FRONTEND_URLS else "*"
+        return JSONResponse({"detail": "File not found"}, status_code=404, headers={
+            "Access-Control-Allow-Origin": allow_origin,
+            "Access-Control-Expose-Headers": "Content-Disposition",
+        })
+
+    origin = request.headers.get("origin", "*")
+    allow_origin = origin if origin in FRONTEND_URLS else "*"
+    response = FileResponse(full_path, filename=full_path.name)
+    # Explicit CORS headers for blob downloads
+    response.headers["Access-Control-Allow-Origin"] = allow_origin
+    response.headers["Access-Control-Expose-Headers"] = "Content-Disposition"
+    return response
+
 # ============================================
 # ADMIN AUTHENTICATION
 # ============================================
@@ -205,7 +281,7 @@ async def admin_login(form_data: OAuth2PasswordRequestForm = Depends(), db: Sess
     admin = db.query(Admin).filter(Admin.email == form_data.username).first()
     
     if not admin:
-        logger.warning(f"❌ Admin login failed: Email not found {form_data.username}")
+        logger.warning(f"Admin login failed: Email not found {form_data.username}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
@@ -213,7 +289,7 @@ async def admin_login(form_data: OAuth2PasswordRequestForm = Depends(), db: Sess
         )
     
     if not verify_password(form_data.password, admin.hashed_password):
-        logger.warning(f"❌ Admin login failed: Wrong password for {form_data.username}")
+        logger.warning(f"Admin login failed: Wrong password for {form_data.username}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
@@ -224,7 +300,7 @@ async def admin_login(form_data: OAuth2PasswordRequestForm = Depends(), db: Sess
         data={"sub": admin.id, "role": "admin"}
     )
     
-    logger.info(f"✅ Admin login successful: {admin.email}")
+    logger.info(f"Admin login successful: {admin.email}")
     
     return {"access_token": access_token, "token_type": "bearer"}
 
@@ -259,7 +335,7 @@ async def create_plan(
     db.commit()
     db.refresh(new_plan)
     
-    logger.info(f"✅ Plan created: {plan.name} by {current_admin.email}")
+    logger.info(f"Plan created: {plan.name} by {current_admin.email}")
     
     return new_plan
 
@@ -286,7 +362,7 @@ async def update_plan(
     db.commit()
     db.refresh(db_plan)
     
-    logger.info(f"✅ Plan updated: {plan.name} by {current_admin.email}")
+    logger.info(f"Plan updated: {plan.name} by {current_admin.email}")
     
     return db_plan
 
@@ -304,17 +380,23 @@ async def delete_plan(
         raise HTTPException(status_code=404, detail="Plan not found")
     
     users_count = db.query(User).filter(User.broadband_plan_id == plan_id).count()
-    
-    if users_count > 0:
+    invoices_count = db.query(Invoice).filter(Invoice.plan_id == plan_id).count()
+
+    if users_count > 0 or invoices_count > 0:
+        reason_parts = []
+        if users_count > 0:
+            reason_parts.append(f"{users_count} users are using this plan")
+        if invoices_count > 0:
+            reason_parts.append(f"{invoices_count} invoices reference this plan")
         raise HTTPException(
             status_code=400,
-            detail=f"Cannot delete plan. {users_count} users are using this plan."
+            detail=f"Cannot delete plan. {' and '.join(reason_parts)}."
         )
     
     db.delete(plan)
     db.commit()
     
-    logger.info(f"✅ Plan deleted: {plan.name} by {current_admin.email}")
+    logger.info(f"Plan deleted: {plan.name} by {current_admin.email}")
     
     return {"message": "Plan deleted successfully"}
 
@@ -333,51 +415,98 @@ async def get_all_users(
 
 @app.post("/api/users", response_model=UserResponse, tags=["Users"])
 async def create_user(
-    user: UserCreate,
+    cs_id: str = Form(...),
+    name: str = Form(...),
+    phone: str = Form(...),
+    email: str = Form(...),
+    user_password: str = Form(...),
+    address: str = Form(...),
+    broadband_plan_id: str = Form(...),
+    plan_start_date: Optional[str] = Form(None),
+    photo: Optional[UploadFile] = File(None),
+    document_0: Optional[UploadFile] = File(None),
+    document_1: Optional[UploadFile] = File(None),
+    document_2: Optional[UploadFile] = File(None),
+    document_3: Optional[UploadFile] = File(None),
+    document_4: Optional[UploadFile] = File(None),
     current_admin: Admin = Depends(get_current_admin),
     db: Session = Depends(get_db)
 ):
-    """Create new user"""
-    
-    existing = db.query(User).filter(User.phone == user.phone).first()
+    """Create new user with optional file uploads"""
+
+    # Validate phone
+    if not phone.isdigit() or len(phone) != 10:
+        raise HTTPException(status_code=400, detail="Phone must be exactly 10 digits")
+
+    # Check if user exists
+    existing = db.query(User).filter(User.phone == phone).first()
     if existing:
         raise HTTPException(
             status_code=400,
-            detail=f"Mobile number {user.phone} already exists"
+            detail=f"Mobile number {phone} already exists"
         )
-    
+
     today = date.today()
-    plan_start = datetime.strptime(user.plan_start_date, "%Y-%m-%d").date() if user.plan_start_date else today
-    
+    plan_start = datetime.strptime(plan_start_date, "%Y-%m-%d").date() if plan_start_date else today
+
     from dateutil.relativedelta import relativedelta
     plan_expiry = plan_start + relativedelta(months=1)
     payment_due = plan_start + timedelta(days=15)
-    
+
+    # Handle photo upload
+    photo_path = None
+    if photo and photo.filename:
+        upload_dir = Path("uploads/photos")
+        upload_dir.mkdir(parents=True, exist_ok=True)
+        photo_filename = f"{cs_id}_{int(datetime.utcnow().timestamp())}_{photo.filename}"
+        photo_path = upload_dir / photo_filename
+        with photo_path.open("wb") as buffer:
+            shutil.copyfileobj(photo.file, buffer)
+        photo_path = f"{BASE_URL}/uploads/photos/{photo_filename}"
+
+    # Handle document uploads
+    document_paths = []
+    for doc_file in [document_0, document_1, document_2, document_3, document_4]:
+        if doc_file and doc_file.filename:
+            upload_dir = Path("uploads/documents")
+            upload_dir.mkdir(parents=True, exist_ok=True)
+            doc_filename = f"{cs_id}_{int(datetime.utcnow().timestamp())}_{doc_file.filename}"
+            doc_path = upload_dir / doc_filename
+            with doc_path.open("wb") as buffer:
+                shutil.copyfileobj(doc_file.file, buffer)
+            document_paths.append(f"{BASE_URL}/uploads/documents/{doc_filename}")
+
     new_user = User(
         id=f"usr_{int(datetime.utcnow().timestamp() * 1000)}",
-        cs_id=user.cs_id,
-        name=user.name,
-        phone=user.phone,
-        email=user.email,
-        user_password=user.user_password,
-        address=user.address,
-        broadband_plan_id=user.broadband_plan_id,
+        cs_id=cs_id,
+        name=name,
+        phone=phone,
+        email=email,
+        user_password=user_password,
+        address=address,
+        broadband_plan_id=broadband_plan_id,
         payment_status="Pending",
         old_pending_amount=0,
         created_at=today.strftime("%Y-%m-%d"),
         payment_due_date=payment_due.strftime("%Y-%m-%d"),
         plan_start_date=plan_start.strftime("%Y-%m-%d"),
         plan_expiry_date=plan_expiry.strftime("%Y-%m-%d"),
-        is_plan_active=True,
-        status="Active"
+        is_plan_active=False,
+        status="Pending Installation",
+        photo=photo_path,
+        documents=json.dumps(document_paths) if document_paths else None
     )
-    
+
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
-    
-    logger.info(f"✅ User created: {user.name} by {current_admin.email}")
-    
+
+    logger.info(f"User created: {name} by {current_admin.email}")
+    if photo_path:
+        logger.info(f"Photo uploaded: {photo_path}")
+    if document_paths:
+        logger.info(f"Documents uploaded: {len(document_paths)} files")
+
     return new_user
 
 @app.get("/api/users/{user_id}", response_model=UserResponse, tags=["Users"])
@@ -397,26 +526,127 @@ async def get_user(
 
 @app.put("/api/users/{user_id}", response_model=UserResponse, tags=["Users"])
 async def update_user(
+    request: Request,
     user_id: str,
-    user_update: UserUpdate,
+    cs_id: Optional[str] = Form(None),
+    name: Optional[str] = Form(None),
+    phone: Optional[str] = Form(None),
+    email: Optional[str] = Form(None),
+    user_password: Optional[str] = Form(None),
+    address: Optional[str] = Form(None),
+    status: Optional[str] = Form(None),
+    broadband_plan_id: Optional[str] = Form(None),
+    photo: Optional[UploadFile] = File(None),
+    document_0: Optional[UploadFile] = File(None),
+    document_1: Optional[UploadFile] = File(None),
+    document_2: Optional[UploadFile] = File(None),
+    document_3: Optional[UploadFile] = File(None),
+    document_4: Optional[UploadFile] = File(None),
     current_admin: Admin = Depends(get_current_admin),
     db: Session = Depends(get_db)
 ):
-    """Update user"""
-    
+    """Update user with optional file uploads"""
+
     user = db.query(User).filter(User.id == user_id).first()
-    
+
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    
-    for field, value in user_update.dict(exclude_unset=True).items():
-        setattr(user, field, value)
-    
+
+    # Build update dict supporting both JSON and form submissions
+    content_type = request.headers.get("content-type", "")
+    update_payload = {}
+    if "application/json" in content_type:
+        try:
+            update_payload = await request.json()
+        except Exception:
+            update_payload = {}
+    else:
+        update_payload = {
+            "cs_id": cs_id,
+            "name": name,
+            "phone": phone,
+            "email": email,
+            "user_password": user_password,
+            "address": address,
+            "status": status,
+            "broadband_plan_id": broadband_plan_id,
+        }
+
+    # Normalize empty strings to None
+    update_payload = {k: (v if v not in [None, ""] else None) for k, v in update_payload.items()}
+
+    # Update text fields
+    if update_payload.get("cs_id") and update_payload["cs_id"] != user.cs_id:
+        # Validate CS ID format
+        import re
+        if not re.match(r'^CS_\d+$', update_payload["cs_id"]):
+            raise HTTPException(status_code=400, detail="Customer ID must be in format CS_XXXX")
+        # Check if cs_id is taken by another user
+        existing = db.query(User).filter(User.cs_id == update_payload["cs_id"], User.id != user_id).first()
+        if existing:
+            raise HTTPException(status_code=400, detail=f"Customer ID {update_payload['cs_id']} already exists")
+        user.cs_id = update_payload["cs_id"]
+    if update_payload.get("name"):
+        user.name = update_payload["name"]
+    if update_payload.get("phone"):
+        phone_val = update_payload["phone"]
+        if not phone_val.isdigit() or len(phone_val) != 10:
+            raise HTTPException(status_code=400, detail="Phone must be exactly 10 digits")
+        # Check if phone is taken by another user
+        existing = db.query(User).filter(User.phone == phone_val, User.id != user_id).first()
+        if existing:
+            raise HTTPException(status_code=400, detail=f"Mobile number {phone_val} already exists")
+        user.phone = phone_val
+    if update_payload.get("email"):
+        user.email = update_payload["email"]
+    if update_payload.get("user_password"):
+        user.user_password = update_payload["user_password"]
+    if update_payload.get("address"):
+        user.address = update_payload["address"]
+    if update_payload.get("status"):
+        user.status = update_payload["status"]
+    if update_payload.get("broadband_plan_id"):
+        user.broadband_plan_id = update_payload["broadband_plan_id"]
+
+    # Handle photo upload
+    if photo and photo.filename:
+        upload_dir = Path("uploads/photos")
+        upload_dir.mkdir(parents=True, exist_ok=True)
+        photo_filename = f"{user.cs_id}_{int(datetime.utcnow().timestamp())}_{photo.filename}"
+        photo_path = upload_dir / photo_filename
+        with photo_path.open("wb") as buffer:
+            shutil.copyfileobj(photo.file, buffer)
+        user.photo = f"{BASE_URL}/uploads/photos/{photo_filename}"
+        logger.info(f"📸 Photo updated for user: {user.cs_id}")
+
+    # Handle document uploads
+    document_paths = []
+    for doc_file in [document_0, document_1, document_2, document_3, document_4]:
+        if doc_file and doc_file.filename:
+            upload_dir = Path("uploads/documents")
+            upload_dir.mkdir(parents=True, exist_ok=True)
+            doc_filename = f"{user.cs_id}_{int(datetime.utcnow().timestamp())}_{doc_file.filename}"
+            doc_path = upload_dir / doc_filename
+            with doc_path.open("wb") as buffer:
+                shutil.copyfileobj(doc_file.file, buffer)
+            document_paths.append(f"{BASE_URL}/uploads/documents/{doc_filename}")
+
+    if document_paths:
+        logger.info(f"📄 Documents uploaded for user {user.cs_id}: {len(document_paths)} files")
+        # Merge with existing documents JSON
+        existing_docs = []
+        try:
+            if user.documents:
+                existing_docs = json.loads(user.documents)
+        except Exception:
+            existing_docs = []
+        user.documents = json.dumps((existing_docs or []) + document_paths)
+
     db.commit()
     db.refresh(user)
-    
-    logger.info(f"✅ User updated: {user.name} by {current_admin.email}")
-    
+
+    logger.info(f"User updated: {user.name} by {current_admin.email}")
+
     return user
 
 @app.delete("/api/users/{user_id}", tags=["Users"])
@@ -431,7 +661,16 @@ async def delete_user(
     
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    
+
+    # Delete dependent records to satisfy FK constraints
+    # Billing history
+    db.query(BillingHistory).filter(BillingHistory.user_id == user_id).delete(synchronize_session=False)
+    # Installations
+    db.query(Installation).filter(Installation.user_id == user_id).delete(synchronize_session=False)
+    # Invoices
+    db.query(Invoice).filter(Invoice.user_id == user_id).delete(synchronize_session=False)
+
+    # Finally delete the user
     db.delete(user)
     db.commit()
     
@@ -492,42 +731,200 @@ async def update_user_billing(
     db.add(billing_record)
     db.commit()
     
-    logger.info(f"✅ Billing updated for {user.name} by {current_admin.email}")
+    logger.info(f"Billing updated for {user.name} by {current_admin.email}")
     
     return {"message": "Billing updated successfully"}
 
 @app.post("/api/users/{user_id}/renew", tags=["Billing"])
 async def renew_user_plan(
+    request: Request,
     user_id: str,
     renewal_data: PlanRenewalRequest,
     current_admin: Admin = Depends(get_current_admin),
     db: Session = Depends(get_db)
 ):
-    """Renew user's plan"""
-    
+    """Renew or reduce user's plan (positive months = extend, negative = reduce)
+
+    When extending (positive months), automatically generates a PAID invoice with old pending amount.
+    """
+
     user = db.query(User).filter(User.id == user_id).first()
-    
+
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    
+
+    if renewal_data.months == 0:
+        raise HTTPException(status_code=400, detail="Months cannot be zero")
+
     from dateutil.relativedelta import relativedelta
-    
-    current_expiry = datetime.strptime(user.plan_expiry_date, "%Y-%m-%d")
+
+    # Parse current expiry robustly
+    try:
+        current_expiry = datetime.strptime(user.plan_expiry_date, "%Y-%m-%d")
+    except Exception:
+        try:
+            current_expiry = datetime.fromisoformat(user.plan_expiry_date)
+        except Exception:
+            # Fallback to today if missing/invalid
+            current_expiry = datetime.now()
     new_expiry = current_expiry + relativedelta(months=renewal_data.months)
-    
+
+    # Check if reducing below current date
+    if renewal_data.months < 0 and new_expiry < datetime.now():
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot reduce plan below current date. Minimum expiry: {date.today().strftime('%Y-%m-%d')}"
+        )
+
+    old_expiry = user.plan_expiry_date
     user.plan_expiry_date = new_expiry.strftime("%Y-%m-%d")
     user.is_plan_active = True
     user.status = "Active"
     user.last_renewal_date = date.today().strftime("%Y-%m-%d")
-    
+
+    # Generate invoice for plan extensions (not reductions)
+    invoice_number = None
+    invoice_id = None
+    if renewal_data.months > 0:
+        # Get plan details
+        plan = db.query(BroadbandPlan).filter(BroadbandPlan.id == user.broadband_plan_id).first()
+        if not plan:
+            raise HTTPException(status_code=404, detail="Plan not found")
+
+        # Calculate amounts
+        old_pending = user.old_pending_amount or 0
+        plan_price = plan.price * renewal_data.months  # Price for multiple months
+        subtotal = plan_price + old_pending
+        gst_rate = 18.0
+        gst_amount = round(subtotal * gst_rate / 100, 2)
+        total_amount = round(subtotal + gst_amount, 2)
+
+        # Generate unique invoice number
+        invoice_number = generate_unique_invoice_number(db)
+
+        # Current timestamp
+        today = datetime.now()
+
+        # Calculate billing period
+        start_date = datetime.strptime(old_expiry, "%Y-%m-%d") + relativedelta(days=1)
+        end_date = new_expiry
+        if renewal_data.months == 1:
+            billing_period = start_date.strftime("%B %Y")
+        else:
+            billing_period = f"{start_date.strftime('%b %Y')} - {end_date.strftime('%b %Y')}"
+
+        # Create invoice record - marked as PAID
+        new_invoice = Invoice(
+            invoice_number=invoice_number,
+            user_id=user.id,
+            plan_id=plan.id,
+            plan_name=plan.name,
+            plan_price=plan_price,
+            old_pending_amount=old_pending,
+            subtotal=subtotal,
+            gst_rate=gst_rate,
+            gst_amount=gst_amount,
+            total_amount=total_amount,
+            payment_status="Paid",  # Marked as PAID for renewals
+            payment_method="Renewal",
+            payment_date=today.strftime("%Y-%m-%d"),
+            invoice_date=today.strftime("%Y-%m-%d"),
+            due_date=new_expiry.strftime("%Y-%m-%d"),
+            billing_period=billing_period,
+            months_renewed=renewal_data.months,
+            old_expiry_date=old_expiry,
+            new_expiry_date=new_expiry.strftime("%Y-%m-%d"),
+            generated_by=current_admin.email,
+            notes=f"Plan renewal for {renewal_data.months} month(s)"
+        )
+
+        db.add(new_invoice)
+        db.commit()
+        db.refresh(new_invoice)
+        invoice_id = new_invoice.id
+
+        # Generate PDF invoice in background (optional)
+        try:
+            from pdf_generator import generate_invoice_pdf
+            # Prefer primary billing settings for company data
+            billing_settings = db.query(BillingSettings).filter(BillingSettings.is_primary == True).order_by(BillingSettings.id.desc()).first()
+            if not billing_settings:
+                billing_settings = db.query(BillingSettings).order_by(BillingSettings.id.desc()).first()
+
+            user_data = {
+                "name": user.name,
+                "cs_id": user.cs_id,
+                "mobile": user.phone,
+                "email": user.email or "",
+                "address": user.address or ""
+            }
+
+            plan_data = {
+                "name": plan.name,
+                "speed": plan.speed,
+                "data_limit": plan.data_limit,
+                "price": plan_price
+            }
+
+            billing_data = {
+                "invoice_number": invoice_number,
+                "invoice_date": today.strftime("%d-%b-%Y"),
+                "due_date": new_expiry.strftime("%d-%b-%Y"),
+                "billing_period": billing_period,
+                "old_pending": old_pending,
+                "payment_status": "Paid"
+            }
+
+            company_data = None
+            if billing_settings:
+                company_data = {
+                    "name": billing_settings.full_name,
+                    "street": billing_settings.street,
+                    "city": billing_settings.city,
+                    "state": billing_settings.state,
+                    "country": billing_settings.country,
+                    "pin_code": billing_settings.pin_code,
+                    "gstin": billing_settings.gstin,
+                    "contact_number": billing_settings.contact_number,
+                    "upi_id": billing_settings.upi_id,
+                    "qr_code_data": billing_settings.qr_code_data
+                }
+
+            pdf_path = generate_invoice_pdf(user_data, plan_data, billing_data, company_data)
+            new_invoice.pdf_filepath = pdf_path
+            db.commit()
+
+            logger.info(f"Invoice PDF generated: {invoice_number}")
+        except Exception as e:
+            logger.warning(f"Invoice PDF generation failed: {str(e)}")
+
+        logger.info(f"Invoice {invoice_number} created for {user.name}: Rs {total_amount} (includes Rs {old_pending} old pending)")
+
     db.commit()
-    
-    logger.info(f"✅ Plan renewed for {user.name}: +{renewal_data.months} months by {current_admin.email}")
-    
-    return {
-        "message": f"Plan renewed for {renewal_data.months} months",
-        "new_expiry_date": new_expiry.strftime("%Y-%m-%d")
+
+    action = "reduced" if renewal_data.months < 0 else "extended"
+    abs_months = abs(renewal_data.months)
+    logger.info(f"Plan {action} for {user.name}: {renewal_data.months:+d} months by {current_admin.email}")
+
+    response = {
+        "message": f"Plan {action} by {abs_months} month{'s' if abs_months != 1 else ''}",
+        "new_expiry_date": new_expiry.strftime("%Y-%m-%d"),
+        "action": action
     }
+
+    if invoice_number:
+        response["invoice_number"] = invoice_number
+        response["invoice_id"] = invoice_id
+        response["invoice_generated"] = True
+
+    origin = request.headers.get("origin", "")
+    headers = {}
+    if origin:
+        headers["Access-Control-Allow-Origin"] = origin
+        headers["Access-Control-Allow-Credentials"] = "true"
+        headers["Access-Control-Expose-Headers"] = "Content-Disposition"
+
+    return JSONResponse(content=response, headers=headers)
 
 @app.get("/api/billing-history", response_model=List[BillingHistoryResponse], tags=["Billing"])
 async def get_billing_history(
@@ -535,9 +932,310 @@ async def get_billing_history(
     db: Session = Depends(get_db)
 ):
     """Get all billing history"""
-    
+
     history = db.query(BillingHistory).order_by(BillingHistory.created_at.desc()).all()
     return history
+
+@app.put("/api/billing-history/{history_id}", response_model=BillingHistoryResponse, tags=["Billing"])
+async def update_billing_history(
+    history_id: int,
+    history_data: BillingHistoryUpdate,
+    current_admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """Update a billing history record"""
+
+    # Get the billing history record
+    record = db.query(BillingHistory).filter(BillingHistory.id == history_id).first()
+    if not record:
+        raise HTTPException(404, "Billing history record not found")
+
+    # Update fields that are provided
+    update_data = history_data.dict(exclude_unset=True)
+
+    for field, value in update_data.items():
+        setattr(record, field, value)
+
+    # Update plan names if plan IDs changed
+    if history_data.previous_plan_id is not None:
+        prev_plan = db.query(BroadbandPlan).filter(BroadbandPlan.id == history_data.previous_plan_id).first()
+        record.previous_plan_name = prev_plan.name if prev_plan else None
+
+    if history_data.new_plan_id is not None:
+        new_plan = db.query(BroadbandPlan).filter(BroadbandPlan.id == history_data.new_plan_id).first()
+        record.new_plan_name = new_plan.name if new_plan else None
+
+    db.commit()
+    db.refresh(record)
+
+    logger.info(f"Billing history record {history_id} updated by {current_admin.email}")
+    return record
+
+@app.delete("/api/billing-history/{history_id}", tags=["Billing"])
+async def delete_billing_history(
+    history_id: int,
+    current_admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """Delete a billing history record"""
+
+    # Get the billing history record
+    record = db.query(BillingHistory).filter(BillingHistory.id == history_id).first()
+    if not record:
+        raise HTTPException(404, "Billing history record not found")
+
+    db.delete(record)
+    db.commit()
+
+    logger.info(f"Billing history record {history_id} deleted by {current_admin.email}")
+    return {"message": "Billing history record deleted successfully"}
+
+# ============================================
+# INVOICE MANAGEMENT
+# ============================================
+
+@app.get("/api/invoices", response_model=List[InvoiceResponse], tags=["Invoices"])
+async def get_all_invoices(
+    current_admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """Get all invoices"""
+    invoices = db.query(Invoice).order_by(Invoice.created_at.desc()).all()
+    return invoices
+
+@app.get("/api/invoices/user/{user_id}", response_model=List[InvoiceResponse], tags=["Invoices"])
+async def get_user_invoices(
+    user_id: str,
+    current_admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """Get all invoices for a specific user"""
+    invoices = db.query(Invoice).filter(Invoice.user_id == user_id).order_by(Invoice.created_at.desc()).all()
+    return invoices
+
+@app.get("/api/invoices/{invoice_id}", response_model=InvoiceResponse, tags=["Invoices"])
+async def get_invoice(
+    invoice_id: int,
+    current_admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """Get a specific invoice by ID"""
+    invoice = db.query(Invoice).filter(Invoice.id == invoice_id).first()
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    return invoice
+
+@app.get("/api/invoices/{invoice_id}/download", tags=["Invoices"])
+async def download_invoice_pdf(
+    request: Request,
+    invoice_id: int,
+    current_admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """Download invoice PDF"""
+    invoice = db.query(Invoice).filter(Invoice.id == invoice_id).first()
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+
+    if not invoice.pdf_filepath or not Path(invoice.pdf_filepath).exists():
+        raise HTTPException(status_code=404, detail="Invoice PDF not found")
+
+    origin = request.headers.get("origin", "")
+    headers = {}
+    if origin:
+        headers["Access-Control-Allow-Origin"] = origin
+        headers["Access-Control-Allow-Credentials"] = "true"
+        headers["Access-Control-Expose-Headers"] = "Content-Disposition"
+
+    return FileResponse(
+        invoice.pdf_filepath,
+        media_type="application/pdf",
+        filename=f"{invoice.invoice_number}.pdf",
+        headers=headers
+    )
+
+@app.post("/api/invoice/generate/{user_id}", tags=["Invoices"])
+async def generate_invoice_for_user(
+    request: Request,
+    user_id: str,
+    current_admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """Generate and download invoice PDF for a user"""
+    from pdf_generator import generate_invoice_pdf
+    from datetime import datetime
+
+    # Get user
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Get user's plan
+    plan = None
+    if user.broadband_plan_id:
+        plan = db.query(BroadbandPlan).filter(BroadbandPlan.id == user.broadband_plan_id).first()
+
+    # Prepare data for PDF generation
+    today = datetime.now()
+
+    # Generate unique invoice number
+    invoice_number = generate_unique_invoice_number(db)
+
+    user_data = {
+        "cs_id": user.cs_id,
+        "name": user.name,
+        "phone": user.phone,
+        "email": user.email or "N/A",
+        "address": user.address or "N/A"
+    }
+
+    plan_data = {
+        "name": plan.name if plan else "No Plan",
+        "speed": plan.speed if plan else "N/A",
+        "price": plan.price if plan else 0,
+        "data_limit": plan.data_limit if plan else "N/A"
+    }
+
+    billing_data = {
+        "invoice_number": invoice_number,
+        "invoice_date": today.strftime("%d-%b-%Y"),
+        "due_date": user.payment_due_date if user.payment_due_date != "Paid" else "N/A",
+        "amount": (plan.price if plan else 0) + user.old_pending_amount,
+        "old_pending": user.old_pending_amount,
+        "current_charges": plan.price if plan else 0,
+        "total": (plan.price if plan else 0) + user.old_pending_amount,
+        "payment_status": user.payment_status
+    }
+
+    # Get billing settings for company address
+    billing_settings = db.query(BillingSettings).filter(BillingSettings.is_primary == True).order_by(BillingSettings.id.desc()).first()
+    if not billing_settings:
+        billing_settings = db.query(BillingSettings).order_by(BillingSettings.id.desc()).first()
+    company_data = None
+    if billing_settings:
+        company_data = {
+            "name": billing_settings.full_name,
+            "street": billing_settings.street,
+            "city": billing_settings.city,
+            "state": billing_settings.state,
+            "country": billing_settings.country,
+            "pin_code": billing_settings.pin_code,
+            "gstin": billing_settings.gstin,
+            "contact_number": billing_settings.contact_number,
+            "upi_id": billing_settings.upi_id,
+            "qr_code_data": billing_settings.qr_code_data
+        }
+
+    try:
+        # Calculate amounts (matching Invoice model)
+        from datetime import timedelta
+
+        plan_price = plan.price if plan else 0
+        old_pending = user.old_pending_amount
+        subtotal = plan_price + old_pending
+        gst_amount = subtotal * 0.18  # 18% GST
+        total_amount = subtotal + gst_amount
+
+        # Create billing period string (e.g., "January 2025 - February 2025")
+        billing_start = today.replace(day=1)
+        if today.month == 12:
+            billing_end = today.replace(year=today.year + 1, month=1, day=1) - timedelta(days=1)
+        else:
+            billing_end = today.replace(month=today.month + 1, day=1) - timedelta(days=1)
+        billing_period = f"{billing_start.strftime('%B %Y')} - {billing_end.strftime('%B %Y')}"
+
+        # Prevent duplicate invoice for the same user and billing period
+        existing_invoice = db.query(Invoice).filter(
+            Invoice.user_id == user.id,
+            Invoice.billing_period == billing_period
+        ).order_by(Invoice.created_at.desc()).first()
+
+        if existing_invoice:
+            # If PDF missing, generate and attach; otherwise return existing
+            if not existing_invoice.pdf_filepath or not Path(existing_invoice.pdf_filepath).exists():
+                pdf_path_existing = generate_invoice_pdf(user_data, plan_data, {
+                    "invoice_number": existing_invoice.invoice_number,
+                    "invoice_date": today.strftime("%d-%b-%Y"),
+                    "due_date": existing_invoice.due_date,
+                    "billing_period": billing_period,
+                    "old_pending": old_pending,
+                    "payment_status": existing_invoice.payment_status,
+                }, company_data)
+                existing_invoice.pdf_filepath = str(pdf_path_existing)
+                db.commit()
+
+            origin = request.headers.get("origin", "")
+            headers = {}
+            if origin:
+                headers["Access-Control-Allow-Origin"] = origin
+                headers["Access-Control-Allow-Credentials"] = "true"
+                headers["Access-Control-Expose-Headers"] = "Content-Disposition"
+
+            return FileResponse(
+                existing_invoice.pdf_filepath,
+                media_type="application/pdf",
+                filename=f"invoice_{user.cs_id}_{existing_invoice.invoice_number}.pdf",
+                headers=headers
+            )
+
+        # No existing invoice: generate PDF and create record
+        pdf_path = generate_invoice_pdf(user_data, plan_data, {
+            "invoice_number": invoice_number,
+            "invoice_date": today.strftime("%d-%b-%Y"),
+            "due_date": user.payment_due_date if user.payment_due_date != "Paid" else "N/A",
+            "billing_period": billing_period,
+            "old_pending": old_pending,
+            "payment_status": user.payment_status,
+        }, company_data)
+
+        new_invoice = Invoice(
+            invoice_number=invoice_number,
+            user_id=user.id,
+            plan_id=user.broadband_plan_id if user.broadband_plan_id else "NO_PLAN",
+            plan_name=plan.name if plan else "No Plan",
+            plan_price=plan_price,
+            old_pending_amount=old_pending,
+            subtotal=subtotal,
+            gst_rate=18.0,
+            gst_amount=gst_amount,
+            total_amount=total_amount,
+            payment_status=user.payment_status,
+            payment_method=None,
+            transaction_id=None,
+            payment_date=None,
+            invoice_date=today.strftime("%Y-%m-%d"),
+            due_date=user.payment_due_date if user.payment_due_date != "Paid" else today.strftime("%Y-%m-%d"),
+            billing_period=billing_period,
+            months_renewed=1,
+            old_expiry_date=user.plan_expiry_date if user.plan_expiry_date else None,
+            new_expiry_date=user.plan_expiry_date if user.plan_expiry_date else None,
+            generated_by=current_admin.email,
+            pdf_filepath=str(pdf_path),
+            notes=f"Invoice generated by admin {current_admin.email}"
+        )
+
+        db.add(new_invoice)
+        db.commit()
+        db.refresh(new_invoice)
+
+        logger.info(f"Invoice {invoice_number} generated for user {user.cs_id} by admin {current_admin.email}")
+
+        origin = request.headers.get("origin", "")
+        headers = {}
+        if origin:
+            headers["Access-Control-Allow-Origin"] = origin
+            headers["Access-Control-Allow-Credentials"] = "true"
+            headers["Access-Control-Expose-Headers"] = "Content-Disposition"
+
+        return FileResponse(
+            str(pdf_path),
+            media_type="application/pdf",
+            filename=f"invoice_{user.cs_id}_{invoice_number}.pdf",
+            headers=headers
+        )
+    except Exception as e:
+        logger.error(f"❌ Failed to generate invoice for user {user_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate invoice: {str(e)}")
 
 # ============================================
 # ENGINEER MANAGEMENT
@@ -581,14 +1279,14 @@ async def create_engineer(
     db.commit()
     db.refresh(new_engineer)
     
-    logger.info(f"✅ Engineer created: {engineer.name} by {current_admin.email}")
+    logger.info(f"Engineer created: {engineer.name} by {current_admin.email}")
     
     return new_engineer
 
 @app.put("/api/engineers/{engineer_id}", response_model=EngineerResponse, tags=["Engineers"])
 async def update_engineer(
     engineer_id: str,
-    engineer_update: EngineerCreate,
+    engineer_update: EngineerUpdate,
     current_admin: Admin = Depends(get_current_admin),
     db: Session = Depends(get_db)
 ):
@@ -605,7 +1303,7 @@ async def update_engineer(
     db.commit()
     db.refresh(engineer)
     
-    logger.info(f"✅ Engineer updated: {engineer.name} by {current_admin.email}")
+    logger.info(f"Engineer updated: {engineer.name} by {current_admin.email}")
     
     return engineer
 
@@ -622,10 +1320,12 @@ async def delete_engineer(
     if not engineer:
         raise HTTPException(404, "Engineer not found")
     
+    # Nullify engineer references in installations to satisfy FK constraints
+    db.query(Installation).filter(Installation.engineer_id == engineer_id).update({Installation.engineer_id: None}, synchronize_session=False)
     db.delete(engineer)
     db.commit()
     
-    logger.info(f"✅ Engineer deleted: {engineer.name} by {current_admin.email}")
+    logger.info(f"Engineer deleted: {engineer.name} by {current_admin.email}")
     
     return {"message": "Engineer deleted successfully"}
 
@@ -702,6 +1402,7 @@ async def check_expired_plans_manual(
 
 @app.get("/api/export/users", tags=["Export"])
 async def export_users_excel(
+    request: Request,
     current_admin: Admin = Depends(get_current_admin),
     db: Session = Depends(get_db)
 ):
@@ -711,15 +1412,73 @@ async def export_users_excel(
     
     filepath = export_users_to_excel(db)
     
+    origin = request.headers.get("origin", "")
+    headers = {}
+    if origin:
+        headers["Access-Control-Allow-Origin"] = origin
+        headers["Access-Control-Allow-Credentials"] = "true"
+        headers["Access-Control-Expose-Headers"] = "Content-Disposition"
+
     return FileResponse(
         filepath,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        filename="users_export.xlsx"
+        filename="users_export.xlsx",
+        headers=headers
     )
 
 # ============================================
 # SYSTEM STATUS
 # ============================================
+
+@app.get("/api/export/financial-report", tags=["Export"])
+async def export_financial_report(
+    request: Request,
+    current_admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """Export a comprehensive financial report to Excel"""
+    from excel_export import export_financial_report_to_excel
+
+    filepath = export_financial_report_to_excel(db)
+
+    origin = request.headers.get("origin", "")
+    headers = {}
+    if origin:
+        headers["Access-Control-Allow-Origin"] = origin
+        headers["Access-Control-Allow-Credentials"] = "true"
+        headers["Access-Control-Expose-Headers"] = "Content-Disposition"
+
+    return FileResponse(
+        filepath,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        filename="financial_report.xlsx",
+        headers=headers
+    )
+
+@app.get("/api/export/billing-history", tags=["Export"])
+async def export_billing_history(
+    request: Request,
+    current_admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """Export billing history to Excel"""
+    from excel_export import export_billing_history_to_excel
+
+    filepath = export_billing_history_to_excel(db)
+
+    origin = request.headers.get("origin", "")
+    headers = {}
+    if origin:
+        headers["Access-Control-Allow-Origin"] = origin
+        headers["Access-Control-Allow-Credentials"] = "true"
+        headers["Access-Control-Expose-Headers"] = "Content-Disposition"
+
+    return FileResponse(
+        filepath,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        filename="billing_history.xlsx",
+        headers=headers
+    )
 
 @app.get("/api/system/test-email", tags=["System"])
 async def test_email_endpoint(current_admin: Admin = Depends(get_current_admin)):

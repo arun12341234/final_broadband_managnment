@@ -97,6 +97,8 @@ class UserResponse(BaseModel):
     phone: str
     email: Optional[str]
     address: Optional[str]
+    photo: Optional[str] = None  # User photo URL
+    documents: Optional[str] = None  # JSON string of documents
     broadband_plan_id: str
     payment_status: str
     old_pending_amount: int
@@ -106,7 +108,7 @@ class UserResponse(BaseModel):
     is_plan_active: bool
     status: str
     created_at: str
-    
+
     class Config:
         from_attributes = True
 
@@ -131,7 +133,7 @@ class BillingUpdate(BaseModel):
 
 
 class PlanRenewalRequest(BaseModel):
-    months: int = Field(..., ge=1, le=12)
+    months: int = Field(..., ge=-12, le=12)  # Negative for reduction, positive for extension
 
 
 class PaymentRequest(BaseModel):
@@ -150,14 +152,29 @@ class BillingHistoryResponse(BaseModel):
     new_old_pending_amount: Optional[int]
     previous_payment_due_date: Optional[str]
     new_payment_due_date: Optional[str]
+    previous_plan_id: Optional[str]
+    new_plan_id: Optional[str]
     previous_plan_name: Optional[str]
     new_plan_name: Optional[str]
     change_type: str
     notes: Optional[str]
     created_at: datetime
-    
+
     class Config:
         from_attributes = True
+
+
+class BillingHistoryUpdate(BaseModel):
+    previous_payment_status: Optional[str] = None
+    new_payment_status: Optional[str] = None
+    previous_old_pending_amount: Optional[int] = None
+    new_old_pending_amount: Optional[int] = None
+    previous_payment_due_date: Optional[str] = None
+    new_payment_due_date: Optional[str] = None
+    previous_plan_id: Optional[str] = None
+    new_plan_id: Optional[str] = None
+    change_type: Optional[str] = None
+    notes: Optional[str] = None
 
 
 # ============================================
@@ -199,6 +216,28 @@ class EngineerResponse(BaseModel):
         from_attributes = True
 
 
+class EngineerUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=2, max_length=100)
+    mobile: Optional[str] = Field(None, min_length=10, max_length=10)
+    password: Optional[str] = Field(None, min_length=6)
+    email: Optional[EmailStr] = None
+    specialization: Optional[str] = None
+    status: Optional[str] = None
+    joining_date: Optional[str] = None
+    address: Optional[str] = None
+    emergency_contact: Optional[str] = None
+
+    @validator('mobile', 'emergency_contact')
+    def validate_optional_mobile(cls, v):
+        if v is None:
+            return v
+        if not v.isdigit():
+            raise ValueError('Mobile must contain only digits')
+        if len(v) != 10:
+            raise ValueError('Mobile must be exactly 10 digits')
+        return v
+
+
 # ============================================
 # CUSTOMER PORTAL SCHEMAS
 # ============================================
@@ -218,6 +257,179 @@ class CustomerDashboardResponse(BaseModel):
     old_pending_amount: int
     photo: Optional[str] = None
     
+    class Config:
+        from_attributes = True
+
+
+# ============================================
+# INVOICE SCHEMAS
+# ============================================
+
+class InvoiceResponse(BaseModel):
+    id: int
+    invoice_number: str
+    user_id: str
+    plan_id: str
+    plan_name: str
+    plan_price: float
+    old_pending_amount: int
+    subtotal: float
+    gst_rate: float
+    gst_amount: float
+    total_amount: float
+    payment_status: str
+    payment_method: Optional[str]
+    transaction_id: Optional[str]
+    payment_date: Optional[str]
+    invoice_date: str
+    due_date: str
+    billing_period: str
+    months_renewed: int
+    old_expiry_date: Optional[str]
+    new_expiry_date: Optional[str]
+    generated_by: str
+    pdf_filepath: Optional[str]
+    notes: Optional[str]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class InvoiceCreate(BaseModel):
+    user_id: str
+    months: int = Field(..., ge=1, le=12)
+    payment_method: str = "Renewal"  # How the renewal was paid
+    notes: Optional[str] = None
+
+
+# ============================================
+# BILLING SETTINGS SCHEMAS
+# ============================================
+
+class BillingSettingsCreate(BaseModel):
+    full_name: str = Field(..., min_length=2, max_length=100)
+    street: str = Field(..., min_length=5, max_length=500)
+    city: str = Field(..., min_length=2, max_length=100)
+    state: str = Field(..., min_length=2, max_length=100)
+    country: str = Field(default="India", max_length=100)
+    pin_code: str = Field(..., min_length=6, max_length=6)
+    gstin: Optional[str] = Field(None, min_length=15, max_length=15)
+    contact_number: Optional[str] = Field(None, min_length=10, max_length=10)
+    upi_id: Optional[str] = Field(None, max_length=100)
+    ui_layout: str = Field(default="card")
+    is_primary: bool = False
+
+    @validator('gstin', 'contact_number', 'upi_id', pre=True)
+    def empty_optional_to_none(cls, v):
+        # Treat empty strings as None for optional fields
+        if v is None:
+            return None
+        v_str = str(v).strip()
+        return None if v_str == '' else v
+
+    @validator('pin_code')
+    def validate_pin_code(cls, v):
+        if not v.isdigit():
+            raise ValueError('Pin code must contain only digits')
+        if len(v) != 6:
+            raise ValueError('Pin code must be exactly 6 digits')
+        return v
+
+    @validator('contact_number')
+    def validate_contact(cls, v):
+        if v and not v.isdigit():
+            raise ValueError('Contact number must contain only digits')
+        if v and len(v) != 10:
+            raise ValueError('Contact number must be exactly 10 digits')
+        return v
+
+    @validator('gstin')
+    def validate_gstin(cls, v):
+        if v:
+            # GSTIN format: 2 digits (state) + 10 chars (PAN) + 1 digit (entity) + 1 char (Z) + 1 check digit
+            if not re.match(r'^\d{2}[A-Z]{5}\d{4}[A-Z]{1}[A-Z\d]{1}[Z]{1}[A-Z\d]{1}$', v):
+                raise ValueError('Invalid GSTIN format. Example: 22AAAAA0000A1Z5')
+        return v
+
+    @validator('ui_layout')
+    def validate_layout(cls, v):
+        allowed = ['card', 'stepper', 'fullwidth', 'compact']
+        if v not in allowed:
+            raise ValueError(f'UI layout must be one of: {allowed}')
+        return v
+
+
+class BillingSettingsUpdate(BaseModel):
+    full_name: Optional[str] = Field(None, min_length=2, max_length=100)
+    street: Optional[str] = Field(None, min_length=5, max_length=500)
+    city: Optional[str] = Field(None, min_length=2, max_length=100)
+    state: Optional[str] = Field(None, min_length=2, max_length=100)
+    country: Optional[str] = Field(None, max_length=100)
+    pin_code: Optional[str] = Field(None, min_length=6, max_length=6)
+    gstin: Optional[str] = Field(None, min_length=15, max_length=15)
+    contact_number: Optional[str] = Field(None, min_length=10, max_length=10)
+    upi_id: Optional[str] = Field(None, max_length=100)
+    ui_layout: Optional[str] = None
+    is_primary: Optional[bool] = None
+
+    @validator('gstin', 'contact_number', 'upi_id', pre=True)
+    def empty_optional_to_none_update(cls, v):
+        # Treat empty strings as None for optional fields
+        if v is None:
+            return None
+        v_str = str(v).strip()
+        return None if v_str == '' else v
+
+    @validator('pin_code')
+    def validate_pin_code(cls, v):
+        if v and not v.isdigit():
+            raise ValueError('Pin code must contain only digits')
+        if v and len(v) != 6:
+            raise ValueError('Pin code must be exactly 6 digits')
+        return v
+
+    @validator('contact_number')
+    def validate_contact(cls, v):
+        if v and not v.isdigit():
+            raise ValueError('Contact number must contain only digits')
+        if v and len(v) != 10:
+            raise ValueError('Contact number must be exactly 10 digits')
+        return v
+
+    @validator('gstin')
+    def validate_gstin(cls, v):
+        if v:
+            if not re.match(r'^\d{2}[A-Z]{5}\d{4}[A-Z]{1}[A-Z\d]{1}[Z]{1}[A-Z\d]{1}$', v):
+                raise ValueError('Invalid GSTIN format. Example: 22AAAAA0000A1Z5')
+        return v
+
+    @validator('ui_layout')
+    def validate_layout(cls, v):
+        if v:
+            allowed = ['card', 'stepper', 'fullwidth', 'compact']
+            if v not in allowed:
+                raise ValueError(f'UI layout must be one of: {allowed}')
+        return v
+
+
+class BillingSettingsResponse(BaseModel):
+    id: int
+    full_name: str
+    street: str
+    city: str
+    state: str
+    country: str
+    pin_code: str
+    gstin: Optional[str]
+    contact_number: Optional[str]
+    upi_id: Optional[str]
+    ui_layout: str
+    is_primary: bool
+    qr_code_data: Optional[str]
+    created_at: datetime
+    updated_at: datetime
+
     class Config:
         from_attributes = True
 
