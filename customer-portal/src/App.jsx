@@ -1434,15 +1434,26 @@ const BillsTab = ({ bills, userData, onRefresh, showToast }) => {
                         Pay Now
                       </Button>
                     )}
-                    <Button
-                      variant="outline"
-                      onClick={() => handleDownloadInvoice(bill)}
-                      className="whitespace-nowrap w-full sm:w-auto"
-                      ariaLabel={`Download invoice for ${formatCurrency(bill.amount)}`}
-                    >
-                      <Download className="w-4 h-4 mr-2" aria-hidden="true" />
-                      Invoice
-                    </Button>
+                    {bill.is_invoice && bill.pdf_available ? (
+                      <Button
+                        variant="outline"
+                        onClick={() => handleDownloadInvoice(bill)}
+                        className="whitespace-nowrap w-full sm:w-auto"
+                        ariaLabel={`Download invoice ${bill.invoice_number || ''}`}
+                      >
+                        <Download className="w-4 h-4 mr-2" aria-hidden="true" />
+                        Invoice
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="secondary"
+                        disabled
+                        className="whitespace-nowrap w-full sm:w-auto"
+                        ariaLabel="Invoice unavailable"
+                      >
+                        Invoice Unavailable
+                      </Button>
+                    )}
                   </div>
                 </div>
               </Card>

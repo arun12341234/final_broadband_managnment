@@ -163,6 +163,54 @@ const ConfirmDialog = ({ isOpen, onClose, onConfirm, title, message, confirmText
 };
 
 // ============================================
+// SCHEDULE MODAL
+// ============================================
+
+const ScheduleModal = ({ isOpen, onClose, onSchedule }) => {
+  const [date, setDate] = useState('');
+
+  if (!isOpen) return null;
+
+  const handleSchedule = async () => {
+    if (!date) return;
+    await onSchedule(date);
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
+        <div className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" onClick={onClose}></div>
+
+        <div className="relative inline-block px-4 pt-5 pb-4 overflow-hidden text-left align-bottom transition-all transform bg-white rounded-lg shadow-xl sm:my-8 sm:align-middle sm:max-w-md sm:w-full sm:p-6">
+          <h3 className="text-lg font-medium leading-6 text-gray-900 mb-3">Schedule Installation</h3>
+          <p className="text-sm text-gray-600 mb-4">Select the installation date. Status will become "Installation Scheduled".</p>
+          <div>
+            <label className="label">Installation Date</label>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="input"
+              min={new Date().toISOString().slice(0,10)}
+              required
+            />
+          </div>
+          <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse gap-2">
+            <Button type="button" variant="primary" onClick={handleSchedule} className="w-full sm:w-auto">
+              Schedule
+            </Button>
+            <Button type="button" variant="secondary" onClick={onClose} className="w-full sm:w-auto mt-3 sm:mt-0">
+              Cancel
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ============================================
 // MAIN APP COMPONENT
 // ============================================
 
@@ -455,6 +503,21 @@ const HomeTab = ({ engineer, tasks, onRefresh, setActiveTab }) => {
   const scheduledTasks = tasks.filter(t => t.status === TASK_STATUS.SCHEDULED);
   const completedTasks = tasks.filter(t => t.status === TASK_STATUS.COMPLETED);
 
+  // Compute recent tasks by last activity (completed_date > scheduled_date > created_at)
+  const recentTasks = useMemo(() => {
+    const parseDate = (s) => {
+      if (!s) return null;
+      const d = new Date(s);
+      return isNaN(d.getTime()) ? null : d;
+    };
+    const lastActivity = (task) => {
+      const dates = [parseDate(task.completed_date), parseDate(task.scheduled_date), parseDate(task.created_at)].filter(Boolean);
+      if (dates.length === 0) return new Date(0);
+      return dates.sort((a, b) => b - a)[0];
+    };
+    return [...tasks].sort((a, b) => lastActivity(b) - lastActivity(a)).slice(0, 5);
+  }, [tasks]);
+
   return (
     <div className="space-y-6">
       {/* Welcome Card */}
@@ -555,7 +618,7 @@ const HomeTab = ({ engineer, tasks, onRefresh, setActiveTab }) => {
           />
         ) : (
           <div className="space-y-3">
-            {tasks.slice(0, 5).map((task) => (
+            {recentTasks.map((task) => (
               <div key={task.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3 mb-2">
@@ -1078,6 +1141,8 @@ const TasksTab = ({ tasks, onRefresh, showToast }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [showConfirm, setShowConfirm] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
+  const [showSchedule, setShowSchedule] = useState(false);
+  const [scheduleTaskId, setScheduleTaskId] = useState(null);
 
   // Debounced search
   const debouncedSearchTerm = useDebounce(searchTerm);
@@ -1138,6 +1203,11 @@ const TasksTab = ({ tasks, onRefresh, showToast }) => {
   }, [debouncedSearchTerm, filterStatus, sortBy]);
 
   const handleUpdateStatus = (taskId, newStatus) => {
+    if (newStatus === TASK_STATUS.SCHEDULED) {
+      setScheduleTaskId(taskId);
+      setShowSchedule(true);
+      return;
+    }
     setConfirmAction({
       taskId,
       newStatus,
@@ -1164,6 +1234,27 @@ const TasksTab = ({ tasks, onRefresh, showToast }) => {
       onRefresh();
     } catch (error) {
       showToast(getErrorMessage(error), 'error');
+    }
+  };
+
+  const executeScheduleUpdate = async (date) => {
+    if (!scheduleTaskId || !date) return;
+    try {
+      const formData = new FormData();
+      formData.append('status', TASK_STATUS.SCHEDULED);
+      formData.append('scheduled_date', date);
+
+      await api.put(`/api/engineer/update-task/${scheduleTaskId}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      showToast('Installation scheduled successfully!', 'success');
+      onRefresh();
+    } catch (error) {
+      showToast(getErrorMessage(error), 'error');
+    } finally {
+      setShowSchedule(false);
+      setScheduleTaskId(null);
     }
   };
 
@@ -1458,6 +1549,17 @@ const TasksTab = ({ tasks, onRefresh, showToast }) => {
           confirmText="Update"
           cancelText="Cancel"
           variant="primary"
+        />
+      )}
+
+      {showSchedule && (
+        <ScheduleModal
+          isOpen={showSchedule}
+          onClose={() => {
+            setShowSchedule(false);
+            setScheduleTaskId(null);
+          }}
+          onSchedule={executeScheduleUpdate}
         />
       )}
     </div>

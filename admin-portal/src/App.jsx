@@ -102,9 +102,9 @@ const Modal = ({ isOpen, onClose, title, children, size = 'max-w-2xl' }) => {
   }, [isOpen, onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div className="fixed inset-0 z-[1000] overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="modal-title">
       <div className="flex items-center justify-center min-h-screen px-4">
-        <div className="fixed inset-0 bg-black opacity-50" onClick={onClose} aria-hidden="true"></div>
+        <div className="fixed inset-0 bg-black/60" onClick={onClose} aria-hidden="true"></div>
         <div className={`relative bg-white rounded-lg shadow-xl ${size} w-full max-h-[90vh] overflow-y-auto`}>
           <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
             <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
@@ -205,6 +205,27 @@ const Toast = ({ message, type = 'success', onClose }) => {
   );
 };
 
+// Progress Dialog to block UI during long operations
+const ProgressDialog = ({ isOpen, title = 'Working...', message = 'Please wait...' }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-[80] overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="progress-title">
+      <div className="flex items-center justify-center min-h-screen px-4">
+        <div className="fixed inset-0 bg-black opacity-40" aria-hidden="true"></div>
+        <div className="relative bg-white rounded-lg shadow-2xl max-w-sm w-full p-6">
+          <div className="flex items-center gap-3">
+            <Loader className="w-6 h-6 text-orange-600 animate-spin" />
+            <div>
+              <h3 id="progress-title" className="text-lg font-semibold text-gray-900">{title}</h3>
+              <p className="text-sm text-gray-600 mt-1">{message}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Badge = ({ children, variant = 'default' }) => {
   const variants = {
     default: 'bg-gray-100 text-gray-800',
@@ -228,6 +249,18 @@ const LoadingSpinner = () => (
   </div>
 );
 
+// Global Loader bar shown during any API request
+const GlobalLoader = ({ active }) => {
+  if (!active) return null;
+  return (
+    <div className="fixed top-0 left-0 right-0 z-[70]">
+      <div className="h-1 w-full bg-orange-100">
+        <div className="h-1 w-1/3 bg-orange-600 animate-pulse" />
+      </div>
+    </div>
+  );
+};
+
 const EmptyState = ({ icon: Icon, title, description, action }) => (
   <div className="text-center py-12">
     <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
@@ -244,11 +277,16 @@ const EmptyState = ({ icon: Icon, title, description, action }) => (
 // ============================================
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [loading, setLoading] = useState(true);
+  // Initialize from localStorage to avoid login flicker on refresh
+  const initialToken = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
+  const [isAuthenticated, setIsAuthenticated] = useState(!!initialToken);
+  const [loading, setLoading] = useState(!!initialToken);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [toast, setToast] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [globalLoadingCount, setGlobalLoadingCount] = useState(0);
+  const [progressOpen, setProgressOpen] = useState(false);
+  const [progressText, setProgressText] = useState({ title: 'Working...', message: 'Please wait...' });
 
   const [users, setUsers] = useState([]);
   const [plans, setPlans] = useState([]);
@@ -259,11 +297,21 @@ function App() {
   useEffect(() => {
     const token = localStorage.getItem('admin_token');
     if (token) {
-      setIsAuthenticated(true);
+      // Already authenticated from initial state; load data
       fetchAllData();
     } else {
       setLoading(false);
     }
+  }, []);
+
+  // Subscribe to global API loading events
+  useEffect(() => {
+    const handler = (e) => {
+      const count = (e?.detail?.activeRequests) ?? 0;
+      setGlobalLoadingCount(count);
+    };
+    window.addEventListener('api:loading', handler);
+    return () => window.removeEventListener('api:loading', handler);
   }, []);
 
   const fetchAllData = async () => {
@@ -327,6 +375,13 @@ function App() {
     setToast({ message: safeMessage, type });
   };
 
+  // Progress helpers
+  const openProgress = (title, message) => {
+    setProgressText({ title: title || 'Working...', message: message || 'Please wait...' });
+    setProgressOpen(true);
+  };
+  const closeProgress = () => setProgressOpen(false);
+
   const handleLogin = async (email, password) => {
     try {
       const formData = new URLSearchParams();
@@ -355,10 +410,7 @@ function App() {
     setActiveTab('dashboard');
   };
 
-  if (!isAuthenticated) {
-    return <LoginScreen onLogin={handleLogin} />;
-  }
-
+  // Prioritize showing loader during bootstrapping to prevent login flicker
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -367,8 +419,14 @@ function App() {
     );
   }
 
+  if (!isAuthenticated) {
+    return <LoginScreen onLogin={handleLogin} />;
+  }
+
   return (
     <div className="flex h-screen bg-gray-50">
+      <GlobalLoader active={globalLoadingCount > 0} />
+      <ProgressDialog isOpen={progressOpen} title={progressText.title} message={progressText.message} />
       <Sidebar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -402,6 +460,8 @@ function App() {
               onRefresh={fetchAllData}
               showToast={showToast}
               setActiveTab={setActiveTab}
+              openProgress={openProgress}
+              closeProgress={closeProgress}
             />
           )}
           {activeTab === 'users' && (
@@ -410,6 +470,8 @@ function App() {
               plans={plans}
               onRefresh={fetchAllData}
               showToast={showToast}
+              openProgress={openProgress}
+              closeProgress={closeProgress}
             />
           )}
           {activeTab === 'plans' && (
@@ -417,6 +479,8 @@ function App() {
               plans={plans}
               onRefresh={fetchAllData}
               showToast={showToast}
+              openProgress={openProgress}
+              closeProgress={closeProgress}
             />
           )}
           {activeTab === 'engineers' && (
@@ -424,6 +488,8 @@ function App() {
               engineers={engineers}
               onRefresh={fetchAllData}
               showToast={showToast}
+              openProgress={openProgress}
+              closeProgress={closeProgress}
             />
           )}
           {activeTab === 'billing' && (
@@ -433,6 +499,8 @@ function App() {
               plans={plans}
               onRefresh={fetchAllData}
               showToast={showToast}
+              openProgress={openProgress}
+              closeProgress={closeProgress}
             />
           )}
           {activeTab === 'address-billing' && (
@@ -444,7 +512,9 @@ function App() {
             <NotificationsTab 
               users={users}
               plans={plans}
-              showToast={showToast} 
+              showToast={showToast}
+              openProgress={openProgress}
+              closeProgress={closeProgress}
             />
           )}
           {activeTab === 'settings' && (
@@ -474,7 +544,9 @@ const LoginScreen = ({ onLogin }) => {
   const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (e && typeof e.preventDefault === 'function') {
+      e.preventDefault();
+    }
     setError('');
     setLoading(true);
 
@@ -662,7 +734,7 @@ const Sidebar = ({ activeTab, setActiveTab, onLogout, sidebarOpen, setSidebarOpe
 // DASHBOARD TAB
 // ============================================
 
-const DashboardTab = ({ stats, users, plans, onRefresh, showToast, setActiveTab }) => {
+const DashboardTab = ({ stats, users, plans, onRefresh, showToast, setActiveTab, openProgress, closeProgress }) => {
   if (!stats) return <LoadingSpinner />;
 
   const statCards = [
@@ -705,6 +777,54 @@ const DashboardTab = ({ stats, users, plans, onRefresh, showToast, setActiveTab 
   ];
 
   const recentUsers = (users || []).slice(0, 5);
+
+  // Quick Actions handlers
+  const handleQuickAddUser = () => {
+    setActiveTab('users');
+  };
+
+  const handleQuickAddPlan = () => {
+    setActiveTab('plans');
+  };
+
+  const [qaLoading, setQaLoading] = useState({ alerts: false, export: false });
+
+  const handleQuickSendAlerts = async () => {
+    if (qaLoading.alerts) return;
+    setQaLoading((s) => ({ ...s, alerts: true }));
+    try {
+      openProgress('Sending Notifications', 'Dispatching alerts to users...');
+      const response = await api.post('/api/notifications/send-all');
+      showToast(response.data?.message || 'Notifications sent successfully', 'success');
+    } catch (error) {
+      showToast(getErrorMessage(error) || 'Failed to send notifications', 'error');
+    } finally {
+      closeProgress();
+      setQaLoading((s) => ({ ...s, alerts: false }));
+    }
+  };
+
+  const handleQuickExportData = async () => {
+    if (qaLoading.export) return;
+    setQaLoading((s) => ({ ...s, export: true }));
+    try {
+      openProgress('Exporting Users', 'Generating Excel file...');
+      const response = await api.get('/api/export/users', { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `users_${new Date().toISOString().split('T')[0]}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      showToast('Users exported successfully', 'success');
+    } catch (error) {
+      showToast(getErrorMessage(error) || 'Failed to export users', 'error');
+    } finally {
+      closeProgress();
+      setQaLoading((s) => ({ ...s, export: false }));
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -786,23 +906,37 @@ const DashboardTab = ({ stats, users, plans, onRefresh, showToast, setActiveTab 
         <Card className="p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
           <div className="grid grid-cols-2 gap-3">
-            <button className="p-4 bg-blue-50 hover:bg-blue-100 rounded-lg text-left transition-colors">
+            <button onClick={handleQuickAddUser} className="p-4 bg-blue-50 hover:bg-blue-100 rounded-lg text-left transition-colors">
               <UserPlus className="w-6 h-6 text-blue-600 mb-2" />
               <p className="font-medium text-gray-900">Add User</p>
               <p className="text-xs text-gray-600">New customer</p>
             </button>
-            <button className="p-4 bg-green-50 hover:bg-green-100 rounded-lg text-left transition-colors">
+            <button onClick={handleQuickAddPlan} className="p-4 bg-green-50 hover:bg-green-100 rounded-lg text-left transition-colors">
               <Package className="w-6 h-6 text-green-600 mb-2" />
               <p className="font-medium text-gray-900">Add Plan</p>
               <p className="text-xs text-gray-600">New package</p>
             </button>
-            <button className="p-4 bg-orange-50 hover:bg-orange-100 rounded-lg text-left transition-colors">
-              <Bell className="w-6 h-6 text-orange-600 mb-2" />
+            <button onClick={handleQuickSendAlerts} disabled={qaLoading.alerts} className={`p-4 rounded-lg text-left transition-colors ${qaLoading.alerts ? 'bg-orange-100 cursor-not-allowed' : 'bg-orange-50 hover:bg-orange-100'}`}>
+              {qaLoading.alerts ? (
+                <div className="flex items-center gap-2 mb-2">
+                  <Loader className="w-5 h-5 text-orange-600 animate-spin" />
+                  <span className="text-orange-700 text-sm">Sending…</span>
+                </div>
+              ) : (
+                <Bell className="w-6 h-6 text-orange-600 mb-2" />
+              )}
               <p className="font-medium text-gray-900">Send Alerts</p>
               <p className="text-xs text-gray-600">Notifications</p>
             </button>
-            <button className="p-4 bg-purple-50 hover:bg-purple-100 rounded-lg text-left transition-colors">
-              <FileSpreadsheet className="w-6 h-6 text-purple-600 mb-2" />
+            <button onClick={handleQuickExportData} disabled={qaLoading.export} className={`p-4 rounded-lg text-left transition-colors ${qaLoading.export ? 'bg-purple-100 cursor-not-allowed' : 'bg-purple-50 hover:bg-purple-100'}`}>
+              {qaLoading.export ? (
+                <div className="flex items-center gap-2 mb-2">
+                  <Loader className="w-5 h-5 text-purple-600 animate-spin" />
+                  <span className="text-purple-700 text-sm">Exporting…</span>
+                </div>
+              ) : (
+                <FileSpreadsheet className="w-6 h-6 text-purple-600 mb-2" />
+              )}
               <p className="font-medium text-gray-900">Export Data</p>
               <p className="text-xs text-gray-600">Download Excel</p>
             </button>
@@ -1083,20 +1217,106 @@ const AvatarModal = ({ user, onClose }) => {
 
 // Documents Modal Component
 const DocumentsModal = ({ user, onClose }) => {
+  const toSafeString = (val) => (typeof val === 'string' ? val : '');
+  const getFileName = (url) => {
+    const safeUrl = toSafeString(url);
+    try {
+      const lastSegment = safeUrl.split('/').pop() || safeUrl;
+      return decodeURIComponent(lastSegment);
+    } catch {
+      return safeUrl;
+    }
+  };
+
+  const getFileType = (url) => {
+    const safeUrl = toSafeString(url);
+    const lower = safeUrl.toLowerCase();
+    if (lower.endsWith('.pdf')) return 'PDF';
+    if (lower.endsWith('.doc') || lower.endsWith('.docx')) return 'Word Document';
+    if (lower.endsWith('.xls') || lower.endsWith('.xlsx')) return 'Excel Spreadsheet';
+    if (lower.endsWith('.jpg') || lower.endsWith('.jpeg') || lower.endsWith('.png') || lower.endsWith('.gif') || lower.endsWith('.webp')) return 'Image';
+    return 'Document';
+  };
+
   let documents = [];
   try {
-    documents = user.documents ? JSON.parse(user.documents) : [];
+    const raw = user?.documents ? JSON.parse(user.documents) : [];
+    if (Array.isArray(raw)) {
+      documents = raw
+        .map((item) => {
+          if (!item) return null;
+          if (typeof item === 'string') {
+            const url = item;
+            return { url, name: getFileName(url), type: getFileType(url) };
+          }
+          const url = toSafeString(item.url);
+          const name = item.name ? toSafeString(item.name) : getFileName(url);
+          const type = item.type ? toSafeString(item.type) : getFileType(url);
+          const uploaded_at = item.uploaded_at || null;
+          if (!url) return null;
+          return { url, name, type, uploaded_at };
+        })
+        .filter(Boolean);
+    } else {
+      documents = [];
+    }
   } catch (e) {
     documents = [];
   }
 
   const isImageFile = (url) => {
+    const safeUrl = toSafeString(url);
+    if (!safeUrl) return false;
     const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
-    return imageExtensions.some(ext => url.toLowerCase().endsWith(ext));
+    const lower = safeUrl.toLowerCase();
+    return imageExtensions.some(ext => lower.endsWith(ext));
+  };
+
+  const [downloadingIdx, setDownloadingIdx] = useState(null);
+
+  const toApiUploadsPath = (rawUrl) => {
+    try {
+      if (!rawUrl) return null;
+      // If absolute URL, extract pathname
+      if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
+        const u = new URL(rawUrl);
+        return `/api${u.pathname}`;
+      }
+      // If already a path like /uploads/... map to /api/uploads/...
+      if (rawUrl.startsWith('/uploads')) {
+        return `/api${rawUrl}`;
+      }
+      // Fallback: treat as filename in documents
+      return `/api/uploads/documents/${rawUrl}`;
+    } catch {
+      return null;
+    }
+  };
+
+  const handleDownload = async (doc, idx) => {
+    if (!doc?.url) return;
+    setDownloadingIdx(idx);
+    try {
+      const apiPath = toApiUploadsPath(doc.url);
+      const response = await api.get(apiPath, { responseType: 'blob' });
+      const blob = new Blob([response.data]);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = toSafeString(doc.name) || getFileName(doc.url) || 'document';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Download failed:', err);
+    } finally {
+      setDownloadingIdx(null);
+    }
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[1000] p-4" onClick={onClose}>
       <div className="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-900">{user.name}'s Documents ({documents.length})</h3>
@@ -1157,16 +1377,23 @@ const DocumentsModal = ({ user, onClose }) => {
                 )}
 
                 {/* Download button */}
-                <a
-                  href={doc.url}
-                  download={doc.name}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium"
+                <button
+                  onClick={() => handleDownload(doc, index)}
+                  disabled={downloadingIdx === index}
+                  className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-60 transition-colors text-sm font-medium"
                 >
-                  <Download className="w-4 h-4" />
-                  Download
-                </a>
+                  {downloadingIdx === index ? (
+                    <>
+                      <Loader className="w-4 h-4 animate-spin" />
+                      Downloading...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4" />
+                      Download
+                    </>
+                  )}
+                </button>
 
                 {doc.uploaded_at && (
                   <p className="text-xs text-gray-400 mt-2 text-center">
@@ -1186,14 +1413,16 @@ const DocumentsModal = ({ user, onClose }) => {
 // RENEW PLAN MODAL
 // ============================================
 
-const RenewPlanModal = ({ user, onClose, onSuccess, showToast }) => {
+const RenewPlanModal = ({ user, onClose, onSuccess, showToast, openProgress, closeProgress }) => {
   const [months, setMonths] = useState(1);
   const [loading, setLoading] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [isReducing, setIsReducing] = useState(false);
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (e && typeof e.preventDefault === 'function') {
+      e.preventDefault();
+    }
 
     // Show confirmation dialog
     if (!showConfirm) {
@@ -1205,13 +1434,36 @@ const RenewPlanModal = ({ user, onClose, onSuccess, showToast }) => {
 
     try {
       const monthsToAdd = isReducing ? -months : months;
+      openProgress(isReducing ? 'Reducing Plan' : 'Renewing Plan', isReducing ? 'Updating plan expiry...' : 'Extending plan expiry...');
       const response = await api.post(`/api/users/${user.id}/renew`, { months: monthsToAdd });
       showToast(response.data.message || `Plan ${isReducing ? 'reduced' : 'renewed'} successfully`, 'success');
+
+      // If an invoice was generated on extension, offer immediate download
+      const invId = response.data?.invoice_id;
+      const invGenerated = response.data?.invoice_generated;
+      const invNumber = response.data?.invoice_number;
+      if (!isReducing && invGenerated && invId) {
+        try {
+          const invResp = await api.get(`/api/invoices/${invId}/download`, { responseType: 'blob' });
+          const blob = new Blob([invResp.data], { type: 'application/pdf' });
+          const url = window.URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = invNumber ? `${invNumber}.pdf` : `invoice_${user.cs_id}.pdf`;
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          window.URL.revokeObjectURL(url);
+        } catch (e) {
+          console.error('Invoice download failed:', e);
+        }
+      }
       onSuccess();
     } catch (error) {
       showToast(getErrorMessage(error), 'error');
       setShowConfirm(false);
     } finally {
+      closeProgress();
       setLoading(false);
     }
   };
@@ -1283,20 +1535,20 @@ const RenewPlanModal = ({ user, onClose, onSuccess, showToast }) => {
         </div>
 
         {/* User Info */}
-        <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
-          <h4 className="font-medium text-blue-900 mb-2">Customer Details</h4>
+        <div className="bg-orange-50 border border-orange-200 p-4 rounded-lg">
+          <h4 className="font-medium text-orange-900 mb-2">Customer Details</h4>
           <div className="space-y-1 text-sm">
             <div>
-              <span className="text-blue-700">Name:</span>
-              <span className="ml-2 font-medium text-blue-900">{user.name}</span>
+              <span className="text-orange-700">Name:</span>
+              <span className="ml-2 font-medium text-orange-900">{user.name}</span>
             </div>
             <div>
-              <span className="text-blue-700">Customer ID:</span>
-              <span className="ml-2 font-medium text-blue-900">{user.cs_id}</span>
+              <span className="text-orange-700">Customer ID:</span>
+              <span className="ml-2 font-medium text-orange-900">{user.cs_id}</span>
             </div>
             <div>
-              <span className="text-blue-700">Current Expiry:</span>
-              <span className="ml-2 font-medium text-blue-900">
+              <span className="text-orange-700">Current Expiry:</span>
+              <span className="ml-2 font-medium text-orange-900">
                 {user.plan_expiry_date || 'N/A'}
               </span>
             </div>
@@ -1429,7 +1681,7 @@ const RenewPlanModal = ({ user, onClose, onSuccess, showToast }) => {
 // USERS TAB
 // ============================================
 
-const UsersTab = ({ users, plans, onRefresh, showToast }) => {
+const UsersTab = ({ users, plans, onRefresh, showToast, openProgress, closeProgress }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [paymentFilter, setPaymentFilter] = useState('All');
   const [currentPage, setCurrentPage] = useState(1);
@@ -1440,6 +1692,8 @@ const UsersTab = ({ users, plans, onRefresh, showToast }) => {
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [showDocumentsModal, setShowDocumentsModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [showDeleteUserConfirm, setShowDeleteUserConfirm] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
 
   // Use debounced search for better performance
   const debouncedSearchTerm = useDebounce(searchTerm);
@@ -1494,32 +1748,50 @@ const UsersTab = ({ users, plans, onRefresh, showToast }) => {
     setShowRenewModal(true);
   };
 
-  const handleDeleteUser = async (userId) => {
-    if (!window.confirm('Are you sure you want to delete this user?')) return;
+  const handleDeleteClickUser = (user) => {
+    setUserToDelete(user);
+    setShowDeleteUserConfirm(true);
+  };
 
+  const handleConfirmDeleteUser = async () => {
+    if (!userToDelete) return;
     try {
-      await api.delete(`/api/users/${userId}`);
+      openProgress('Deleting User', 'Removing user from the system...');
+      await api.delete(`/api/users/${userToDelete.id}`);
       showToast('User deleted successfully', 'success');
       onRefresh();
     } catch (error) {
       showToast(error.response?.data?.detail || 'Failed to delete user', 'error');
+    } finally {
+      closeProgress();
+      setShowDeleteUserConfirm(false);
+      setUserToDelete(null);
     }
+  };
+
+  const handleDeleteUser = async (userId) => {
+    // Deprecated direct delete; use confirmation flow via handleDeleteClickUser
+    handleDeleteClickUser(users.find(u => u.id === userId));
   };
 
   const handleRenewPlanOld = async (user) => {
     if (!window.confirm(`Renew plan for ${user.name} for 1 month?`)) return;
 
     try {
+      openProgress('Renewing Plan', 'Extending plan expiry...');
       await api.post(`/api/users/${user.id}/renew`, { months: 1 });
       showToast('Plan renewed successfully', 'success');
       onRefresh();
     } catch (error) {
       showToast(error.response?.data?.detail || 'Failed to renew plan', 'error');
+    } finally {
+      closeProgress();
     }
   };
 
   const handleGenerateInvoice = async (userId) => {
     try {
+      openProgress('Generating Invoice', 'Preparing PDF invoice...');
       const response = await api.post(`/api/invoice/generate/${userId}`, {}, {
         responseType: 'blob'
       });
@@ -1534,11 +1806,14 @@ const UsersTab = ({ users, plans, onRefresh, showToast }) => {
       showToast('Invoice generated successfully', 'success');
     } catch (error) {
       showToast('Failed to generate invoice', 'error');
+    } finally {
+      closeProgress();
     }
   };
 
   const handleExportUsers = async () => {
     try {
+      openProgress('Exporting Users', 'Generating Excel file...');
       const response = await api.get('/api/export/users', {
         responseType: 'blob'
       });
@@ -1553,11 +1828,14 @@ const UsersTab = ({ users, plans, onRefresh, showToast }) => {
       showToast('Users exported successfully', 'success');
     } catch (error) {
       showToast('Failed to export users', 'error');
+    } finally {
+      closeProgress();
     }
   };
 
   const handleExportFinancialReport = async () => {
     try {
+      openProgress('Exporting Financial Report', 'Generating Excel report...');
       const response = await api.get('/api/export/financial-report', {
         responseType: 'blob'
       });
@@ -1572,6 +1850,8 @@ const UsersTab = ({ users, plans, onRefresh, showToast }) => {
       showToast('Financial report exported successfully', 'success');
     } catch (error) {
       showToast('Failed to export financial report', 'error');
+    } finally {
+      closeProgress();
     }
   };
 
@@ -1589,6 +1869,14 @@ const UsersTab = ({ users, plans, onRefresh, showToast }) => {
   };
 
   const getExpiryBadge = (user) => {
+    // Show installation-related statuses distinctly
+    if (user.status === 'Pending Installation') {
+      return <Badge variant="info">Not Started</Badge>;
+    }
+    if (user.status === 'Installation Scheduled') {
+      return <Badge variant="primary">Installation Scheduled</Badge>;
+    }
+
     if (!user.is_plan_active) {
       return <Badge variant="danger">Expired</Badge>;
     }
@@ -1617,20 +1905,26 @@ const UsersTab = ({ users, plans, onRefresh, showToast }) => {
         <h2 className="text-2xl font-bold text-gray-800">Broadband User List</h2>
         <div className="flex space-x-2 flex-wrap gap-2">
           <button
+            onClick={onRefresh}
+            className="px-4 py-2 bg-white text-gray-700 rounded-lg flex items-center hover:bg-gray-100 border border-gray-200 shadow-sm transition-all text-sm"
+          >
+            <RefreshCw className="w-4 h-4 mr-2" /> Refresh
+          </button>
+          <button
             onClick={handleExportUsers}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg flex items-center hover:bg-green-700 shadow-sm transition-all text-sm"
+            className="px-4 py-2 bg-orange-600 text-white rounded-lg flex items-center hover:bg-orange-700 shadow-sm transition-all text-sm"
           >
             <FileText className="w-4 h-4 mr-2" /> Export to Excel
           </button>
           <button
             onClick={handleExportFinancialReport}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center hover:bg-blue-700 shadow-sm transition-all text-sm"
+            className="px-4 py-2 bg-orange-50 text-orange-700 rounded-lg flex items-center hover:bg-orange-100 border border-orange-200 shadow-sm transition-all text-sm"
           >
             <BarChart3 className="w-4 h-4 mr-2" /> Financial Report
           </button>
           <button
             onClick={handleAddUser}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg flex items-center hover:bg-indigo-700 shadow-sm transition-all"
+            className="px-4 py-2 bg-orange-600 text-white rounded-lg flex items-center hover:bg-orange-700 shadow-sm transition-all"
           >
             <Plus className="w-4 h-4 mr-2" /> New Connection
           </button>
@@ -1647,7 +1941,7 @@ const UsersTab = ({ users, plans, onRefresh, showToast }) => {
               placeholder="Search by name, phone, email, CS ID, or address..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
             />
           </div>
           <div className="flex items-center space-x-2">
@@ -1655,7 +1949,7 @@ const UsersTab = ({ users, plans, onRefresh, showToast }) => {
             <select
               value={paymentFilter}
               onChange={(e) => setPaymentFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
             >
               <option value="All">All Payments</option>
               <option value="Pending">Pending</option>
@@ -1668,7 +1962,7 @@ const UsersTab = ({ users, plans, onRefresh, showToast }) => {
         {/* Desktop Table View */}
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
+            <thead className="bg-gradient-to-r from-orange-600 to-orange-500 text-white">
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-bold uppercase">User</th>
                 <th className="px-4 py-3 text-left text-xs font-bold uppercase">Contact</th>
@@ -1725,7 +2019,7 @@ const UsersTab = ({ users, plans, onRefresh, showToast }) => {
                     </td>
                     <td className="px-4 py-3">
                       {getExpiryBadge(user)}
-                      {!user.is_plan_active && (
+                      {!user.is_plan_active && user.status !== 'Pending Installation' && user.status !== 'Installation Scheduled' && (
                         <button
                           onClick={() => handleRenewPlan(user)}
                           className="ml-2 text-xs font-bold text-green-600 hover:text-green-800 border border-green-300 hover:border-green-500 px-2 py-1 rounded transition-all"
@@ -1770,34 +2064,34 @@ const UsersTab = ({ users, plans, onRefresh, showToast }) => {
                       <div className="flex items-center justify-center space-x-1">
                         <button
                           onClick={() => handleEditUser(user)}
-                          className="text-indigo-600 hover:text-indigo-800 text-[10px] font-bold border border-indigo-200 hover:border-indigo-400 px-2 py-1 rounded transition-all"
+                          className="text-orange-600 hover:text-orange-800 text-[10px] font-bold border border-orange-200 hover:border-orange-400 px-2 py-1 rounded transition-all"
                           title="Edit User"
                         >
                           EDIT
                         </button>
                         <button
                           onClick={() => handleBilling(user)}
-                          className="text-blue-600 hover:text-blue-800 text-[10px] font-bold border border-blue-200 hover:border-blue-400 px-2 py-1 rounded transition-all"
+                          className="text-orange-600 hover:text-orange-800 text-[10px] font-bold border border-orange-200 hover:border-orange-400 px-2 py-1 rounded transition-all"
                           title="Update Billing"
                         >
                           BILLING
                         </button>
                         <button
                           onClick={() => handleRenewPlan(user)}
-                          className="text-green-600 hover:text-green-800 text-[10px] font-bold border border-green-200 hover:border-green-400 px-2 py-1 rounded transition-all"
+                          className="text-orange-600 hover:text-orange-800 text-[10px] font-bold border border-orange-200 hover:border-orange-400 px-2 py-1 rounded transition-all"
                           title="Renew Plan"
                         >
                           RENEW
                         </button>
                         <button
                           onClick={() => handleGenerateInvoice(user.id)}
-                          className="text-purple-600 hover:text-purple-800 text-[10px] font-bold border border-purple-200 hover:border-purple-400 px-2 py-1 rounded transition-all"
+                          className="text-orange-600 hover:text-orange-800 text-[10px] font-bold border border-orange-200 hover:border-orange-400 px-2 py-1 rounded transition-all"
                           title="Generate Invoice"
                         >
                           INVOICE
                         </button>
                         <button
-                          onClick={() => handleDeleteUser(user.id)}
+                          onClick={() => handleDeleteClickUser(user)}
                           className="text-red-600 hover:text-red-800 text-[10px] font-bold border border-red-200 hover:border-red-400 px-2 py-1 rounded transition-all"
                           title="Delete User"
                         >
@@ -1883,7 +2177,7 @@ const UsersTab = ({ users, plans, onRefresh, showToast }) => {
                       </button>
                       <button
                         onClick={() => handleEditUser(user)}
-                        className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-xs bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100"
+                        className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-xs bg-orange-50 text-orange-600 rounded-lg hover:bg-orange-100"
                         title="Edit"
                       >
                         <Edit2 className="w-4 h-4" />
@@ -1891,14 +2185,14 @@ const UsersTab = ({ users, plans, onRefresh, showToast }) => {
                       </button>
                       <button
                         onClick={() => handleRenewPlan(user)}
-                        className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-xs bg-green-50 text-green-600 rounded-lg hover:bg-green-100"
+                        className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-xs bg-orange-50 text-orange-600 rounded-lg hover:bg-orange-100"
                         title="Renew"
                       >
                         <RefreshCw className="w-4 h-4" />
                         <span>Renew</span>
                       </button>
                       <button
-                        onClick={() => handleDeleteUser(user.id)}
+                        onClick={() => handleDeleteClickUser(user)}
                         className="flex items-center justify-center px-3 py-2 text-xs bg-red-50 text-red-600 rounded-lg hover:bg-red-100"
                         title="Delete"
                       >
@@ -1985,6 +2279,8 @@ const UsersTab = ({ users, plans, onRefresh, showToast }) => {
             showToast('Billing updated successfully', 'success');
           }}
           showToast={showToast}
+          openProgress={openProgress}
+          closeProgress={closeProgress}
         />
       )}
 
@@ -2001,6 +2297,8 @@ const UsersTab = ({ users, plans, onRefresh, showToast }) => {
             onRefresh();
           }}
           showToast={showToast}
+          openProgress={openProgress}
+          closeProgress={closeProgress}
         />
       )}
 
@@ -2021,6 +2319,18 @@ const UsersTab = ({ users, plans, onRefresh, showToast }) => {
             setShowDocumentsModal(false);
             setSelectedUser(null);
           }}
+        />
+      )}
+
+      {showDeleteUserConfirm && userToDelete && (
+        <ConfirmDialog
+          isOpen={showDeleteUserConfirm}
+          onClose={() => { setShowDeleteUserConfirm(false); setUserToDelete(null); }}
+          onConfirm={handleConfirmDeleteUser}
+          title="Delete User"
+          message={`Are you sure you want to delete ${userToDelete.name}? This action cannot be undone.`}
+          confirmText="Delete"
+          variant="danger"
         />
       )}
     </div>
@@ -2868,12 +3178,12 @@ const EditUserModal = ({ user, plans, onClose, onSuccess, showToast }) => {
 // EDIT BILLING HISTORY MODAL
 // ============================================
 
-const EditBillingHistoryModal = ({ record, plans, onClose, onSuccess, showToast }) => {
+const EditBillingHistoryModal = ({ record, plans, onClose, onSuccess, showToast, openProgress, closeProgress }) => {
   const [formData, setFormData] = useState({
     previous_payment_status: record.previous_payment_status || '',
     new_payment_status: record.new_payment_status || '',
-    previous_old_pending_amount: record.previous_old_pending_amount || 0,
-    new_old_pending_amount: record.new_old_pending_amount || 0,
+    previous_old_pending_amount: Number(record.previous_old_pending_amount || 0),
+    new_old_pending_amount: Number(record.new_old_pending_amount || 0),
     previous_payment_due_date: record.previous_payment_due_date || '',
     new_payment_due_date: record.new_payment_due_date || '',
     previous_plan_id: record.previous_plan_id || '',
@@ -2885,7 +3195,11 @@ const EditBillingHistoryModal = ({ record, plans, onClose, onSuccess, showToast 
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => ({
+      ...prev,
+      [name]: name.includes('amount') ? (value === '' ? 0 : parseFloat(value))
+            : (name.includes('plan_id') ? (value === '' ? '' : Number(value)) : value)
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -2893,12 +3207,13 @@ const EditBillingHistoryModal = ({ record, plans, onClose, onSuccess, showToast 
     setLoading(true);
 
     try {
-      // Update the billing history record
+      openProgress('Updating History', 'Saving billing history changes...');
       await api.put(`/api/billing-history/${record.id}`, formData);
       onSuccess();
     } catch (error) {
       showToast(getErrorMessage(error), 'error');
     } finally {
+      closeProgress();
       setLoading(false);
     }
   };
@@ -2907,19 +3222,19 @@ const EditBillingHistoryModal = ({ record, plans, onClose, onSuccess, showToast 
     <Modal isOpen={true} onClose={onClose} title="Edit Billing History Record" size="max-w-3xl">
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Record Info */}
-        <div className="bg-purple-50 border border-purple-200 p-4 rounded-lg">
+        <div className="bg-orange-50 border border-orange-200 p-4 rounded-lg">
           <div className="flex items-center gap-2 mb-2">
-            <History className="w-5 h-5 text-purple-600" />
-            <h4 className="font-medium text-purple-900">Record Information</h4>
+            <History className="w-5 h-5 text-orange-600" />
+            <h4 className="font-medium text-orange-900">Record Information</h4>
           </div>
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div>
-              <span className="text-purple-700">Date:</span>
-              <span className="ml-2 font-medium text-purple-900">{formatDateTime(record.created_at)}</span>
+              <span className="text-orange-700">Date:</span>
+              <span className="ml-2 font-medium text-orange-900">{formatDateTime(record.created_at)}</span>
             </div>
             <div>
-              <span className="text-purple-700">Admin:</span>
-              <span className="ml-2 font-medium text-purple-900">{record.admin_email}</span>
+              <span className="text-orange-700">Admin:</span>
+              <span className="ml-2 font-medium text-orange-900">{record.admin_email}</span>
             </div>
           </div>
         </div>
@@ -2933,7 +3248,7 @@ const EditBillingHistoryModal = ({ record, plans, onClose, onSuccess, showToast 
             name="change_type"
             value={formData.change_type}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
           >
             <option value="billing_update">Billing Update</option>
             <option value="payment_status">Payment Status</option>
@@ -2945,9 +3260,9 @@ const EditBillingHistoryModal = ({ record, plans, onClose, onSuccess, showToast 
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Payment Status Section */}
-          <div className="md:col-span-2 bg-gray-50 p-4 rounded-lg">
+            <div className="md:col-span-2 bg-gray-50 p-4 rounded-lg">
             <h5 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-4 h-4 text-orange-600" />
               Payment Status Change
             </h5>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2959,7 +3274,7 @@ const EditBillingHistoryModal = ({ record, plans, onClose, onSuccess, showToast 
                   name="previous_payment_status"
                   value={formData.previous_payment_status}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                 >
                   <option value="">None</option>
                   <option value="Pending">Pending</option>
@@ -2975,7 +3290,7 @@ const EditBillingHistoryModal = ({ record, plans, onClose, onSuccess, showToast 
                   name="new_payment_status"
                   value={formData.new_payment_status}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                 >
                   <option value="">None</option>
                   <option value="Pending">Pending</option>
@@ -2989,7 +3304,7 @@ const EditBillingHistoryModal = ({ record, plans, onClose, onSuccess, showToast 
           {/* Pending Amount Section */}
           <div className="md:col-span-2 bg-gray-50 p-4 rounded-lg">
             <h5 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
-              <DollarSign className="w-4 h-4" />
+              <DollarSign className="w-4 h-4 text-orange-600" />
               Pending Amount Change
             </h5>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -3003,7 +3318,7 @@ const EditBillingHistoryModal = ({ record, plans, onClose, onSuccess, showToast 
                   value={formData.previous_old_pending_amount}
                   onChange={handleChange}
                   min="0"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                 />
               </div>
               <div>
@@ -3016,7 +3331,7 @@ const EditBillingHistoryModal = ({ record, plans, onClose, onSuccess, showToast 
                   value={formData.new_old_pending_amount}
                   onChange={handleChange}
                   min="0"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                 />
               </div>
             </div>
@@ -3025,7 +3340,7 @@ const EditBillingHistoryModal = ({ record, plans, onClose, onSuccess, showToast 
           {/* Due Date Section */}
           <div className="md:col-span-2 bg-gray-50 p-4 rounded-lg">
             <h5 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
-              <Calendar className="w-4 h-4" />
+              <Calendar className="w-4 h-4 text-orange-600" />
               Payment Due Date Change
             </h5>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -3038,7 +3353,7 @@ const EditBillingHistoryModal = ({ record, plans, onClose, onSuccess, showToast 
                   name="previous_payment_due_date"
                   value={formData.previous_payment_due_date}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                 />
               </div>
               <div>
@@ -3050,7 +3365,7 @@ const EditBillingHistoryModal = ({ record, plans, onClose, onSuccess, showToast 
                   name="new_payment_due_date"
                   value={formData.new_payment_due_date}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                 />
               </div>
             </div>
@@ -3059,7 +3374,7 @@ const EditBillingHistoryModal = ({ record, plans, onClose, onSuccess, showToast 
           {/* Plan Change Section */}
           <div className="md:col-span-2 bg-gray-50 p-4 rounded-lg">
             <h5 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
-              <Wifi className="w-4 h-4" />
+              <Wifi className="w-4 h-4 text-orange-600" />
               Plan Change
             </h5>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -3071,7 +3386,7 @@ const EditBillingHistoryModal = ({ record, plans, onClose, onSuccess, showToast 
                   name="previous_plan_id"
                   value={formData.previous_plan_id}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                 >
                   <option value="">None</option>
                   {plans.map(plan => (
@@ -3089,7 +3404,7 @@ const EditBillingHistoryModal = ({ record, plans, onClose, onSuccess, showToast 
                   name="new_plan_id"
                   value={formData.new_plan_id}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                 >
                   <option value="">None</option>
                   {plans.map(plan => (
@@ -3112,7 +3427,7 @@ const EditBillingHistoryModal = ({ record, plans, onClose, onSuccess, showToast 
               value={formData.notes}
               onChange={handleChange}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
               placeholder="Add any notes about this billing adjustment..."
             />
           </div>
@@ -3143,15 +3458,15 @@ const EditBillingHistoryModal = ({ record, plans, onClose, onSuccess, showToast 
 // BILLING MODAL
 // ============================================
 
-const BillingModal = ({ user, plans, onClose, onSuccess, showToast }) => {
+const BillingModal = ({ user, plans, onClose, onSuccess, showToast, openProgress, closeProgress }) => {
   const currentPlan = plans.find(p => p.id === user.broadband_plan_id);
 
   const [formData, setFormData] = useState({
     broadband_plan_id: user.broadband_plan_id,
-    payment_status: user.payment_status,
-    old_pending_amount: user.old_pending_amount,
-    payment_due_date: user.payment_due_date,
-    plan_start_date: user.plan_start_date
+    payment_status: user.payment_status || 'Pending',
+    old_pending_amount: Number(user.old_pending_amount || 0),
+    payment_due_date: user.payment_due_date || '',
+    plan_start_date: user.plan_start_date || ''
   });
   const [loading, setLoading] = useState(false);
   const [userBillingHistory, setUserBillingHistory] = useState([]);
@@ -3181,10 +3496,13 @@ const BillingModal = ({ user, plans, onClose, onSuccess, showToast }) => {
   };
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: name === 'broadband_plan_id' ? Number(value)
+              : name === 'old_pending_amount' ? (value === '' ? 0 : parseFloat(value))
+              : value
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -3192,6 +3510,7 @@ const BillingModal = ({ user, plans, onClose, onSuccess, showToast }) => {
     setLoading(true);
 
     try {
+      openProgress('Updating Billing', 'Applying billing changes...');
       await api.put(`/api/users/${user.id}/billing`, formData);
       showToast('Billing updated successfully', 'success');
       // Refresh billing history
@@ -3200,6 +3519,7 @@ const BillingModal = ({ user, plans, onClose, onSuccess, showToast }) => {
     } catch (error) {
       showToast(error.response?.data?.detail || 'Failed to update billing', 'error');
     } finally {
+      closeProgress();
       setLoading(false);
     }
   };
@@ -3227,24 +3547,24 @@ const BillingModal = ({ user, plans, onClose, onSuccess, showToast }) => {
     <Modal isOpen={true} onClose={onClose} title="Billing Adjustment" size="max-w-4xl">
       <div className="space-y-6">
         {/* User Info */}
-        <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
-          <h4 className="font-medium text-blue-900 mb-2">Customer Details</h4>
+        <div className="bg-orange-50 border border-orange-200 p-4 rounded-lg">
+          <h4 className="font-medium text-orange-900 mb-2">Customer Details</h4>
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div>
-              <span className="text-blue-700">Name:</span>
-              <span className="ml-2 font-medium text-blue-900">{user.name}</span>
+              <span className="text-orange-700">Name:</span>
+              <span className="ml-2 font-medium text-orange-900">{user.name}</span>
             </div>
             <div>
-              <span className="text-blue-700">Customer ID:</span>
-              <span className="ml-2 font-medium text-blue-900">{user.cs_id}</span>
+              <span className="text-orange-700">Customer ID:</span>
+              <span className="ml-2 font-medium text-orange-900">{user.cs_id}</span>
             </div>
             <div>
-              <span className="text-blue-700">Mobile:</span>
-              <span className="ml-2 font-medium text-blue-900">{user.phone}</span>
+              <span className="text-orange-700">Mobile:</span>
+              <span className="ml-2 font-medium text-orange-900">{user.phone}</span>
             </div>
             <div>
-              <span className="text-blue-700">Current Plan:</span>
-              <span className="ml-2 font-medium text-blue-900">
+              <span className="text-orange-700">Current Plan:</span>
+              <span className="ml-2 font-medium text-orange-900">
                 {currentPlan ? currentPlan.name : 'N/A'}
               </span>
             </div>
@@ -3254,7 +3574,7 @@ const BillingModal = ({ user, plans, onClose, onSuccess, showToast }) => {
         {/* Billing History Section */}
         <div className="border border-gray-200 rounded-lg">
           <div
-            className="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-4 rounded-t-lg cursor-pointer flex items-center justify-between"
+            className="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-4 rounded-t-lg cursor-pointer flex items-center justify-between"
             onClick={() => setShowHistorySection(!showHistorySection)}
           >
             <div className="flex items-center gap-2">
@@ -3268,7 +3588,7 @@ const BillingModal = ({ user, plans, onClose, onSuccess, showToast }) => {
             <div className="p-4 max-h-96 overflow-y-auto">
               {loadingHistory ? (
                 <div className="flex items-center justify-center py-8">
-                  <Loader className="w-6 h-6 animate-spin text-purple-600" />
+                  <Loader className="w-6 h-6 animate-spin text-orange-600" />
                   <span className="ml-2 text-gray-600">Loading history...</span>
                 </div>
               ) : userBillingHistory.length === 0 ? (
@@ -3510,10 +3830,10 @@ const BillingModal = ({ user, plans, onClose, onSuccess, showToast }) => {
         </div>
 
         {/* Info Box */}
-        <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+        <div className="bg-orange-50 border border-orange-200 p-4 rounded-lg">
           <div className="flex gap-3">
-            <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-            <div className="text-sm text-blue-800">
+            <Info className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
+            <div className="text-sm text-orange-800">
               <p className="font-medium mb-1">Billing Status Guide:</p>
               <ul className="space-y-1 text-xs">
                 <li>• <strong>Pending:</strong> Customer hasn't paid yet (will receive reminders)</li>
@@ -3556,6 +3876,8 @@ const BillingModal = ({ user, plans, onClose, onSuccess, showToast }) => {
             showToast('Billing history updated successfully', 'success');
           }}
           showToast={showToast}
+          openProgress={openProgress}
+          closeProgress={closeProgress}
         />
       )}
     </Modal>
@@ -3566,25 +3888,36 @@ const BillingModal = ({ user, plans, onClose, onSuccess, showToast }) => {
 // PLANS TAB
 // ============================================
 
-const PlansTab = ({ plans, onRefresh, showToast }) => {
+const PlansTab = ({ plans, onRefresh, showToast, openProgress, closeProgress }) => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
+  const [showDeletePlanConfirm, setShowDeletePlanConfirm] = useState(false);
+  const [planToDelete, setPlanToDelete] = useState(null);
 
   const handleEditPlan = (plan) => {
     setSelectedPlan(plan);
     setShowEditModal(true);
   };
 
-  const handleDeletePlan = async (planId) => {
-    if (!window.confirm('Are you sure you want to delete this plan?')) return;
+  const handleDeleteClickPlan = (plan) => {
+    setPlanToDelete(plan);
+    setShowDeletePlanConfirm(true);
+  };
 
+  const handleConfirmDeletePlan = async () => {
+    if (!planToDelete) return;
     try {
-      await api.delete(`/api/plans/${planId}`);
+      openProgress('Deleting Plan', 'Removing broadband plan...');
+      await api.delete(`/api/plans/${planToDelete.id}`);
       showToast('Plan deleted successfully', 'success');
       onRefresh();
     } catch (error) {
       showToast(error.response?.data?.detail || 'Failed to delete plan', 'error');
+    } finally {
+      closeProgress();
+      setShowDeletePlanConfirm(false);
+      setPlanToDelete(null);
     }
   };
 
@@ -3640,7 +3973,7 @@ const PlansTab = ({ plans, onRefresh, showToast }) => {
                     <Edit2 className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => handleDeletePlan(plan.id)}
+                    onClick={() => handleDeleteClickPlan(plan)}
                     className="text-red-600 hover:text-red-900"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -3703,6 +4036,19 @@ const PlansTab = ({ plans, onRefresh, showToast }) => {
             showToast('Plan updated successfully', 'success');
           }}
           showToast={showToast}
+        />
+      )}
+
+      {showDeletePlanConfirm && planToDelete && (
+        <ConfirmDialog
+          isOpen={showDeletePlanConfirm}
+          onClose={() => { setShowDeletePlanConfirm(false); setPlanToDelete(null); }}
+          onConfirm={handleConfirmDeletePlan}
+          title="Delete Plan"
+          message={`Are you sure you want to delete ${planToDelete.name}? If this plan is in use or has invoices, deletion will be blocked.`}
+          confirmText="Delete"
+          cancelText="Cancel"
+          variant="danger"
         />
       )}
     </div>
@@ -4007,7 +4353,7 @@ const EditPlanModal = ({ plan, onClose, onSuccess, showToast }) => {
 // ENGINEERS TAB
 // ============================================
 
-const EngineersTab = ({ engineers, onRefresh, showToast }) => {
+const EngineersTab = ({ engineers, onRefresh, showToast, openProgress, closeProgress }) => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedEngineer, setSelectedEngineer] = useState(null);
@@ -4097,12 +4443,14 @@ const EngineersTab = ({ engineers, onRefresh, showToast }) => {
     if (!engineerToDelete) return;
 
     try {
+      openProgress('Deleting Engineer', 'Removing engineer from the system...');
       await api.delete(`/api/engineers/${engineerToDelete.id}`);
       showToast('Engineer deleted successfully', 'success');
       onRefresh();
     } catch (error) {
       showToast(getErrorMessage(error), 'error');
     } finally {
+      closeProgress();
       setShowDeleteConfirm(false);
       setEngineerToDelete(null);
     }
@@ -4912,15 +5260,23 @@ const EditEngineerModal = ({ engineer, onClose, onSuccess, showToast, engineers 
 // BILLING TAB
 // ============================================
 
-const BillingTab = ({ billingHistory, users, plans, onRefresh, showToast }) => {
+const BillingTab = ({ billingHistory, users, plans, onRefresh, showToast, openProgress, closeProgress }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState('all'); // all, today, week, month
   const [changeTypeFilter, setChangeTypeFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [sortBy, setSortBy] = useState('date_desc'); // date_desc, date_asc, customer
+  // No inline actions; view-only with filters and export
 
   // Debounced search
   const debouncedSearchTerm = useDebounce(searchTerm);
+
+  const getStatusVariant = (status) => {
+    if (!status) return 'default';
+    if (status === 'Pending') return 'warning';
+    if (status === 'VerifiedByCash' || status === 'VerifiedByUpi') return 'success';
+    return 'info';
+  };
 
   // Create user and plan lookup maps for O(1) access instead of O(n) find()
   const userMap = useMemo(() => {
@@ -4940,10 +5296,9 @@ const BillingTab = ({ billingHistory, users, plans, onRefresh, showToast }) => {
   // Helper function to get change type label
   const getChangeTypeLabel = (changeType) => {
     const labels = {
-      payment_status: 'Payment Status',
+      payment_verification: 'Payment Status',
       plan_change: 'Plan Change',
-      amount_adjustment: 'Amount Adjustment',
-      renewal: 'Plan Renewal',
+      billing_update: 'Amount Adjustment',
     };
     return labels[changeType] || changeType;
   };
@@ -4952,7 +5307,7 @@ const BillingTab = ({ billingHistory, users, plans, onRefresh, showToast }) => {
   const filterByDate = useCallback((record) => {
     if (dateFilter === 'all') return true;
 
-    const recordDate = new Date(record.changed_at);
+    const recordDate = new Date(record.created_at);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -4996,9 +5351,9 @@ const BillingTab = ({ billingHistory, users, plans, onRefresh, showToast }) => {
     // Sort
     filtered.sort((a, b) => {
       if (sortBy === 'date_desc') {
-        return new Date(b.changed_at || b.created_at) - new Date(a.changed_at || a.created_at);
+        return new Date(b.created_at) - new Date(a.created_at);
       } else if (sortBy === 'date_asc') {
-        return new Date(a.changed_at || a.created_at) - new Date(b.changed_at || b.created_at);
+        return new Date(a.created_at) - new Date(b.created_at);
       } else if (sortBy === 'customer') {
         const userA = userMap[a.user_id];
         const userB = userMap[b.user_id];
@@ -5014,7 +5369,7 @@ const BillingTab = ({ billingHistory, users, plans, onRefresh, showToast }) => {
       total: filtered.length,
       today: filtered.filter(r => {
         try {
-          const recordDate = new Date(r.changed_at || r.created_at);
+          const recordDate = new Date(r.created_at);
           if (isNaN(recordDate.getTime())) return false;
           const today = new Date();
           today.setHours(0, 0, 0, 0);
@@ -5023,8 +5378,14 @@ const BillingTab = ({ billingHistory, users, plans, onRefresh, showToast }) => {
           return false;
         }
       }).length,
-      paymentChanges: filtered.filter(r => r.change_type === 'payment_status').length,
+      paymentChanges: filtered.filter(r => r.change_type === 'payment_verification').length,
       planChanges: filtered.filter(r => r.change_type === 'plan_change').length,
+      amountAdjustments: filtered.filter(r => r.change_type === 'billing_update').length,
+      netPendingDelta: filtered.reduce((sum, r) => {
+        const prev = Number(r.previous_old_pending_amount ?? 0);
+        const next = Number(r.new_old_pending_amount ?? 0);
+        return sum + (next - prev);
+      }, 0)
     };
 
     return { filteredHistory: filtered, statistics: stats };
@@ -5043,6 +5404,7 @@ const BillingTab = ({ billingHistory, users, plans, onRefresh, showToast }) => {
   // Export billing history
   const handleExportBillingHistory = async () => {
     try {
+      openProgress('Exporting Billing History', 'Generating Excel file...');
       const response = await api.get('/api/export/billing-history', {
         responseType: 'blob'
       });
@@ -5057,8 +5419,12 @@ const BillingTab = ({ billingHistory, users, plans, onRefresh, showToast }) => {
       showToast('Billing history exported successfully', 'success');
     } catch (error) {
       showToast('Failed to export billing history', 'error');
+    } finally {
+      closeProgress();
     }
   };
+
+  // View-only; actions removed per request
 
   return (
     <div className="space-y-6">
@@ -5081,7 +5447,7 @@ const BillingTab = ({ billingHistory, users, plans, onRefresh, showToast }) => {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
           <div className="flex items-center justify-between">
             <div>
@@ -5121,6 +5487,24 @@ const BillingTab = ({ billingHistory, users, plans, onRefresh, showToast }) => {
             <Package className="w-10 h-10 text-orange-600 opacity-50" />
           </div>
         </Card>
+        <Card className="p-4 bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-yellow-700">Amount Adjustments</p>
+              <p className="text-2xl font-bold text-yellow-900 mt-1">{statistics.amountAdjustments}</p>
+            </div>
+            <DollarSign className="w-10 h-10 text-yellow-600 opacity-50" />
+          </div>
+        </Card>
+        <Card className="p-4 bg-gradient-to-br from-indigo-50 to-indigo-100 border-indigo-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-indigo-700">Net Pending Δ</p>
+              <p className="text-2xl font-bold text-indigo-900 mt-1">₹{Math.round(statistics.netPendingDelta).toLocaleString()}</p>
+            </div>
+            <Activity className="w-10 h-10 text-indigo-600 opacity-50" />
+          </div>
+        </Card>
       </div>
 
       {/* Filters */}
@@ -5157,10 +5541,9 @@ const BillingTab = ({ billingHistory, users, plans, onRefresh, showToast }) => {
             className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
           >
             <option value="all">All Changes</option>
-            <option value="payment_status">Payment Status</option>
+            <option value="payment_verification">Payment Status</option>
             <option value="plan_change">Plan Change</option>
-            <option value="amount_adjustment">Amount Adjustment</option>
-            <option value="renewal">Renewals</option>
+            <option value="billing_update">Amount Adjustment</option>
           </select>
 
           {/* Sort */}
@@ -5190,8 +5573,16 @@ const BillingTab = ({ billingHistory, users, plans, onRefresh, showToast }) => {
             <div className="block lg:hidden space-y-4">
               {paginatedHistory.map((record) => {
                 const user = userMap[record.user_id];
-                const oldPlan = planMap[record.old_plan_id];
-                const newPlan = planMap[record.new_plan_id];
+                const oldPlanName = record.previous_plan_name || planMap[record.previous_plan_id]?.name;
+                const newPlanName = record.new_plan_name || planMap[record.new_plan_id]?.name;
+                const planIdForAmount = record.new_plan_id || record.previous_plan_id || (user ? user.broadband_plan_id : undefined);
+                const planObjForAmount = planIdForAmount ? planMap[planIdForAmount] : undefined;
+                const planPriceForAmount = planObjForAmount?.price || 0;
+                const isVerifiedPayment = record.change_type === 'payment_verification' ||
+                  (record.new_payment_status === 'VerifiedByCash' || record.new_payment_status === 'VerifiedByUpi');
+                const amountPaid = isVerifiedPayment
+                  ? Number(planPriceForAmount) + Number(record.previous_old_pending_amount || 0)
+                  : undefined;
 
                 return (
                   <div key={record.id} className="bg-white border border-gray-200 rounded-lg p-4">
@@ -5205,7 +5596,7 @@ const BillingTab = ({ billingHistory, users, plans, onRefresh, showToast }) => {
                         </div>
                       </div>
                       <Badge variant={
-                        record.change_type === 'payment_status' ? 'info' :
+                        record.change_type === 'payment_verification' ? 'info' :
                         record.change_type === 'plan_change' ? 'warning' : 'default'
                       }>
                         {getChangeTypeLabel(record.change_type)}
@@ -5214,25 +5605,63 @@ const BillingTab = ({ billingHistory, users, plans, onRefresh, showToast }) => {
                     <div className="space-y-2 text-sm">
                       <div>
                         <span className="text-gray-600">Date:</span>
-                        <p className="font-medium text-gray-900">{formatDateTime(record.changed_at)}</p>
+                        <p className="font-medium text-gray-900">{formatDateTime(record.created_at)}</p>
                       </div>
-                      {record.old_payment_status && record.new_payment_status && (
+                      {(record.previous_old_pending_amount !== undefined || record.new_old_pending_amount !== undefined) && (
                         <div>
-                          <span className="text-gray-600">Payment Status:</span>
+                          <span className="text-gray-600">Pending Amount:</span>
                           <div className="flex items-center gap-2 mt-1">
-                            <Badge variant="warning">{record.old_payment_status}</Badge>
-                            <ChevronRight className="w-4 h-4 text-gray-400" />
-                            <Badge variant="success">{record.new_payment_status}</Badge>
+                            {record.previous_old_pending_amount !== undefined && (
+                              <span className="text-gray-600 text-xs">₹{Number(record.previous_old_pending_amount).toLocaleString()}</span>
+                            )}
+                            {record.previous_old_pending_amount !== undefined && record.new_old_pending_amount !== undefined && (
+                              <ChevronRight className="w-4 h-4 text-gray-400" />
+                            )}
+                            {record.new_old_pending_amount !== undefined && (
+                              <span className="text-gray-900 font-medium text-xs">₹{Number(record.new_old_pending_amount).toLocaleString()}</span>
+                            )}
                           </div>
                         </div>
                       )}
-                      {oldPlan && newPlan && (
+                      {(record.previous_payment_status || record.new_payment_status) && (
+                        <div>
+                          <span className="text-gray-600">Payment Status:</span>
+                          <div className="flex items-center gap-2 mt-1">
+                            {record.previous_payment_status && (
+                              <Badge variant={getStatusVariant(record.previous_payment_status)}>
+                                {record.previous_payment_status}
+                              </Badge>
+                            )}
+                            {record.previous_payment_status && record.new_payment_status && (
+                              <ChevronRight className="w-4 h-4 text-gray-400" />
+                            )}
+                            {record.new_payment_status && (
+                              <Badge variant={getStatusVariant(record.new_payment_status)}>
+                                {record.new_payment_status}
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      {amountPaid !== undefined && (
+                        <div>
+                          <span className="text-gray-600">Amount Paid:</span>
+                          <p className="font-medium text-gray-900 text-xs">₹{Number(amountPaid).toLocaleString()}</p>
+                        </div>
+                      )}
+                      {(oldPlanName || newPlanName) && (
                         <div>
                           <span className="text-gray-600">Plan Change:</span>
                           <div className="flex items-center gap-2 mt-1">
-                            <span className="text-gray-600 text-xs">{oldPlan.name}</span>
-                            <ChevronRight className="w-4 h-4 text-gray-400" />
-                            <span className="text-gray-900 font-medium text-xs">{newPlan.name}</span>
+                            {oldPlanName && (
+                              <span className="text-gray-600 text-xs">{oldPlanName}</span>
+                            )}
+                            {oldPlanName && newPlanName && (
+                              <ChevronRight className="w-4 h-4 text-gray-400" />
+                            )}
+                            {newPlanName && (
+                              <span className="text-gray-900 font-medium text-xs">{newPlanName}</span>
+                            )}
                           </div>
                         </div>
                       )}
@@ -5264,6 +5693,12 @@ const BillingTab = ({ billingHistory, users, plans, onRefresh, showToast }) => {
                       Payment Status
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Amount Paid
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Pending Amount
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Plan Change
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -5274,13 +5709,24 @@ const BillingTab = ({ billingHistory, users, plans, onRefresh, showToast }) => {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {paginatedHistory.map((record) => {
                     const user = userMap[record.user_id];
-                    const oldPlan = planMap[record.old_plan_id];
-                    const newPlan = planMap[record.new_plan_id];
+                    const oldPlanName = record.previous_plan_name || planMap[record.previous_plan_id]?.name;
+                    const newPlanName = record.new_plan_name || planMap[record.new_plan_id]?.name;
+                    const prevAmt = record.previous_old_pending_amount;
+                    const newAmt = record.new_old_pending_amount;
+                    const hasAmount = prevAmt !== undefined || newAmt !== undefined;
+                    const planIdForAmount = record.new_plan_id || record.previous_plan_id || (user ? user.broadband_plan_id : undefined);
+                    const planObjForAmount = planIdForAmount ? planMap[planIdForAmount] : undefined;
+                    const planPriceForAmount = planObjForAmount?.price || 0;
+                    const isVerifiedPayment = record.change_type === 'payment_verification' ||
+                      (record.new_payment_status === 'VerifiedByCash' || record.new_payment_status === 'VerifiedByUpi');
+                    const amountPaid = isVerifiedPayment
+                      ? Number(planPriceForAmount) + Number(record.previous_old_pending_amount || 0)
+                      : undefined;
 
                     return (
                       <tr key={record.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{formatDateTime(record.changed_at)}</div>
+                          <div className="text-sm text-gray-900">{formatDateTime(record.created_at)}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">
@@ -5292,33 +5738,70 @@ const BillingTab = ({ billingHistory, users, plans, onRefresh, showToast }) => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <Badge variant={
-                            record.change_type === 'payment_status' ? 'info' :
+                            record.change_type === 'payment_verification' ? 'info' :
                             record.change_type === 'plan_change' ? 'warning' : 'default'
                           }>
                             {getChangeTypeLabel(record.change_type)}
                           </Badge>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          {record.old_payment_status && record.new_payment_status && (
+                          {(record.previous_payment_status || record.new_payment_status) && (
                             <div className="flex items-center gap-2">
-                              <Badge variant="warning">{record.old_payment_status}</Badge>
-                              <ChevronRight className="w-4 h-4 text-gray-400" />
-                              <Badge variant="success">{record.new_payment_status}</Badge>
+                              {record.previous_payment_status && (
+                                <Badge variant={getStatusVariant(record.previous_payment_status)}>
+                                  {record.previous_payment_status}
+                                </Badge>
+                              )}
+                              {record.previous_payment_status && record.new_payment_status && (
+                                <ChevronRight className="w-4 h-4 text-gray-400" />
+                              )}
+                              {record.new_payment_status && (
+                                <Badge variant={getStatusVariant(record.new_payment_status)}>
+                                  {record.new_payment_status}
+                                </Badge>
+                              )}
                             </div>
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          {oldPlan && newPlan && (
+                          {amountPaid !== undefined && (
+                            <span className="text-gray-900 font-medium">₹{Number(amountPaid).toLocaleString()}</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          {hasAmount && (
                             <div className="flex items-center gap-2">
-                              <span className="text-gray-600">{oldPlan.name}</span>
-                              <ChevronRight className="w-4 h-4 text-gray-400" />
-                              <span className="text-gray-900 font-medium">{newPlan.name}</span>
+                              {prevAmt !== undefined && (
+                                <span className="text-gray-600">₹{Number(prevAmt).toLocaleString()}</span>
+                              )}
+                              {prevAmt !== undefined && newAmt !== undefined && (
+                                <ChevronRight className="w-4 h-4 text-gray-400" />
+                              )}
+                              {newAmt !== undefined && (
+                                <span className="text-gray-900 font-medium">₹{Number(newAmt).toLocaleString()}</span>
+                              )}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          {(oldPlanName || newPlanName) && (
+                            <div className="flex items-center gap-2">
+                              {oldPlanName && (
+                                <span className="text-gray-600">{oldPlanName}</span>
+                              )}
+                              {oldPlanName && newPlanName && (
+                                <ChevronRight className="w-4 h-4 text-gray-400" />
+                              )}
+                              {newPlanName && (
+                                <span className="text-gray-900 font-medium">{newPlanName}</span>
+                              )}
                             </div>
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">{record.admin_email}</div>
                         </td>
+                        
                       </tr>
                     );
                   })}
@@ -5356,6 +5839,8 @@ const BillingTab = ({ billingHistory, users, plans, onRefresh, showToast }) => {
           </>
         )}
       </Card>
+
+      {/* No inline edit/delete modals; view-only */}
     </div>
   );
 };
@@ -5364,7 +5849,7 @@ const BillingTab = ({ billingHistory, users, plans, onRefresh, showToast }) => {
 // NOTIFICATIONS TAB
 // ============================================
 
-const NotificationsTab = ({ users, plans, showToast }) => {
+const NotificationsTab = ({ users, plans, showToast, openProgress, closeProgress }) => {
   const [loading, setLoading] = useState(false);
 
   const handleSendAllNotifications = async () => {
@@ -5372,11 +5857,13 @@ const NotificationsTab = ({ users, plans, showToast }) => {
 
     setLoading(true);
     try {
+      openProgress('Sending Notifications', 'Dispatching alerts to users...');
       const response = await api.post('/api/notifications/send-all');
       showToast(response.data.message || 'Notifications sent successfully', 'success');
     } catch (error) {
       showToast(error.response?.data?.detail || 'Failed to send notifications', 'error');
     } finally {
+      closeProgress();
       setLoading(false);
     }
   };
@@ -5386,11 +5873,13 @@ const NotificationsTab = ({ users, plans, showToast }) => {
 
     setLoading(true);
     try {
+      openProgress('Checking Expired Plans', 'Updating status for expired plans...');
       const response = await api.post('/api/users/check-expired-plans');
       showToast(response.data.message || 'Plans checked successfully', 'success');
     } catch (error) {
       showToast(error.response?.data?.detail || 'Failed to check plans', 'error');
     } finally {
+      closeProgress();
       setLoading(false);
     }
   };
@@ -5790,8 +6279,10 @@ const AddressBillingTab = ({ showToast }) => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState(null);
+  const [allSettings, setAllSettings] = useState([]);
   const [uiLayout, setUiLayout] = useState('card');
   const [currentStep, setCurrentStep] = useState(0);
+  const [makePrimary, setMakePrimary] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -5815,9 +6306,13 @@ const AddressBillingTab = ({ showToast }) => {
   const fetchSettings = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/api/billing-settings');
-      const data = response.data;
+      const [primaryRes, listRes] = await Promise.all([
+        api.get('/api/billing-settings'),
+        api.get('/api/billing-settings/list')
+      ]);
+      const data = primaryRes.data;
       setSettings(data);
+      setAllSettings(listRes.data || []);
       setFormData({
         full_name: data.full_name || '',
         street: data.street || '',
@@ -5830,10 +6325,14 @@ const AddressBillingTab = ({ showToast }) => {
         upi_id: data.upi_id || ''
       });
       setUiLayout(data.ui_layout || 'card');
+      setMakePrimary(Boolean(data.is_primary));
     } catch (error) {
       if (error.response?.status === 404) {
         // No settings exist yet - that's OK
         console.log('No billing settings found - will create new');
+        setAllSettings([]);
+        setSettings(null);
+        setMakePrimary(true);
       } else {
         showToast('Failed to fetch billing settings', 'error');
       }
@@ -5889,7 +6388,8 @@ const AddressBillingTab = ({ showToast }) => {
     try {
       const payload = {
         ...formData,
-        ui_layout: uiLayout
+        ui_layout: uiLayout,
+        is_primary: makePrimary
       };
 
       let response;
@@ -5904,10 +6404,31 @@ const AddressBillingTab = ({ showToast }) => {
       }
 
       setSettings(response.data);
-      fetchSettings(); // Refresh to get QR code
+      fetchSettings(); // Refresh list & QR
     } catch (error) {
-      const message = error.response?.data?.detail || 'Failed to save settings';
-      showToast(message, 'error');
+      const detail = error?.response?.data?.detail;
+      if (Array.isArray(detail)) {
+        const fieldErrors = {};
+        detail.forEach((err) => {
+          const loc = err?.loc;
+          const msg = err?.msg || 'Invalid value';
+          if (Array.isArray(loc) && loc.length > 0) {
+            const field = loc[loc.length - 1];
+            if (typeof field === 'string') {
+              fieldErrors[field] = msg;
+            }
+          }
+        });
+        if (Object.keys(fieldErrors).length > 0) {
+          setErrors((prev) => ({ ...prev, ...fieldErrors }));
+          showToast('Please fix the highlighted fields', 'error');
+        } else {
+          showToast('Failed to save settings', 'error');
+        }
+      } else {
+        const message = typeof detail === 'string' ? detail : 'Failed to save settings';
+        showToast(message, 'error');
+      }
       console.error('Save error:', error);
     } finally {
       setSaving(false);
@@ -6047,6 +6568,15 @@ const AddressBillingTab = ({ showToast }) => {
       </Card>
 
       <div className="md:col-span-2">
+        <div className="flex items-center gap-3 mb-3">
+          <input
+            id="makePrimary-card"
+            type="checkbox"
+            checked={makePrimary}
+            onChange={(e) => setMakePrimary(e.target.checked)}
+          />
+          <label htmlFor="makePrimary-card" className="text-sm text-gray-700">Set as Primary</label>
+        </div>
         <Button type="submit" disabled={saving} className="w-full">
           {saving ? (
             <span className="flex items-center justify-center gap-2">
@@ -6131,6 +6661,15 @@ const AddressBillingTab = ({ showToast }) => {
           </Button>
         )}
       </div>
+      <div className="flex items-center gap-3 mt-4">
+        <input
+          id="makePrimary-stepper"
+          type="checkbox"
+          checked={makePrimary}
+          onChange={(e) => setMakePrimary(e.target.checked)}
+        />
+        <label htmlFor="makePrimary-stepper" className="text-sm text-gray-700">Set as Primary</label>
+      </div>
     </div>
   );
 
@@ -6149,6 +6688,15 @@ const AddressBillingTab = ({ showToast }) => {
           {renderFormField('upi_id', 'UPI ID', 'text', 'UPI ID for payments (e.g., yourname@upi)', false)}
         </div>
         <div className="mt-6">
+          <div className="flex items-center gap-3 mb-3">
+            <input
+              id="makePrimary-full"
+              type="checkbox"
+              checked={makePrimary}
+              onChange={(e) => setMakePrimary(e.target.checked)}
+            />
+            <label htmlFor="makePrimary-full" className="text-sm text-gray-700">Set as Primary</label>
+          </div>
           <Button type="submit" disabled={saving} className="w-full">
             {saving ? (
               <span className="flex items-center justify-center gap-2">
@@ -6187,6 +6735,15 @@ const AddressBillingTab = ({ showToast }) => {
               {renderFormField('upi_id', 'UPI ID (Optional)', 'text', 'yourname@upi', false)}
             </div>
             <div className="mt-6">
+              <div className="flex items-center gap-3 mb-3">
+                <input
+                  id="makePrimary-compact"
+                  type="checkbox"
+                  checked={makePrimary}
+                  onChange={(e) => setMakePrimary(e.target.checked)}
+                />
+                <label htmlFor="makePrimary-compact" className="text-sm text-gray-700">Set as Primary</label>
+              </div>
               <Button type="submit" disabled={saving} className="w-full">
                 {saving ? 'Saving...' : 'Save Settings'}
               </Button>
@@ -6213,6 +6770,84 @@ const AddressBillingTab = ({ showToast }) => {
             </div>
           </div>
         </Card>
+
+        {/* Existing Addresses */}
+        <Card className="p-6 mt-6">
+          <h3 className="text-sm font-semibold mb-4 text-gray-700">Saved Addresses</h3>
+          {(!allSettings || allSettings.length === 0) ? (
+            <p className="text-sm text-gray-500">No addresses saved yet.</p>
+          ) : (
+            <div className="space-y-3">
+              {allSettings.map((addr) => (
+                <div key={addr.id} className="border rounded-lg p-3 flex items-start justify-between">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium">{addr.full_name}</p>
+                      {addr.is_primary && (
+                        <Badge variant="success">Primary</Badge>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-600">{addr.street}</p>
+                    <p className="text-xs text-gray-600">{addr.city}, {addr.state} - {addr.pin_code}</p>
+                    <p className="text-xs text-gray-600">{addr.country}</p>
+                    {addr.contact_number && <p className="text-xs text-gray-600">Contact: {addr.contact_number}</p>}
+                    {addr.gstin && <p className="text-xs text-gray-600">GSTIN: {addr.gstin}</p>}
+                    {addr.upi_id && <p className="text-xs text-gray-600">UPI: {addr.upi_id}</p>}
+                  </div>
+                  <div className="flex flex-col gap-2 items-end">
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setSettings(addr);
+                          setFormData({
+                            full_name: addr.full_name || '',
+                            street: addr.street || '',
+                            city: addr.city || '',
+                            state: addr.state || '',
+                            country: addr.country || 'India',
+                            pin_code: addr.pin_code || '',
+                            gstin: addr.gstin || '',
+                            contact_number: addr.contact_number || '',
+                            upi_id: addr.upi_id || ''
+                          });
+                          setUiLayout(addr.ui_layout || 'card');
+                        }}
+                      >Edit</Button>
+                      <Button
+                        variant="danger"
+                        onClick={async () => {
+                          if (!window.confirm('Delete this address?')) return;
+                          try {
+                            await api.delete(`/api/billing-settings/${addr.id}`);
+                            showToast('Address deleted', 'success');
+                            fetchSettings();
+                          } catch (e) {
+                            showToast('Failed to delete address', 'error');
+                          }
+                        }}
+                      >Delete</Button>
+                    </div>
+                    {!addr.is_primary && (
+                      <Button
+                        variant="success"
+                        onClick={async () => {
+                          try {
+                            await api.patch(`/api/billing-settings/${addr.id}/make-primary`);
+                            showToast('Set as primary', 'success');
+                            fetchSettings();
+                          } catch (e) {
+                            showToast('Failed to set primary', 'error');
+                          }
+                        }}
+                      >Make Primary</Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
       </div>
     </div>
   );
@@ -6224,6 +6859,23 @@ const AddressBillingTab = ({ showToast }) => {
       </div>
     );
   }
+
+  const startNewAddress = () => {
+    setSettings(null);
+    setFormData({
+      full_name: '',
+      street: '',
+      city: '',
+      state: '',
+      country: 'India',
+      pin_code: '',
+      gstin: '',
+      contact_number: '',
+      upi_id: ''
+    });
+    setUiLayout('card');
+    setMakePrimary(allSettings.length === 0);
+  };
 
   return (
     <div className="space-y-6">
@@ -6276,6 +6928,7 @@ const AddressBillingTab = ({ showToast }) => {
           >
             Compact
           </button>
+          <Button className="ml-2" onClick={startNewAddress}>New Address</Button>
         </div>
       </div>
 
@@ -6285,14 +6938,27 @@ const AddressBillingTab = ({ showToast }) => {
       {uiLayout === 'fullwidth' && renderFullwidthLayout()}
       {uiLayout === 'compact' && renderCompactLayout()}
 
-      {/* QR Code Display */}
+      {/* Empty State with Add */}
+      {!settings && (allSettings.length === 0) && (
+        <Card className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold">No billing address saved</h3>
+              <p className="text-sm text-gray-600">Create your first address to include on invoices.</p>
+            </div>
+            <Button variant="success" onClick={startNewAddress}>Add Address</Button>
+          </div>
+        </Card>
+      )}
+
+      {/* QR Code Display (Primary Address) */}
       {settings && settings.qr_code_data && (
         <Card className="p-6">
           <div className="flex items-start gap-6">
             <div>
-              <h3 className="text-lg font-semibold mb-2">QR Code for Address</h3>
+              <h3 className="text-lg font-semibold mb-2">UPI Payment QR</h3>
               <p className="text-sm text-gray-600 mb-4">
-                This QR code contains your billing address. It will be included in invoices.
+                Scan to pay via UPI. Generated from your UPI ID.
               </p>
               <img
                 src={settings.qr_code_data}

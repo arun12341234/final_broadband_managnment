@@ -2337,3 +2337,907 @@ Traceback (most recent call last):
   File "D:\aryan-labs\readdy_cpy\4youbroadband\final\4you_broadband_complete\backend\venv\lib\site-packages\passlib\handlers\bcrypt.py", line 620, in _load_backend_mixin
     version = _bcrypt.__about__.__version__
 AttributeError: module 'bcrypt' has no attribute '__about__'
+2025-12-30 10:24:04,448 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-12-30 10:24:04,448 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-12-30 10:24:04,449 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-12-30 10:24:04,465 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2025-12-30 10:24:04,466 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2025-12-30 10:24:04,466 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2025-12-30 10:24:04,467 - apscheduler.scheduler - INFO - Scheduler started
+2025-12-30 10:24:04,474 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2025-12-30 10:24:04,474 - notification_service - INFO -    - 2:00 AM: Database backup
+2025-12-30 10:24:04,474 - notification_service - INFO -    - 10:00 AM: Send notifications
+2025-12-30 10:26:14,671 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-12-30 10:26:14,671 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-12-30 10:26:14,671 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-12-30 10:26:14,675 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2025-12-30 10:26:14,676 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2025-12-30 10:26:14,676 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2025-12-30 10:26:14,676 - apscheduler.scheduler - INFO - Scheduler started
+2025-12-30 10:26:14,681 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2025-12-30 10:26:14,681 - notification_service - INFO -    - 2:00 AM: Database backup
+2025-12-30 10:26:14,682 - notification_service - INFO -    - 10:00 AM: Send notifications
+2025-12-30 10:27:01,593 - auth_helpers - WARNING - JWT decode error: Signature has expired.
+2025-12-30 10:27:01,613 - auth_helpers - WARNING - JWT decode error: Signature has expired.
+2025-12-30 10:27:36,712 - passlib.handlers.bcrypt - WARNING - (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "C:\Users\ASUS\AppData\Roaming\Python\Python314\site-packages\passlib\handlers\bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+2025-12-30 10:28:16,186 - auth_helpers - WARNING - JWT decode error: Signature has expired.
+2025-12-30 10:28:16,187 - auth_helpers - WARNING - JWT decode error: Signature has expired.
+2025-12-30 10:28:16,191 - auth_helpers - WARNING - JWT decode error: Signature has expired.
+2025-12-30 10:28:16,193 - auth_helpers - WARNING - JWT decode error: Signature has expired.
+2025-12-30 10:30:52,036 - auth_helpers - WARNING - JWT decode error: Signature has expired.
+2025-12-30 10:30:52,040 - auth_helpers - WARNING - JWT decode error: Signature has expired.
+2025-12-30 10:30:52,043 - auth_helpers - WARNING - JWT decode error: Signature has expired.
+2025-12-30 10:30:52,045 - auth_helpers - WARNING - JWT decode error: Signature has expired.
+2025-12-30 11:15:10,357 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-12-30 11:15:10,358 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-12-30 11:15:10,358 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-12-30 11:15:10,364 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2025-12-30 11:15:10,365 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2025-12-30 11:15:10,365 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2025-12-30 11:15:10,365 - apscheduler.scheduler - INFO - Scheduler started
+2025-12-30 11:15:10,374 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2025-12-30 11:15:10,374 - notification_service - INFO -    - 2:00 AM: Database backup
+2025-12-30 11:15:10,374 - notification_service - INFO -    - 10:00 AM: Send notifications
+2025-12-30 11:15:13,516 - passlib.handlers.bcrypt - WARNING - (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "C:\Users\ASUS\AppData\Roaming\Python\Python314\site-packages\passlib\handlers\bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+2025-12-31 09:41:03,774 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-12-31 09:41:03,798 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-12-31 09:41:03,798 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-12-31 09:41:03,807 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2025-12-31 09:41:03,808 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2025-12-31 09:41:03,808 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2025-12-31 09:41:03,809 - apscheduler.scheduler - INFO - Scheduler started
+2025-12-31 09:41:03,852 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2025-12-31 09:41:03,853 - notification_service - INFO -    - 2:00 AM: Database backup
+2025-12-31 09:41:03,854 - notification_service - INFO -    - 10:00 AM: Send notifications
+2025-12-31 09:42:32,111 - passlib.handlers.bcrypt - WARNING - (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "C:\Users\ASUS\AppData\Roaming\Python\Python314\site-packages\passlib\handlers\bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+2025-12-31 09:51:05,928 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-12-31 09:51:05,929 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-12-31 09:51:05,930 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-12-31 09:51:05,935 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2025-12-31 09:51:05,936 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2025-12-31 09:51:05,936 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2025-12-31 09:51:05,936 - apscheduler.scheduler - INFO - Scheduler started
+2025-12-31 09:51:05,948 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2025-12-31 09:51:05,948 - notification_service - INFO -    - 2:00 AM: Database backup
+2025-12-31 09:51:05,948 - notification_service - INFO -    - 10:00 AM: Send notifications
+2025-12-31 10:00:00,012 - apscheduler.executors.default - INFO - Running job "Send all notifications (trigger: cron[hour='10', minute='0'], next run at: 2025-12-31 10:00:00 IST)" (scheduled at 2025-12-31 10:00:00+05:30)
+2025-12-31 10:00:00,180 - apscheduler.executors.default - INFO - Job "Send all notifications (trigger: cron[hour='10', minute='0'], next run at: 2026-01-01 10:00:00 IST)" executed successfully
+2026-01-01 04:31:58,705 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 04:31:58,705 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 04:31:58,706 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 04:31:58,720 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 04:31:58,720 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 04:31:58,721 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 04:31:58,721 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 04:31:58,774 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 04:31:58,775 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 04:31:58,775 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 04:32:37,917 - auth_helpers - WARNING - JWT decode error: Signature has expired.
+2026-01-01 04:32:37,921 - auth_helpers - WARNING - JWT decode error: Signature has expired.
+2026-01-01 04:32:37,921 - auth_helpers - WARNING - JWT decode error: Signature has expired.
+2026-01-01 04:32:37,922 - auth_helpers - WARNING - JWT decode error: Signature has expired.
+2026-01-01 04:32:37,937 - auth_helpers - WARNING - JWT decode error: Signature has expired.
+2026-01-01 04:32:37,937 - auth_helpers - WARNING - JWT decode error: Signature has expired.
+2026-01-01 04:32:37,944 - auth_helpers - WARNING - JWT decode error: Signature has expired.
+2026-01-01 04:32:37,946 - auth_helpers - WARNING - JWT decode error: Signature has expired.
+2026-01-01 04:32:58,453 - passlib.handlers.bcrypt - WARNING - (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "C:\Users\ASUS\AppData\Roaming\Python\Python314\site-packages\passlib\handlers\bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+2026-01-01 04:35:05,803 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 04:35:05,804 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 04:35:05,804 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 04:35:05,808 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 04:35:05,808 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 04:35:05,808 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 04:35:05,809 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 04:35:05,817 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 04:35:05,817 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 04:35:05,817 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 04:35:08,790 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 04:35:08,791 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 04:35:08,791 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 04:35:08,795 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 04:35:08,795 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 04:35:08,796 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 04:35:08,796 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 04:35:08,805 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 04:35:08,805 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 04:35:08,805 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 04:37:10,539 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 04:37:10,540 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 04:37:10,540 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 04:37:10,544 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 04:37:10,544 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 04:37:10,544 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 04:37:10,545 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 04:37:10,551 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 04:37:10,551 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 04:37:10,551 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 04:38:46,579 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 04:38:46,580 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 04:38:46,580 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 04:38:46,584 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 04:38:46,585 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 04:38:46,585 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 04:38:46,585 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 04:38:46,593 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 04:38:46,593 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 04:38:46,593 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 04:39:04,328 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 04:39:04,329 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 04:39:04,329 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 04:39:04,333 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 04:39:04,333 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 04:39:04,334 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 04:39:04,334 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 04:39:04,341 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 04:39:04,342 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 04:39:04,342 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 04:40:11,167 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 04:40:11,168 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 04:40:11,168 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 04:40:11,172 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 04:40:11,172 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 04:40:11,173 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 04:40:11,173 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 04:40:11,180 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 04:40:11,180 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 04:40:11,181 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 04:45:05,537 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 04:45:05,537 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 04:45:05,538 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 04:45:05,541 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 04:45:05,542 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 04:45:05,542 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 04:45:05,542 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 04:45:05,549 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 04:45:05,549 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 04:45:05,550 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 04:45:56,740 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 04:45:56,741 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 04:45:56,741 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 04:45:56,745 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 04:45:56,745 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 04:45:56,746 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 04:45:56,746 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 04:45:56,753 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 04:45:56,753 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 04:45:56,753 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 04:50:29,035 - passlib.handlers.bcrypt - WARNING - (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "C:\Users\ASUS\AppData\Roaming\Python\Python314\site-packages\passlib\handlers\bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+2026-01-01 05:08:17,332 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 05:08:17,333 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 05:08:17,333 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 05:08:17,337 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 05:08:17,337 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 05:08:17,338 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 05:08:17,338 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 05:08:17,344 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 05:08:17,345 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 05:08:17,345 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 05:08:48,972 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 05:08:48,973 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 05:08:48,973 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 05:08:48,978 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 05:08:48,979 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 05:08:48,979 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 05:08:48,979 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 05:08:48,988 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 05:08:48,988 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 05:08:48,989 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 05:12:41,307 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 05:12:41,308 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 05:12:41,308 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 05:12:41,313 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 05:12:41,313 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 05:12:41,314 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 05:12:41,314 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 05:12:41,321 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 05:12:41,321 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 05:12:41,321 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 05:15:39,708 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 05:15:39,708 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 05:15:39,708 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 05:15:39,712 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 05:15:39,713 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 05:15:39,713 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 05:15:39,713 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 05:15:39,720 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 05:15:39,720 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 05:15:39,721 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 05:34:52,778 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 05:34:52,778 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 05:34:52,778 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 05:34:52,782 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 05:34:52,782 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 05:34:52,783 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 05:34:52,783 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 05:34:52,791 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 05:34:52,791 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 05:34:52,791 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 05:35:12,239 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 05:35:12,239 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 05:35:12,240 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 05:35:12,244 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 05:35:12,244 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 05:35:12,244 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 05:35:12,245 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 05:35:12,252 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 05:35:12,253 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 05:35:12,253 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 05:37:07,557 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 05:37:07,558 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 05:37:07,558 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 05:37:07,562 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 05:37:07,562 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 05:37:07,562 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 05:37:07,562 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 05:37:07,570 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 05:37:07,570 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 05:37:07,570 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 05:38:47,632 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 05:38:47,633 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 05:38:47,633 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 05:38:47,637 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 05:38:47,637 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 05:38:47,638 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 05:38:47,638 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 05:38:47,645 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 05:38:47,645 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 05:38:47,645 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 05:53:53,889 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 05:53:53,890 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 05:53:53,890 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 05:53:53,894 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 05:53:53,894 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 05:53:53,895 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 05:53:53,895 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 05:53:53,902 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 05:53:53,902 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 05:53:53,902 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 05:53:58,250 - auth_helpers - WARNING - JWT decode error: Signature has expired.
+2026-01-01 05:53:58,252 - auth_helpers - WARNING - JWT decode error: Signature has expired.
+2026-01-01 05:53:58,254 - auth_helpers - WARNING - JWT decode error: Signature has expired.
+2026-01-01 05:53:58,255 - auth_helpers - WARNING - JWT decode error: Signature has expired.
+2026-01-01 05:53:58,265 - auth_helpers - WARNING - JWT decode error: Signature has expired.
+2026-01-01 05:53:58,271 - auth_helpers - WARNING - JWT decode error: Signature has expired.
+2026-01-01 05:53:58,272 - auth_helpers - WARNING - JWT decode error: Signature has expired.
+2026-01-01 05:53:58,274 - auth_helpers - WARNING - JWT decode error: Signature has expired.
+2026-01-01 05:54:13,162 - passlib.handlers.bcrypt - WARNING - (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "C:\Users\ASUS\AppData\Roaming\Python\Python314\site-packages\passlib\handlers\bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+2026-01-01 05:57:01,243 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 05:57:01,244 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 05:57:01,244 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 05:57:01,248 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 05:57:01,249 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 05:57:01,249 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 05:57:01,249 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 05:57:01,257 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 05:57:01,257 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 05:57:01,258 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 05:57:15,406 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 05:57:15,407 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 05:57:15,407 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 05:57:15,411 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 05:57:15,411 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 05:57:15,411 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 05:57:15,412 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 05:57:15,419 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 05:57:15,420 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 05:57:15,420 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 05:58:08,577 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 05:58:08,577 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 05:58:08,577 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 05:58:08,582 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 05:58:08,582 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 05:58:08,582 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 05:58:08,582 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 05:58:08,590 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 05:58:08,591 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 05:58:08,591 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 06:20:47,651 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 06:20:47,651 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 06:20:47,652 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 06:20:47,657 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 06:20:47,657 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 06:20:47,657 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 06:20:47,658 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 06:20:47,665 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 06:20:47,666 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 06:20:47,666 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 06:20:50,760 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 06:20:50,761 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 06:20:50,761 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 06:20:50,765 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 06:20:50,765 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 06:20:50,766 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 06:20:50,766 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 06:20:50,774 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 06:20:50,775 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 06:20:50,775 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 06:21:02,912 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 06:21:02,913 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 06:21:02,913 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 06:21:02,917 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 06:21:02,917 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 06:21:02,917 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 06:21:02,918 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 06:21:02,927 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 06:21:02,927 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 06:21:02,928 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 06:21:07,390 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 06:21:07,391 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 06:21:07,391 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 06:21:07,395 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 06:21:07,395 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 06:21:07,395 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 06:21:07,395 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 06:21:07,403 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 06:21:07,403 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 06:21:07,404 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 06:21:53,382 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 06:21:53,383 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 06:21:53,383 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 06:21:53,386 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 06:21:53,387 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 06:21:53,387 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 06:21:53,387 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 06:21:53,394 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 06:21:53,394 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 06:21:53,395 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 06:22:43,074 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 06:22:43,075 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 06:22:43,076 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 06:22:43,079 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 06:22:43,080 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 06:22:43,080 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 06:22:43,080 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 06:22:43,087 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 06:22:43,088 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 06:22:43,088 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 06:23:49,342 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 06:23:49,343 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 06:23:49,343 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 06:23:49,347 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 06:23:49,347 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 06:23:49,347 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 06:23:49,347 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 06:23:49,354 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 06:23:49,354 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 06:23:49,354 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 06:26:21,575 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 06:26:21,576 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 06:26:21,576 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 06:26:21,580 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 06:26:21,581 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 06:26:21,581 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 06:26:21,581 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 06:26:21,590 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 06:26:21,590 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 06:26:21,590 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 06:30:38,886 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 06:30:38,887 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 06:30:38,887 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 06:30:38,891 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 06:30:38,892 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 06:30:38,892 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 06:30:38,892 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 06:30:38,900 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 06:30:38,901 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 06:30:38,901 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 06:41:01,041 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 06:41:01,042 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 06:41:01,042 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 06:41:01,045 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 06:41:01,046 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 06:41:01,046 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 06:41:01,046 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 06:41:01,053 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 06:41:01,053 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 06:41:01,053 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 06:41:08,995 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 06:41:08,995 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 06:41:08,996 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 06:41:08,999 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 06:41:09,000 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 06:41:09,000 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 06:41:09,000 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 06:41:09,007 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 06:41:09,008 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 06:41:09,008 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 06:46:17,914 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 06:46:17,915 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 06:46:17,915 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 06:46:17,919 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 06:46:17,919 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 06:46:17,919 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 06:46:17,919 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 06:46:17,926 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 06:46:17,927 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 06:46:17,927 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 06:50:21,428 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 06:50:21,429 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 06:50:21,430 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 06:50:21,434 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 06:50:21,434 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 06:50:21,435 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 06:50:21,435 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 06:50:21,443 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 06:50:21,443 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 06:50:21,444 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 06:52:42,181 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 06:52:42,181 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 06:52:42,182 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 06:52:42,185 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 06:52:42,186 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 06:52:42,186 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 06:52:42,186 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 06:52:42,194 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 06:52:42,195 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 06:52:42,195 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 06:52:49,299 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 06:52:49,299 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 06:52:49,300 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 06:52:49,303 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 06:52:49,304 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 06:52:49,304 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 06:52:49,304 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 06:52:49,313 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 06:52:49,314 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 06:52:49,314 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 06:59:39,814 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 06:59:39,814 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 06:59:39,814 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 06:59:39,818 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 06:59:39,818 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 06:59:39,819 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 06:59:39,819 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 06:59:39,826 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 06:59:39,826 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 06:59:39,826 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 06:59:45,939 - auth_helpers - WARNING - JWT decode error: Signature has expired.
+2026-01-01 06:59:45,943 - auth_helpers - WARNING - JWT decode error: Signature has expired.
+2026-01-01 06:59:45,943 - auth_helpers - WARNING - JWT decode error: Signature has expired.
+2026-01-01 06:59:45,944 - auth_helpers - WARNING - JWT decode error: Signature has expired.
+2026-01-01 06:59:45,955 - auth_helpers - WARNING - JWT decode error: Signature has expired.
+2026-01-01 06:59:45,957 - auth_helpers - WARNING - JWT decode error: Signature has expired.
+2026-01-01 06:59:45,958 - auth_helpers - WARNING - JWT decode error: Signature has expired.
+2026-01-01 06:59:45,959 - auth_helpers - WARNING - JWT decode error: Signature has expired.
+2026-01-01 07:00:01,345 - passlib.handlers.bcrypt - WARNING - (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "C:\Users\ASUS\AppData\Roaming\Python\Python314\site-packages\passlib\handlers\bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+2026-01-01 07:10:23,784 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:10:23,784 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:10:23,785 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:10:23,788 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 07:10:23,789 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 07:10:23,789 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 07:10:23,789 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 07:10:23,799 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 07:10:23,799 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 07:10:23,799 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 07:12:41,915 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:12:41,915 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:12:41,916 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:12:41,919 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 07:12:41,920 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 07:12:41,920 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 07:12:41,920 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 07:12:41,929 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 07:12:41,929 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 07:12:41,929 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 07:13:50,913 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:13:50,914 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:13:50,914 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:13:50,918 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 07:13:50,919 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 07:13:50,920 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 07:13:50,920 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 07:13:50,928 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 07:13:50,928 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 07:13:50,928 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 07:13:59,021 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:13:59,021 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:13:59,021 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:13:59,025 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 07:13:59,026 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 07:13:59,026 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 07:13:59,026 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 07:13:59,036 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 07:13:59,036 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 07:13:59,036 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 07:14:06,573 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:14:06,573 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:14:06,574 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:14:06,577 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 07:14:06,578 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 07:14:06,578 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 07:14:06,578 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 07:14:06,585 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 07:14:06,585 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 07:14:06,585 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 07:15:45,657 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:15:45,657 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:15:45,658 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:15:45,662 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 07:15:45,663 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 07:15:45,663 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 07:15:45,663 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 07:15:45,672 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 07:15:45,673 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 07:15:45,673 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 07:15:54,193 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:15:54,193 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:15:54,193 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:15:54,197 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 07:15:54,197 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 07:15:54,198 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 07:15:54,198 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 07:15:54,205 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 07:15:54,206 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 07:15:54,206 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 07:16:46,644 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:16:46,645 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:16:46,645 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:16:46,649 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 07:16:46,649 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 07:16:46,650 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 07:16:46,650 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 07:16:46,658 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 07:16:46,658 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 07:16:46,658 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 07:16:58,064 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:16:58,065 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:16:58,065 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:16:58,069 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 07:16:58,070 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 07:16:58,070 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 07:16:58,070 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 07:16:58,078 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 07:16:58,078 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 07:16:58,079 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 07:18:33,374 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:18:33,375 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:18:33,375 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:18:33,381 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 07:18:33,382 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 07:18:33,382 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 07:18:33,382 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 07:18:33,391 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 07:18:33,392 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 07:18:33,392 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 07:18:47,764 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:18:47,765 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:18:47,765 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:18:47,769 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 07:18:47,769 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 07:18:47,770 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 07:18:47,770 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 07:18:47,778 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 07:18:47,778 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 07:18:47,779 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 07:18:58,383 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:18:58,384 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:18:58,384 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:18:58,388 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 07:18:58,388 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 07:18:58,388 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 07:18:58,388 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 07:18:58,395 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 07:18:58,395 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 07:18:58,396 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 07:22:15,068 - auth_helpers - WARNING - JWT decode error: Signature has expired.
+2026-01-01 07:22:15,072 - auth_helpers - WARNING - JWT decode error: Signature has expired.
+2026-01-01 07:22:15,079 - auth_helpers - WARNING - JWT decode error: Signature has expired.
+2026-01-01 07:22:15,083 - auth_helpers - WARNING - JWT decode error: Signature has expired.
+2026-01-01 07:23:44,645 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:23:44,646 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:23:44,646 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:23:44,662 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 07:23:44,662 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 07:23:44,662 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 07:23:44,663 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 07:23:44,671 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 07:23:44,671 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 07:23:44,671 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 07:24:20,200 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:24:20,202 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:24:20,203 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:24:20,210 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 07:24:20,211 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 07:24:20,211 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 07:24:20,212 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 07:24:20,225 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 07:24:20,225 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 07:24:20,225 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 07:29:11,058 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:29:11,059 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:29:11,059 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:29:11,064 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 07:29:11,065 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 07:29:11,066 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 07:29:11,066 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 07:29:11,076 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 07:29:11,076 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 07:29:11,077 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 07:31:28,534 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:31:28,534 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:31:28,534 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:31:28,538 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 07:31:28,538 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 07:31:28,539 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 07:31:28,539 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 07:31:28,547 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 07:31:28,547 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 07:31:28,547 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 07:35:43,220 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:35:43,221 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:35:43,221 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:35:43,225 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 07:35:43,226 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 07:35:43,226 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 07:35:43,226 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 07:35:43,234 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 07:35:43,234 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 07:35:43,235 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 07:36:23,535 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:36:23,536 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:36:23,536 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:36:23,540 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 07:36:23,540 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 07:36:23,540 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 07:36:23,541 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 07:36:23,550 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 07:36:23,550 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 07:36:23,551 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 07:36:45,187 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:36:45,188 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:36:45,189 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:36:45,195 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 07:36:45,195 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 07:36:45,195 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 07:36:45,196 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 07:36:45,204 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 07:36:45,204 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 07:36:45,204 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 07:39:28,019 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:39:28,020 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:39:28,021 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:39:28,025 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 07:39:28,025 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 07:39:28,025 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 07:39:28,026 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 07:39:28,034 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 07:39:28,034 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 07:39:28,034 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 07:39:57,403 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:39:57,404 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:39:57,405 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:39:57,416 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 07:39:57,417 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 07:39:57,418 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 07:39:57,418 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 07:39:57,427 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 07:39:57,427 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 07:39:57,428 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 07:48:54,677 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:48:54,677 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:48:54,678 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:48:54,682 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 07:48:54,683 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 07:48:54,683 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 07:48:54,683 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 07:48:54,690 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 07:48:54,690 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 07:48:54,690 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 07:48:59,377 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:48:59,378 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:48:59,378 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:48:59,383 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 07:48:59,383 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 07:48:59,384 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 07:48:59,384 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 07:48:59,392 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 07:48:59,392 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 07:48:59,392 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 07:49:11,373 - __mp_main__ - INFO - Configuration validated
+2026-01-01 07:49:11,930 - app - INFO - Configuration validated
+2026-01-01 07:49:12,031 - app - INFO - Starting 4You Broadband API...
+2026-01-01 07:49:12,031 - app - INFO - Directory created/verified: uploads\photos
+2026-01-01 07:49:12,032 - app - INFO - Directory created/verified: uploads\documents
+2026-01-01 07:49:12,032 - app - INFO - Directory created/verified: backups
+2026-01-01 07:49:12,033 - app - INFO - Directory created/verified: exports
+2026-01-01 07:49:12,033 - app - INFO - Directory created/verified: logs
+2026-01-01 07:49:12,068 - app - INFO - Startup backup created
+2026-01-01 07:49:12,073 - app - INFO - Database initialized
+2026-01-01 07:49:12,109 - app - INFO - Admin already exists
+2026-01-01 07:49:12,342 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:49:12,342 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:49:12,343 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:49:12,348 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 07:49:12,348 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 07:49:12,348 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 07:49:12,349 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 07:49:12,355 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 07:49:12,356 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 07:49:12,356 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 07:49:12,356 - app - INFO - Scheduler started
+2026-01-01 07:49:12,356 - app - INFO - Application startup complete
+2026-01-01 07:49:12,356 - app - INFO - API running on http://localhost:8000
+2026-01-01 07:49:12,357 - app - INFO - API Docs at http://localhost:8000/docs
+2026-01-01 07:49:52,141 - app - INFO - Shutting down application...
+2026-01-01 07:49:52,186 - app - INFO - Shutdown backup created
+2026-01-01 07:49:54,112 - __mp_main__ - INFO - Configuration validated
+2026-01-01 07:49:55,029 - app - INFO - Configuration validated
+2026-01-01 07:49:55,165 - app - INFO - Starting 4You Broadband API...
+2026-01-01 07:49:55,165 - app - INFO - Directory created/verified: uploads\photos
+2026-01-01 07:49:55,165 - app - INFO - Directory created/verified: uploads\documents
+2026-01-01 07:49:55,166 - app - INFO - Directory created/verified: backups
+2026-01-01 07:49:55,166 - app - INFO - Directory created/verified: exports
+2026-01-01 07:49:55,166 - app - INFO - Directory created/verified: logs
+2026-01-01 07:49:55,201 - app - INFO - Startup backup created
+2026-01-01 07:49:55,207 - app - INFO - Database initialized
+2026-01-01 07:49:55,247 - app - INFO - Admin already exists
+2026-01-01 07:49:55,647 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:49:55,650 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:49:55,651 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:49:55,664 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 07:49:55,664 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 07:49:55,665 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 07:49:55,666 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 07:49:55,684 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 07:49:55,684 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 07:49:55,685 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 07:49:55,685 - app - INFO - Scheduler started
+2026-01-01 07:49:55,685 - app - INFO - Application startup complete
+2026-01-01 07:49:55,686 - app - INFO - API running on http://localhost:8000
+2026-01-01 07:49:55,687 - app - INFO - API Docs at http://localhost:8000/docs
+2026-01-01 07:52:32,544 - engineer_routes - INFO - Photo uploaded: 20260101_075232_avtar6.jpeg
+2026-01-01 07:52:32,545 - engineer_routes - INFO - Document 1 uploaded: 20260101_075232_0_invoice_5 (2).pdf
+2026-01-01 07:52:32,545 - engineer_routes - INFO - Total 1 KYC document(s) uploaded
+2026-01-01 07:52:32,649 - engineer_routes - INFO - New customer added by engineer Ravi: Sachin Kumar (8578981834) - CS ID: CS_1834
+2026-01-01 07:52:53,071 - engineer_routes - INFO - Task updated by Ravi: Sachin Kumar -> Installation Scheduled
+2026-01-01 07:53:21,496 - engineer_routes - INFO - Installation completed for Sachin Kumar. Status=Active, start=2026-01-01, expiry=2026-02-01
+2026-01-01 07:53:21,971 - engineer_routes - INFO - Task updated by Ravi: Sachin Kumar -> Completed
+2026-01-01 07:54:26,546 - app - INFO - Shutting down application...
+2026-01-01 07:54:26,571 - app - INFO - Shutdown backup created
+2026-01-01 07:54:28,295 - __mp_main__ - INFO - Configuration validated
+2026-01-01 07:56:34,625 - __mp_main__ - INFO - Configuration validated
+2026-01-01 07:56:35,355 - app - INFO - Configuration validated
+2026-01-01 07:56:35,447 - app - INFO - Starting 4You Broadband API...
+2026-01-01 07:56:35,448 - app - INFO - Directory created/verified: uploads\photos
+2026-01-01 07:56:35,448 - app - INFO - Directory created/verified: uploads\documents
+2026-01-01 07:56:35,449 - app - INFO - Directory created/verified: backups
+2026-01-01 07:56:35,449 - app - INFO - Directory created/verified: exports
+2026-01-01 07:56:35,449 - app - INFO - Directory created/verified: logs
+2026-01-01 07:56:35,485 - app - INFO - Startup backup created
+2026-01-01 07:56:35,491 - app - INFO - Database initialized
+2026-01-01 07:56:35,530 - app - INFO - Admin already exists
+2026-01-01 07:56:35,784 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:56:35,784 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:56:35,785 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:56:35,790 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 07:56:35,790 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 07:56:35,791 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 07:56:35,791 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 07:56:35,799 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 07:56:35,799 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 07:56:35,799 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 07:56:35,800 - app - INFO - Scheduler started
+2026-01-01 07:56:35,800 - app - INFO - Application startup complete
+2026-01-01 07:56:35,800 - app - INFO - API running on http://localhost:8000
+2026-01-01 07:56:35,800 - app - INFO - API Docs at http://localhost:8000/docs
+2026-01-01 07:57:10,136 - app - INFO - Shutting down application...
+2026-01-01 07:57:10,161 - app - INFO - Shutdown backup created
+2026-01-01 07:57:11,708 - __mp_main__ - INFO - Configuration validated
+2026-01-01 07:57:12,402 - app - INFO - Configuration validated
+2026-01-01 07:57:12,501 - app - INFO - Starting 4You Broadband API...
+2026-01-01 07:57:12,501 - app - INFO - Directory created/verified: uploads\photos
+2026-01-01 07:57:12,502 - app - INFO - Directory created/verified: uploads\documents
+2026-01-01 07:57:12,502 - app - INFO - Directory created/verified: backups
+2026-01-01 07:57:12,502 - app - INFO - Directory created/verified: exports
+2026-01-01 07:57:12,503 - app - INFO - Directory created/verified: logs
+2026-01-01 07:57:12,539 - app - INFO - Startup backup created
+2026-01-01 07:57:12,543 - app - INFO - Database initialized
+2026-01-01 07:57:12,570 - app - INFO - Admin already exists
+2026-01-01 07:57:13,008 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:57:13,009 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:57:13,009 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 07:57:13,020 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 07:57:13,021 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 07:57:13,021 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 07:57:13,022 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 07:57:13,035 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 07:57:13,036 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 07:57:13,036 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 07:57:13,037 - app - INFO - Scheduler started
+2026-01-01 07:57:13,038 - app - INFO - Application startup complete
+2026-01-01 07:57:13,038 - app - INFO - API running on http://localhost:8000
+2026-01-01 07:57:13,038 - app - INFO - API Docs at http://localhost:8000/docs
+2026-01-01 07:57:36,716 - app - INFO - Invoice INV-20260101-0011 generated for user CS_1834 by admin admin@4you.in
+2026-01-01 07:58:06,074 - auth_helpers - WARNING - User not found: usr_1767212709481
+2026-01-01 07:58:06,077 - auth_helpers - WARNING - User not found: usr_1767212709481
+2026-01-01 08:00:55,109 - app - INFO - Shutting down application...
+2026-01-01 08:00:55,135 - app - INFO - Shutdown backup created
+2026-01-01 08:00:56,842 - __mp_main__ - INFO - Configuration validated
+2026-01-01 08:00:58,973 - __mp_main__ - INFO - Configuration validated
+2026-01-01 08:00:59,571 - app - INFO - Configuration validated
+2026-01-01 08:00:59,677 - app - INFO - Starting 4You Broadband API...
+2026-01-01 08:00:59,677 - app - INFO - Directory created/verified: uploads\photos
+2026-01-01 08:00:59,678 - app - INFO - Directory created/verified: uploads\documents
+2026-01-01 08:00:59,678 - app - INFO - Directory created/verified: backups
+2026-01-01 08:00:59,678 - app - INFO - Directory created/verified: exports
+2026-01-01 08:00:59,679 - app - INFO - Directory created/verified: logs
+2026-01-01 08:00:59,714 - app - INFO - Startup backup created
+2026-01-01 08:00:59,719 - app - INFO - Database initialized
+2026-01-01 08:00:59,745 - app - INFO - Admin already exists
+2026-01-01 08:01:00,006 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 08:01:00,007 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 08:01:00,007 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 08:01:00,013 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 08:01:00,014 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 08:01:00,014 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 08:01:00,014 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 08:01:00,025 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 08:01:00,025 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 08:01:00,025 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 08:01:00,026 - app - INFO - Scheduler started
+2026-01-01 08:01:00,026 - app - INFO - Application startup complete
+2026-01-01 08:01:00,026 - app - INFO - API running on http://localhost:8000
+2026-01-01 08:01:00,026 - app - INFO - API Docs at http://localhost:8000/docs
+2026-01-01 08:01:40,361 - app - INFO - Shutting down application...
+2026-01-01 08:01:40,505 - app - INFO - Shutdown backup created
+2026-01-01 08:01:42,588 - __mp_main__ - INFO - Configuration validated
+2026-01-01 08:01:43,474 - app - INFO - Configuration validated
+2026-01-01 08:01:43,594 - app - INFO - Starting 4You Broadband API...
+2026-01-01 08:01:43,595 - app - INFO - Directory created/verified: uploads\photos
+2026-01-01 08:01:43,596 - app - INFO - Directory created/verified: uploads\documents
+2026-01-01 08:01:43,596 - app - INFO - Directory created/verified: backups
+2026-01-01 08:01:43,597 - app - INFO - Directory created/verified: exports
+2026-01-01 08:01:43,597 - app - INFO - Directory created/verified: logs
+2026-01-01 08:01:43,649 - app - INFO - Startup backup created
+2026-01-01 08:01:43,655 - app - INFO - Database initialized
+2026-01-01 08:01:43,699 - app - INFO - Admin already exists
+2026-01-01 08:01:44,073 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 08:01:44,073 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 08:01:44,074 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-01 08:01:44,080 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-01 08:01:44,081 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-01 08:01:44,081 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-01 08:01:44,081 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-01 08:01:44,092 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-01 08:01:44,092 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-01 08:01:44,093 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-01 08:01:44,093 - app - INFO - Scheduler started
+2026-01-01 08:01:44,094 - app - INFO - Application startup complete
+2026-01-01 08:01:44,094 - app - INFO - API running on http://localhost:8000
+2026-01-01 08:01:44,094 - app - INFO - API Docs at http://localhost:8000/docs

@@ -54,11 +54,20 @@ def generate_invoice_pdf(user_data: dict, plan_data: dict, billing_data: dict, c
         alignment=TA_CENTER
     )
     
-    # Header - use company name from billing settings if available
-    company_name = company_data.get("name", "4You Broadband") if company_data else "4You Broadband"
+    # Header - always use fixed company name
+    company_name = "4You Broadband"
     elements.append(Paragraph(company_name, title_style))
     elements.append(Paragraph("TAX INVOICE", styles['Heading2']))
     elements.append(Spacer(1, 0.3 * inch))
+
+    # Common wrapping style to avoid cutting long addresses
+    wrap_style = ParagraphStyle(
+        'Wrap',
+        parent=styles['Normal'],
+        fontSize=9,
+        leading=12,
+        wordWrap='LTR'
+    )
 
     # Company & Customer Info - use billing settings if available
     if company_data:
@@ -68,12 +77,12 @@ def generate_invoice_pdf(user_data: dict, plan_data: dict, billing_data: dict, c
         company_gstin = f"GSTIN: {company_data.get('gstin', 'N/A')}" if company_data.get('gstin') else "GSTIN: Not Registered"
 
         info_data = [
-            ["From:", "To:"],
-            [company_name, user_data.get("name", "")],
-            [company_address, user_data.get("address", "")],
-            [company_city_state, f"Mobile: {user_data.get('mobile', '')}"],
-            [company_country_pin, f"Email: {user_data.get('email', '')}"],
-            [company_gstin, ""],
+            [Paragraph("From:", styles['Heading4']), Paragraph("To:", styles['Heading4'])],
+            [Paragraph(company_name, wrap_style), Paragraph(user_data.get("name", ""), wrap_style)],
+            [Paragraph(company_address, wrap_style), Paragraph(user_data.get("address", ""), wrap_style)],
+            [Paragraph(company_city_state, wrap_style), Paragraph(f"Mobile: {user_data.get('mobile', '')}", wrap_style)],
+            [Paragraph(company_country_pin, wrap_style), Paragraph(f"Email: {user_data.get('email', '')}", wrap_style)],
+            [Paragraph(company_gstin, wrap_style), Paragraph("", wrap_style)],
         ]
     else:
         # Fallback to hardcoded values
@@ -85,7 +94,8 @@ def generate_invoice_pdf(user_data: dict, plan_data: dict, billing_data: dict, c
             ["GSTIN: 27XXXXX1234X1Z5", f"Email: {user_data.get('email', '')}"],
         ]
     
-    info_table = Table(info_data, colWidths=[3 * inch, 3 * inch])
+    # Expand to full available width for better wrapping
+    info_table = Table(info_data, colWidths=[doc.width * 0.5, doc.width * 0.5])
     info_table.setStyle(TableStyle([
         ('FONT', (0, 0), (-1, 0), 'Helvetica-Bold', 10),
         ('FONT', (0, 1), (-1, -1), 'Helvetica', 9),
@@ -102,9 +112,10 @@ def generate_invoice_pdf(user_data: dict, plan_data: dict, billing_data: dict, c
         ["Invoice Date:", billing_data.get("invoice_date", datetime.now().strftime("%d-%b-%Y"))],
         ["Due Date:", billing_data.get("due_date", "")],
         ["Customer ID:", user_data.get("cs_id", "")],
+        ["Payment Status:", billing_data.get("payment_status", "Pending")],
     ]
     
-    details_table = Table(invoice_details, colWidths=[2 * inch, 3 * inch])
+    details_table = Table(invoice_details, colWidths=[doc.width * 0.35, doc.width * 0.65])
     details_table.setStyle(TableStyle([
         ('FONT', (0, 0), (-1, -1), 'Helvetica', 9),
         ('ALIGN', (0, 0), (0, -1), 'LEFT'),
@@ -122,8 +133,8 @@ def generate_invoice_pdf(user_data: dict, plan_data: dict, billing_data: dict, c
     # Add plan item
     items_data.append([
         "1",
-        f"{plan_data.get('name', 'Broadband Plan')}\n{plan_data.get('speed', '')} - {plan_data.get('data_limit', '')}",
-        billing_data.get("billing_period", datetime.now().strftime("%B %Y")),
+        Paragraph(f"{plan_data.get('name', 'Broadband Plan')}<br/>{plan_data.get('speed', '')} - {plan_data.get('data_limit', '')}", wrap_style),
+        Paragraph(billing_data.get("billing_period", datetime.now().strftime("%B %Y")), wrap_style),
         f"{plan_data.get('price', 0):,.2f}"
     ])
     
@@ -148,7 +159,7 @@ def generate_invoice_pdf(user_data: dict, plan_data: dict, billing_data: dict, c
     items_data.append(["", "", f"GST ({gst_rate}%):", f"{gst_amount:,.2f}"])
     items_data.append(["", "", "Total Amount:", f"{total_amount:,.2f}"])
     
-    items_table = Table(items_data, colWidths=[0.5 * inch, 3 * inch, 1.5 * inch, 1.5 * inch])
+    items_table = Table(items_data, colWidths=[doc.width * 0.08, doc.width * 0.52, doc.width * 0.2, doc.width * 0.2])
     items_table.setStyle(TableStyle([
         # Header row
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F97316')),
@@ -192,7 +203,32 @@ def generate_invoice_pdf(user_data: dict, plan_data: dict, billing_data: dict, c
 
     # Generate QR Code for UPI payment
     try:
-        upi_string = f"upi://pay?pa={upi_id}&pn={company_name_for_upi}&am={total_amount}&cu=INR"
+        # Build UPI link with optional tn (invoice number) using urlencode for safety
+        from urllib.parse import urlencode
+        
+        def _sanitize_upi_text(text: str, max_len: int = 50) -> str:
+            """Sanitize text for UPI params: ASCII-only and length-limited."""
+            s = str(text)
+            s = ''.join(ch for ch in s if ord(ch) < 128)
+            return s[:max_len]
+
+        upi_params = {
+            "pa": upi_id,
+            "pn": _sanitize_upi_text(company_name_for_upi, 35),
+            "am": f"{total_amount:.2f}",
+            "cu": "INR",
+        }
+        if invoice_number:
+            # Short note to help reconciliation in UPI apps
+            upi_params["tn"] = _sanitize_upi_text(f"Invoice {invoice_number}", 50)
+            # Also provide transaction reference for broader app compatibility
+            upi_params["tr"] = _sanitize_upi_text(invoice_number, 50)
+            # Some apps look for tid; include as duplicate
+            upi_params["tid"] = _sanitize_upi_text(invoice_number, 35)
+        upi_string = "upi://pay?" + urlencode(upi_params)
+
+        logger.info(f"🔗 UPI Link for invoice {invoice_number}: {upi_string}")
+
         qr = qrcode.QRCode(version=1, box_size=3, border=2)
         qr.add_data(upi_string)
         qr.make(fit=True)

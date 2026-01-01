@@ -216,6 +216,28 @@ class EngineerResponse(BaseModel):
         from_attributes = True
 
 
+class EngineerUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=2, max_length=100)
+    mobile: Optional[str] = Field(None, min_length=10, max_length=10)
+    password: Optional[str] = Field(None, min_length=6)
+    email: Optional[EmailStr] = None
+    specialization: Optional[str] = None
+    status: Optional[str] = None
+    joining_date: Optional[str] = None
+    address: Optional[str] = None
+    emergency_contact: Optional[str] = None
+
+    @validator('mobile', 'emergency_contact')
+    def validate_optional_mobile(cls, v):
+        if v is None:
+            return v
+        if not v.isdigit():
+            raise ValueError('Mobile must contain only digits')
+        if len(v) != 10:
+            raise ValueError('Mobile must be exactly 10 digits')
+        return v
+
+
 # ============================================
 # CUSTOMER PORTAL SCHEMAS
 # ============================================
@@ -296,6 +318,15 @@ class BillingSettingsCreate(BaseModel):
     contact_number: Optional[str] = Field(None, min_length=10, max_length=10)
     upi_id: Optional[str] = Field(None, max_length=100)
     ui_layout: str = Field(default="card")
+    is_primary: bool = False
+
+    @validator('gstin', 'contact_number', 'upi_id', pre=True)
+    def empty_optional_to_none(cls, v):
+        # Treat empty strings as None for optional fields
+        if v is None:
+            return None
+        v_str = str(v).strip()
+        return None if v_str == '' else v
 
     @validator('pin_code')
     def validate_pin_code(cls, v):
@@ -340,6 +371,15 @@ class BillingSettingsUpdate(BaseModel):
     contact_number: Optional[str] = Field(None, min_length=10, max_length=10)
     upi_id: Optional[str] = Field(None, max_length=100)
     ui_layout: Optional[str] = None
+    is_primary: Optional[bool] = None
+
+    @validator('gstin', 'contact_number', 'upi_id', pre=True)
+    def empty_optional_to_none_update(cls, v):
+        # Treat empty strings as None for optional fields
+        if v is None:
+            return None
+        v_str = str(v).strip()
+        return None if v_str == '' else v
 
     @validator('pin_code')
     def validate_pin_code(cls, v):
@@ -385,6 +425,7 @@ class BillingSettingsResponse(BaseModel):
     contact_number: Optional[str]
     upi_id: Optional[str]
     ui_layout: str
+    is_primary: bool
     qr_code_data: Optional[str]
     created_at: datetime
     updated_at: datetime

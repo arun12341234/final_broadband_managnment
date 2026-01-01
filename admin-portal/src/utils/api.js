@@ -18,6 +18,17 @@ const createApiInstance = () => {
     },
   });
 
+  // Global loading tracker
+  let activeRequests = 0;
+  const dispatchLoadingEvent = () => {
+    try {
+      const event = new CustomEvent('api:loading', { detail: { activeRequests } });
+      window.dispatchEvent(event);
+    } catch (_) {
+      // no-op in non-browser environments
+    }
+  };
+
   // Request interceptor - add auth token
   instance.interceptors.request.use(
     (config) => {
@@ -25,16 +36,27 @@ const createApiInstance = () => {
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
+      // mark start
+      activeRequests += 1;
+      dispatchLoadingEvent();
       return config;
     },
     (error) => {
+      // request failed before send
+      activeRequests = Math.max(0, activeRequests - 1);
+      dispatchLoadingEvent();
       return Promise.reject(error);
     }
   );
 
   // Response interceptor - handle errors
   instance.interceptors.response.use(
-    (response) => response,
+    (response) => {
+      // mark end
+      activeRequests = Math.max(0, activeRequests - 1);
+      dispatchLoadingEvent();
+      return response;
+    },
     (error) => {
       // Handle 401 Unauthorized
       if (error.response?.status === 401) {
@@ -51,6 +73,10 @@ const createApiInstance = () => {
           message: getErrorMessage(error),
         });
       }
+
+      // mark end on error
+      activeRequests = Math.max(0, activeRequests - 1);
+      dispatchLoadingEvent();
 
       return Promise.reject(error);
     }
