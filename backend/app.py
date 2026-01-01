@@ -1127,9 +1127,6 @@ async def generate_invoice_for_user(
         }
 
     try:
-        # Generate PDF with company data
-        pdf_path = generate_invoice_pdf(user_data, plan_data, billing_data, company_data)
-
         # Calculate amounts (matching Invoice model)
         from datetime import timedelta
 
@@ -1147,7 +1144,50 @@ async def generate_invoice_for_user(
             billing_end = today.replace(month=today.month + 1, day=1) - timedelta(days=1)
         billing_period = f"{billing_start.strftime('%B %Y')} - {billing_end.strftime('%B %Y')}"
 
-        # Create invoice record in database (matching Invoice model fields)
+        # Prevent duplicate invoice for the same user and billing period
+        existing_invoice = db.query(Invoice).filter(
+            Invoice.user_id == user.id,
+            Invoice.billing_period == billing_period
+        ).order_by(Invoice.created_at.desc()).first()
+
+        if existing_invoice:
+            # If PDF missing, generate and attach; otherwise return existing
+            if not existing_invoice.pdf_filepath or not Path(existing_invoice.pdf_filepath).exists():
+                pdf_path_existing = generate_invoice_pdf(user_data, plan_data, {
+                    "invoice_number": existing_invoice.invoice_number,
+                    "invoice_date": today.strftime("%d-%b-%Y"),
+                    "due_date": existing_invoice.due_date,
+                    "billing_period": billing_period,
+                    "old_pending": old_pending,
+                    "payment_status": existing_invoice.payment_status,
+                }, company_data)
+                existing_invoice.pdf_filepath = str(pdf_path_existing)
+                db.commit()
+
+            origin = request.headers.get("origin", "")
+            headers = {}
+            if origin:
+                headers["Access-Control-Allow-Origin"] = origin
+                headers["Access-Control-Allow-Credentials"] = "true"
+                headers["Access-Control-Expose-Headers"] = "Content-Disposition"
+
+            return FileResponse(
+                existing_invoice.pdf_filepath,
+                media_type="application/pdf",
+                filename=f"invoice_{user.cs_id}_{existing_invoice.invoice_number}.pdf",
+                headers=headers
+            )
+
+        # No existing invoice: generate PDF and create record
+        pdf_path = generate_invoice_pdf(user_data, plan_data, {
+            "invoice_number": invoice_number,
+            "invoice_date": today.strftime("%d-%b-%Y"),
+            "due_date": user.payment_due_date if user.payment_due_date != "Paid" else "N/A",
+            "billing_period": billing_period,
+            "old_pending": old_pending,
+            "payment_status": user.payment_status,
+        }, company_data)
+
         new_invoice = Invoice(
             invoice_number=invoice_number,
             user_id=user.id,
@@ -1180,7 +1220,6 @@ async def generate_invoice_for_user(
 
         logger.info(f"Invoice {invoice_number} generated for user {user.cs_id} by admin {current_admin.email}")
 
-        # Return PDF file
         origin = request.headers.get("origin", "")
         headers = {}
         if origin:

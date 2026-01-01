@@ -353,7 +353,7 @@ function App() {
       const [profileRes, billsRes, plansRes] = await Promise.allSettled([
         api.get('/api/customer/me'),
         api.get('/api/customer/bills'),
-        api.get('/api/plans')
+        api.get('/api/plans-normalized')
       ]);
 
       // Check if critical profile endpoint failed
@@ -832,6 +832,13 @@ const DashboardTab = ({ userData, bills, plans, onRefresh, showToast, onNavigate
     return { daysUntilExpiry: Math.max(0, daysUntilExpiry), isExpiringSoon, isExpired };
   }, [userData]);
 
+  // Calculate payment due metrics
+  const paymentMetrics = useMemo(() => {
+    const daysUntilDue = getDaysUntil(userData?.payment_due_date);
+    const isDueTomorrow = daysUntilDue === 1;
+    return { daysUntilDue, isDueTomorrow };
+  }, [userData]);
+
   // Calculate bill metrics
   const billMetrics = useMemo(() => {
     const pendingBills = safeBills.filter(b => b.payment_status === BILL_STATUS.PENDING);
@@ -942,6 +949,11 @@ const DashboardTab = ({ userData, bills, plans, onRefresh, showToast, onNavigate
             <p className="text-sm text-orange-700 mt-1">
               Payment due by {formatDate(userData.payment_due_date)}. Pay now to keep your service active.
             </p>
+            {paymentMetrics.isDueTomorrow && (
+              <p className="text-sm text-orange-900 mt-2 font-medium">
+                Pending Amount Due Tomorrow: {formatCurrency(Number(userData.plan_price || 0) + Number(userData.old_pending_amount || 0))}
+              </p>
+            )}
           </div>
         </div>
       )}
@@ -1090,6 +1102,9 @@ const DashboardTab = ({ userData, bills, plans, onRefresh, showToast, onNavigate
                   <div>
                     <p className="font-medium text-gray-900">{formatCurrency(bill.amount)}</p>
                     <p className="text-sm text-gray-500">Due: {formatDate(bill.due_date)}</p>
+                    {bill.is_invoice && bill.invoice_number && (
+                      <p className="text-xs text-gray-500">Invoice: {bill.invoice_number}</p>
+                    )}
                   </div>
                 </div>
                 <Badge variant={bill.payment_status === BILL_STATUS.PENDING ? 'warning' : 'success'}>
@@ -1423,6 +1438,12 @@ const BillsTab = ({ bills, userData, onRefresh, showToast }) => {
                           <TrendingUp className="w-4 h-4" aria-hidden="true" />
                           <span>Period: {safeGet(bill, 'billing_period', 'Current Month')}</span>
                         </div>
+                        {bill.is_invoice && bill.invoice_number && (
+                          <div className="flex items-center gap-2">
+                            <FileText className="w-4 h-4" aria-hidden="true" />
+                            <span>Invoice: {bill.invoice_number}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
