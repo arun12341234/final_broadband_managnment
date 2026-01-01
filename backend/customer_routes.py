@@ -236,6 +236,100 @@ async def get_customer_invoices(
     return {"invoices": result}
 
 
+@router.get("/primary-billing-settings")
+async def get_primary_billing_settings_for_customer(
+    current_user: User = Depends(get_current_customer),
+    db: Session = Depends(get_db)
+):
+    """Return minimal primary billing settings for customer payments.
+
+    Exposes: full_name, upi_id, qr_code_data, ui_layout.
+    """
+    from models import BillingSettings
+
+    # Prefer entry marked as primary, else latest
+    settings = db.query(BillingSettings).filter(BillingSettings.is_primary == True).order_by(BillingSettings.id.desc()).first()
+    if not settings:
+        settings = db.query(BillingSettings).order_by(BillingSettings.id.desc()).first()
+
+    if not settings:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No billing settings configured.")
+
+    return {
+        "full_name": settings.full_name,
+        "upi_id": settings.upi_id,
+        "qr_code_data": settings.qr_code_data,
+        "ui_layout": settings.ui_layout,
+    }
+
+
+@router.get("/upi-qr/{bill_id}")
+async def generate_upi_qr_for_bill(
+    bill_id: int,
+    current_user: User = Depends(get_current_customer),
+    db: Session = Depends(get_db)
+):
+    """Generate a UPI QR code with amount and transaction notes for a specific bill.
+
+    - For invoice bills (bill_id > 0): uses invoice total and invoice number.
+    - For current month (bill_id == 0): uses plan price + old pending and a generic note.
+    Returns base64 QR and upi_url.
+    """
+    from models import BillingSettings, Invoice, BroadbandPlan
+    from urllib.parse import urlencode
+    import qrcode
+    from io import BytesIO
+    import base64
+
+    # Resolve billing settings (primary or latest)
+    settings = db.query(BillingSettings).filter(BillingSettings.is_primary == True).order_by(BillingSettings.id.desc()).first()
+    if not settings:
+        settings = db.query(BillingSettings).order_by(BillingSettings.id.desc()).first()
+    if not settings or not settings.upi_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No UPI billing settings configured.")
+
+    # Determine amount and note
+    amount = None
+    note = None
+
+    if bill_id and bill_id > 0:
+        invoice = db.query(Invoice).filter(Invoice.id == bill_id, Invoice.user_id == current_user.id).first()
+        if not invoice:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invoice not found for user.")
+        amount = float(invoice.total_amount or 0)
+        note = f"Invoice {invoice.invoice_number}" if invoice.invoice_number else invoice.billing_period or "Broadband Bill"
+    else:
+        plan = db.query(BroadbandPlan).filter(BroadbandPlan.id == current_user.broadband_plan_id).first()
+        if not plan:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No active plan found.")
+        amount = float((plan.price or 0) + (current_user.old_pending_amount or 0))
+        note = "Current Month"
+
+    # Build UPI deep link
+    params = [
+        ("pa", settings.upi_id.strip()),
+        ("pn", (settings.full_name or "Payee").strip()),
+        ("cu", "INR"),
+    ]
+    if amount and amount > 0:
+        params.append(("am", f"{amount:.2f}"))
+    if note:
+        params.append(("tn", note))
+    upi_url = f"upi://pay?{urlencode(params, doseq=False)}"
+
+    # Generate QR image
+    qr = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_M, box_size=10, border=4)
+    qr.add_data(upi_url)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    buffered = BytesIO()
+    img.save(buffered, format="PNG")
+    img_str = base64.b64encode(buffered.getvalue()).decode()
+    qr_data_uri = f"data:image/png;base64,{img_str}"
+
+    return {"upi_url": upi_url, "qr_code_data": qr_data_uri}
+
+
 @router.post("/pay-bill")
 @limiter.limit("10/hour")
 async def pay_bill(

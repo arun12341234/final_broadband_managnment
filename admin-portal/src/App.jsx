@@ -3471,7 +3471,7 @@ const BillingModal = ({ user, plans, onClose, onSuccess, showToast, openProgress
   const [loading, setLoading] = useState(false);
   const [userBillingHistory, setUserBillingHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
-  const [showHistorySection, setShowHistorySection] = useState(true);
+  const [showHistorySection, setShowHistorySection] = useState(false);
   const [editingHistoryRecord, setEditingHistoryRecord] = useState(null);
 
   // Fetch billing history for this user

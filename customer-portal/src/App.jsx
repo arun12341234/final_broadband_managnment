@@ -29,7 +29,6 @@ import {
 import {
   validateMobile,
   validatePassword,
-  validatePaymentMethod,
   validateUserData,
   validateBillsData,
   sanitizeMobile
@@ -1534,115 +1533,78 @@ const BillsTab = ({ bills, userData, onRefresh, showToast }) => {
 // PAYMENT MODAL
 // ============================================
 
-const PaymentModal = ({ bill, userData, onClose, onSuccess, showToast }) => {
-  const [paymentMethod, setPaymentMethod] = useState('');
+const PaymentModal = ({ bill, userData, onClose }) => {
   const [loading, setLoading] = useState(false);
-  const [transactionId, setTransactionId] = useState(null);
-  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [billingSettings, setBillingSettings] = useState(null);
+  const [settingsLoading, setSettingsLoading] = useState(true);
+  const [dynamicQr, setDynamicQr] = useState(null);
+  const [dynamicUpiUrl, setDynamicUpiUrl] = useState(null);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  useEffect(() => {
+    let mounted = true;
+    const fetchSettings = async () => {
+      try {
+        const res = await api.get('/api/customer/primary-billing-settings');
+        if (mounted) setBillingSettings(res.data);
+      } catch (err) {
+        console.warn('Failed to load billing settings:', err);
+      } finally {
+        if (mounted) setSettingsLoading(false);
+      }
+    };
+    const fetchDynamicQr = async () => {
+      try {
+        const res = await api.get(`/api/customer/upi-qr/${bill.id || 0}`);
+        if (mounted) {
+          setDynamicQr(res.data.qr_code_data);
+          setDynamicUpiUrl(res.data.upi_url);
+        }
+      } catch (err) {
+        console.warn('Failed to load dynamic UPI QR:', err);
+      }
+    };
+    fetchSettings();
+    fetchDynamicQr();
+    return () => { mounted = false; };
+  }, []);
 
-    const validation = validatePaymentMethod(paymentMethod);
-    if (!validation.valid) {
-      showToast(validation.error, 'warning');
-      return;
-    }
-
-    setLoading(true);
-
+  const upiUrl = useMemo(() => {
+    if (dynamicUpiUrl) return dynamicUpiUrl;
+    if (!billingSettings?.upi_id || !billingSettings?.full_name || !bill?.amount) return null;
+    const params = new URLSearchParams();
+    params.set('pa', String(billingSettings.upi_id));
+    params.set('pn', String(billingSettings.full_name));
+    params.set('cu', 'INR');
     try {
-      const response = await api.post('/api/customer/pay-bill', {
-        amount: Number(bill.amount),
-        payment_method: paymentMethod,
-        bill_id: bill.id
-      });
-
-      // Show confirmation with transaction ID from backend (never generate client-side)
-      setTransactionId(response.data.transaction_id || null);
-      setShowConfirmation(true);
-    } catch (error) {
-      const errorMsg = getErrorMessage(error.response?.data?.detail || error);
-      showToast(errorMsg, 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (showConfirmation) {
-    return (
-      <Modal isOpen={true} onClose={onSuccess} title="Payment Confirmation">
-        <div className="space-y-6">
-          <div className="text-center">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle className="w-10 h-10 text-green-600" aria-hidden="true" />
-            </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">Payment Submitted!</h3>
-            <p className="text-gray-600">Your payment has been submitted successfully.</p>
-          </div>
-
-          <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
-            <h4 className="font-semibold text-blue-900 mb-3">Transaction Details</h4>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-700">Transaction ID:</span>
-                <span className="font-mono font-medium text-gray-900 flex items-center gap-2">
-                  {transactionId || 'Processing...'}
-                  {transactionId && (
-                    <button
-                      onClick={async () => {
-                        const success = await copyToClipboard(transactionId);
-                        showToast(success ? 'Transaction ID copied!' : 'Failed to copy', success ? 'success' : 'error');
-                      }}
-                      className="text-blue-600 hover:text-blue-700 icon-btn p-1"
-                      aria-label="Copy transaction ID"
-                    >
-                      <Copy className="w-4 h-4" />
-                    </button>
-                  )}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-700">Amount:</span>
-                <span className="font-medium text-gray-900">{formatCurrency(bill.amount)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-700">Payment Method:</span>
-                <span className="font-medium text-gray-900">{paymentMethod}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-700">Date:</span>
-                <span className="font-medium text-gray-900">{formatDate(new Date().toISOString())}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
-            <div className="flex gap-3">
-              <Info className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" aria-hidden="true" />
-              <div className="text-sm text-yellow-800">
-                <p className="font-medium mb-1">Important:</p>
-                <ul className="space-y-1 text-xs">
-                  <li>• Payment will be verified within 24 hours</li>
-                  <li>• You will receive a confirmation SMS</li>
-                  <li>• Save your transaction ID for reference</li>
-                  <li>• Contact support if you don't receive confirmation</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-
-          <Button onClick={onSuccess} className="w-full">
-            Done
-          </Button>
-        </div>
-      </Modal>
-    );
-  }
+      const amt = Number(bill.amount);
+      if (!isNaN(amt) && amt > 0) params.set('am', amt.toFixed(2));
+    } catch {}
+    const note = safeGet(bill, 'billing_period', 'Broadband Bill');
+    params.set('tn', String(note));
+    return `upi://pay?${params.toString()}`;
+  }, [billingSettings, bill]);
 
   return (
     <Modal isOpen={true} onClose={onClose} title="Make Payment">
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form className="space-y-6">
+        {/* Primary Billing QR */}
+        <div className="bg-white border border-gray-200 p-4 rounded-lg">
+          <h4 className="font-semibold text-gray-900 mb-3">Pay via UPI QR</h4>
+          {settingsLoading ? (
+            <div className="flex items-center justify-center py-6"><Loader className="w-6 h-6 animate-spin text-orange-600" /></div>
+          ) : (dynamicQr || billingSettings?.qr_code_data) ? (
+            <div className="flex flex-col items-center gap-3">
+              <img src={dynamicQr || billingSettings.qr_code_data} alt="UPI QR" className="w-48 h-48 object-contain" />
+              {upiUrl && (
+                <Button type="button" onClick={() => { window.location.href = upiUrl; }} className="w-full sm:w-auto">
+                  Pay with UPI App
+                </Button>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-600">QR not available. Use Pay Now below.</p>
+          )}
+        </div>
         {/* Bill Summary */}
         <div className="bg-orange-50 border border-orange-200 p-4 rounded-lg">
           <h4 className="font-semibold text-orange-900 mb-3">Payment Summary</h4>
@@ -1669,42 +1631,7 @@ const PaymentModal = ({ bill, userData, onClose, onSuccess, showToast }) => {
             </div>
           </div>
         </div>
-
-        {/* Payment Method Selection */}
-        <div>
-          <h4 className="font-semibold text-gray-900 mb-3">Select Payment Method</h4>
-          <div className="space-y-3" role="radiogroup" aria-label="Payment method selection">
-            {PAYMENT_METHODS.map(method => (
-              <button
-                key={method.id}
-                type="button"
-                role="radio"
-                aria-checked={paymentMethod === method.id}
-                onClick={() => setPaymentMethod(method.id)}
-                className={`payment-method ${paymentMethod === method.id ? 'selected' : ''}`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 ${
-                    method.id === 'UPI' ? 'bg-blue-100' :
-                    method.id === 'Card' ? 'bg-green-100' : 'bg-purple-100'
-                  } rounded-lg flex items-center justify-center`}>
-                    {method.id === 'UPI' && <Phone className="w-5 h-5 text-blue-600" aria-hidden="true" />}
-                    {method.id === 'Card' && <CreditCard className="w-5 h-5 text-green-600" aria-hidden="true" />}
-                    {method.id === 'NetBanking' && <ExternalLink className="w-5 h-5 text-purple-600" aria-hidden="true" />}
-                  </div>
-                  <div className="text-left">
-                    <p className="font-medium text-gray-900">{method.name}</p>
-                    <p className="text-xs text-gray-600">{method.description}</p>
-                  </div>
-                </div>
-                {paymentMethod === method.id && (
-                  <CheckCircle className="w-5 h-5 text-orange-600" aria-hidden="true" />
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-
+        
         {/* Info Box */}
         <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
           <div className="flex gap-3">
@@ -1721,24 +1648,19 @@ const PaymentModal = ({ bill, userData, onClose, onSuccess, showToast }) => {
           </div>
         </div>
 
-        {/* Submit Buttons */}
+        {/* Actions */}
         <div className="flex gap-3 pt-4 border-t">
           <Button type="button" variant="secondary" onClick={onClose} className="flex-1" disabled={loading}>
             Cancel
           </Button>
-          <Button type="submit" disabled={loading || !paymentMethod} className="flex-1">
-            {loading ? (
+          {upiUrl && (
+            <Button type="button" onClick={() => { window.location.href = upiUrl; }} className="flex-1">
               <span className="flex items-center justify-center gap-2">
-                <Loader className="w-4 h-4 animate-spin" />
-                Processing...
-              </span>
-            ) : (
-              <span className="flex items-center justify-center gap-2">
-                Pay {formatCurrency(bill.amount)}
+                Pay Now (UPI)
                 <ArrowRight className="w-4 h-4" />
               </span>
-            )}
-          </Button>
+            </Button>
+          )}
         </div>
       </form>
     </Modal>
