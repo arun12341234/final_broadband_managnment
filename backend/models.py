@@ -55,6 +55,7 @@ class User(Base):
     payment_status = Column(String, default="Pending")  # Pending, VerifiedByCash, VerifiedByUpi
     old_pending_amount = Column(Integer, default=0)
     payment_due_date = Column(String)
+    invoice_remarks = Column(Text, nullable=True)
     
     # Status
     status = Column(String, default="Active")  # Active, Expired, Suspended, Pending Installation

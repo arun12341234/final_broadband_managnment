@@ -123,6 +123,7 @@ class BillingUpdate(BaseModel):
     old_pending_amount: int = Field(ge=0)
     payment_due_date: str
     plan_start_date: Optional[str] = None
+    remarks: Optional[str] = None
     
     @validator('payment_status')
     def validate_payment_status(cls, v):

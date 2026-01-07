@@ -13,7 +13,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def generate_invoice_pdf(user_data: dict, plan_data: dict, billing_data: dict, company_data: dict = None, output_dir: Path = None):
+def generate_invoice_pdf(user_data: dict, plan_data: dict, billing_data: dict, company_data: dict = None, output_dir: Path = None, remarks: str = ""):
     """
     Generate professional invoice PDF
 
@@ -34,6 +34,10 @@ def generate_invoice_pdf(user_data: dict, plan_data: dict, billing_data: dict, c
     output_dir.mkdir(exist_ok=True)
     
     # Generate filename
+    # Support remarks from billing_data if not passed explicitly
+    if not remarks:
+        remarks = billing_data.get("remarks", "")
+
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     invoice_number = billing_data.get("invoice_number", f"INV-{timestamp}")
     filename = f"invoice_{invoice_number}.pdf"
@@ -70,29 +74,46 @@ def generate_invoice_pdf(user_data: dict, plan_data: dict, billing_data: dict, c
     )
 
     # Company & Customer Info - use billing settings if available
+    from_content = []
+    to_content = []
+    
+    # FROM Section
+    from_content.append(Paragraph(company_name, wrap_style))
     if company_data:
-        company_address = f"{company_data.get('street', '')}"
+        company_address = company_data.get('street', '')
         company_city_state = f"{company_data.get('city', '')}, {company_data.get('state', '')}"
         company_country_pin = f"{company_data.get('country', '')} - {company_data.get('pin_code', '')}"
-        company_gstin = f"GSTIN: {company_data.get('gstin', 'N/A')}" if company_data.get('gstin') else "GSTIN: Not Registered"
-
-        info_data = [
-            [Paragraph("From:", styles['Heading4']), Paragraph("To:", styles['Heading4'])],
-            [Paragraph(company_name, wrap_style), Paragraph(user_data.get("name", ""), wrap_style)],
-            [Paragraph(company_address, wrap_style), Paragraph(user_data.get("address", ""), wrap_style)],
-            [Paragraph(company_city_state, wrap_style), Paragraph(f"Mobile: {user_data.get('mobile', '')}", wrap_style)],
-            [Paragraph(company_country_pin, wrap_style), Paragraph(f"Email: {user_data.get('email', '')}", wrap_style)],
-            [Paragraph(company_gstin, wrap_style), Paragraph("", wrap_style)],
-        ]
+        
+        if company_address: from_content.append(Paragraph(company_address, wrap_style))
+        if company_city_state: from_content.append(Paragraph(company_city_state, wrap_style))
+        if company_country_pin: from_content.append(Paragraph(company_country_pin, wrap_style))
+        if company_data.get('gstin'):
+            from_content.append(Paragraph(f"GSTIN: {company_data.get('gstin')}", wrap_style))
     else:
-        # Fallback to hardcoded values
-        info_data = [
-            ["From:", "To:"],
-            ["4You Broadband", user_data.get("name", "")],
-            ["Mumbai, Maharashtra", user_data.get("address", "")],
-            ["India - 400001", f"Mobile: {user_data.get('mobile', '')}"],
-            ["GSTIN: 27XXXXX1234X1Z5", f"Email: {user_data.get('email', '')}"],
-        ]
+        # Fallback
+        from_content.extend([
+             Paragraph("Mumbai, Maharashtra", wrap_style),
+             Paragraph("India - 400001", wrap_style),
+             Paragraph("GSTIN: 27XXXXX1234X1Z5", wrap_style)
+        ])
+
+    # TO Section
+    to_content.append(Paragraph(user_data.get("name", ""), wrap_style))
+    if user_data.get("address"):
+        to_content.append(Paragraph(user_data.get("address", ""), wrap_style))
+    
+    # Add spacing between address and contact info
+    to_content.append(Spacer(1, 2))
+    
+    if user_data.get('mobile'):
+        to_content.append(Paragraph(f"Mobile: {user_data.get('mobile', '')}", wrap_style))
+    if user_data.get('email'):
+        to_content.append(Paragraph(f"Email: {user_data.get('email', '')}", wrap_style))
+
+    info_data = [
+        [Paragraph("From:", styles['Heading4']), Paragraph("To:", styles['Heading4'])],
+        [from_content, to_content]
+    ]
     
     # Expand to full available width for better wrapping
     info_table = Table(info_data, colWidths=[doc.width * 0.5, doc.width * 0.5])
@@ -114,6 +135,15 @@ def generate_invoice_pdf(user_data: dict, plan_data: dict, billing_data: dict, c
         ["Customer ID:", user_data.get("cs_id", "")],
         ["Payment Status:", billing_data.get("payment_status", "Pending")],
     ]
+
+    right_wrap_style = ParagraphStyle(
+        'RightWrap',
+        parent=wrap_style,
+        alignment=TA_RIGHT
+    )
+
+    if remarks:
+        invoice_details.append(["Remarks:", Paragraph(remarks, right_wrap_style)])
     
     details_table = Table(invoice_details, colWidths=[doc.width * 0.35, doc.width * 0.65])
     details_table.setStyle(TableStyle([
@@ -150,13 +180,9 @@ def generate_invoice_pdf(user_data: dict, plan_data: dict, billing_data: dict, c
     
     # Calculate totals
     subtotal = plan_data.get('price', 0) + old_pending
-    gst_rate = 18
-    gst_amount = subtotal * gst_rate / 100
-    total_amount = subtotal + gst_amount
+    total_amount = subtotal # No GST
     
-    # Add subtotal and GST
-    items_data.append(["", "", "Subtotal:", f"{subtotal:,.2f}"])
-    items_data.append(["", "", f"GST ({gst_rate}%):", f"{gst_amount:,.2f}"])
+    # Add subtotal and Total
     items_data.append(["", "", "Total Amount:", f"{total_amount:,.2f}"])
     
     items_table = Table(items_data, colWidths=[doc.width * 0.08, doc.width * 0.52, doc.width * 0.2, doc.width * 0.2])
@@ -253,6 +279,9 @@ def generate_invoice_pdf(user_data: dict, plan_data: dict, billing_data: dict, c
         ('ALIGN', (1, 0), (1, -1), 'CENTER'),
     ]))
     elements.append(payment_qr_table)
+
+    # Remarks Section
+
 
     elements.append(Spacer(1, 0.1 * inch))
     

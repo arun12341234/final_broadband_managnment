@@ -62,7 +62,7 @@ def regenerate_all_invoices():
             user_id = inv.user_id
             
             # Fetch User Details using Raw SQL
-            user_query = text("SELECT name, cs_id, phone, email, address FROM users WHERE id = :uid")
+            user_query = text("SELECT name, cs_id, phone, email, address, invoice_remarks FROM users WHERE id = :uid")
             user_row = db.execute(user_query, {"uid": user_id}).first()
             
             if not user_row:
@@ -105,8 +105,32 @@ def regenerate_all_invoices():
             try:
                 # Output to backend/exports explicitly
                 output_dir = Path(__file__).parent / "exports"
-                generate_invoice_pdf(user_data, plan_data, billing_data, company_data, output_dir=output_dir)
-                logger.info(f"Regenerated: {invoice_number}")
+                user_remarks = user_row.invoice_remarks or ""
+                # Recalculate amounts
+                subtotal = inv.plan_price + inv.old_pending_amount
+                new_total = subtotal # No GST
+                
+                new_pdf_path = generate_invoice_pdf(user_data, plan_data, billing_data, company_data, output_dir=output_dir, remarks=user_remarks)
+                
+                # Update Database with new path and amounts
+                update_stmt = text("""
+                    UPDATE invoices 
+                    SET subtotal = :sub, 
+                        gst_rate = 0.0, 
+                        gst_amount = 0.0, 
+                        total_amount = :tot,
+                        pdf_filepath = :pdf
+                    WHERE invoice_number = :inum
+                """)
+                db.execute(update_stmt, {
+                    "sub": subtotal, 
+                    "tot": new_total, 
+                    "inum": invoice_number,
+                    "pdf": str(new_pdf_path)
+                })
+                db.commit()
+
+                logger.info(f"Regenerated and Updated DB: {invoice_number} -> {new_pdf_path}")
             except Exception as e:
                 logger.error(f"Failed to regenerate {invoice_number}: {e}")
 

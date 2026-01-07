@@ -705,6 +705,8 @@ async def update_user_billing(
     user.payment_status = billing_data.payment_status
     user.old_pending_amount = billing_data.old_pending_amount
     user.payment_due_date = billing_data.payment_due_date
+    if billing_data.remarks:
+        user.invoice_remarks = billing_data.remarks
     
     if billing_data.plan_start_date:
         user.plan_start_date = billing_data.plan_start_date
@@ -795,9 +797,10 @@ async def renew_user_plan(
         old_pending = user.old_pending_amount or 0
         plan_price = plan.price * renewal_data.months  # Price for multiple months
         subtotal = plan_price + old_pending
-        gst_rate = 18.0
-        gst_amount = round(subtotal * gst_rate / 100, 2)
-        total_amount = round(subtotal + gst_amount, 2)
+        subtotal = plan_price + old_pending
+        gst_rate = 0.0
+        gst_amount = 0.0
+        total_amount = subtotal # No GST
 
         # Generate unique invoice number
         invoice_number = generate_unique_invoice_number(db)
@@ -1104,7 +1107,9 @@ async def generate_invoice_for_user(
         "old_pending": user.old_pending_amount,
         "current_charges": plan.price if plan else 0,
         "total": (plan.price if plan else 0) + user.old_pending_amount,
-        "payment_status": user.payment_status
+        "total": (plan.price if plan else 0) + user.old_pending_amount,
+        "payment_status": user.payment_status,
+        "remarks": user.invoice_remarks
     }
 
     # Get billing settings for company address
@@ -1133,8 +1138,8 @@ async def generate_invoice_for_user(
         plan_price = plan.price if plan else 0
         old_pending = user.old_pending_amount
         subtotal = plan_price + old_pending
-        gst_amount = subtotal * 0.18  # 18% GST
-        total_amount = subtotal + gst_amount
+        gst_amount = 0  # GST Removed
+        total_amount = subtotal # No GST
 
         # Create billing period string (e.g., "January 2025 - February 2025")
         billing_start = today.replace(day=1)
@@ -1160,6 +1165,7 @@ async def generate_invoice_for_user(
                     "billing_period": billing_period,
                     "old_pending": old_pending,
                     "payment_status": existing_invoice.payment_status,
+                    "remarks": user.invoice_remarks,
                 }, company_data)
                 existing_invoice.pdf_filepath = str(pdf_path_existing)
                 db.commit()
@@ -1185,7 +1191,9 @@ async def generate_invoice_for_user(
             "due_date": user.payment_due_date if user.payment_due_date != "Paid" else "N/A",
             "billing_period": billing_period,
             "old_pending": old_pending,
+
             "payment_status": user.payment_status,
+            "remarks": user.invoice_remarks,
         }, company_data)
 
         new_invoice = Invoice(
@@ -1196,8 +1204,9 @@ async def generate_invoice_for_user(
             plan_price=plan_price,
             old_pending_amount=old_pending,
             subtotal=subtotal,
-            gst_rate=18.0,
-            gst_amount=gst_amount,
+
+            gst_rate=0.0,
+            gst_amount=0.0,
             total_amount=total_amount,
             payment_status=user.payment_status,
             payment_method=None,

@@ -135,11 +135,10 @@ const ConfirmDialog = ({ isOpen, onClose, onConfirm, title, message, confirmText
         <div className="fixed inset-0 bg-black opacity-60" onClick={onClose} aria-hidden="true"></div>
         <div className="relative bg-white rounded-lg shadow-2xl max-w-md w-full p-6">
           <div className="flex items-start gap-4">
-            <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${
-              variant === 'danger' ? 'bg-red-100' :
+            <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${variant === 'danger' ? 'bg-red-100' :
               variant === 'warning' ? 'bg-yellow-100' :
-              'bg-blue-100'
-            }`}>
+                'bg-blue-100'
+              }`}>
               {variant === 'danger' && <AlertTriangle className="w-6 h-6 text-red-600" />}
               {variant === 'warning' && <AlertTriangle className="w-6 h-6 text-yellow-600" />}
               {variant === 'info' && <Bell className="w-6 h-6 text-blue-600" />}
@@ -465,8 +464,8 @@ function App() {
             />
           )}
           {activeTab === 'users' && (
-            <UsersTab 
-              users={users} 
+            <UsersTab
+              users={users}
               plans={plans}
               onRefresh={fetchAllData}
               showToast={showToast}
@@ -475,7 +474,7 @@ function App() {
             />
           )}
           {activeTab === 'plans' && (
-            <PlansTab 
+            <PlansTab
               plans={plans}
               onRefresh={fetchAllData}
               showToast={showToast}
@@ -484,7 +483,7 @@ function App() {
             />
           )}
           {activeTab === 'engineers' && (
-            <EngineersTab 
+            <EngineersTab
               engineers={engineers}
               onRefresh={fetchAllData}
               showToast={showToast}
@@ -509,7 +508,7 @@ function App() {
             />
           )}
           {activeTab === 'notifications' && (
-            <NotificationsTab 
+            <NotificationsTab
               users={users}
               plans={plans}
               showToast={showToast}
@@ -692,11 +691,10 @@ const Sidebar = ({ activeTab, setActiveTab, onLogout, sidebarOpen, setSidebarOpe
             <button
               key={item.id}
               onClick={() => handleNavClick(item.id)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                activeTab === item.id
-                  ? 'bg-orange-50 text-orange-600'
-                  : 'text-gray-700 hover:bg-gray-50'
-              }`}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === item.id
+                ? 'bg-orange-50 text-orange-600'
+                : 'text-gray-700 hover:bg-gray-50'
+                }`}
             >
               <item.icon className="w-5 h-5" />
               <span className="font-medium">{item.label}</span>
@@ -848,9 +846,8 @@ const DashboardTab = ({ stats, users, plans, onRefresh, showToast, setActiveTab,
               <div className="flex-1">
                 <p className="text-sm font-medium text-gray-600">{stat.title}</p>
                 <p className="text-3xl font-bold text-gray-900 mt-2">{stat.value}</p>
-                <p className={`text-xs mt-3 flex items-center gap-1 ${
-                  stat.changeType === 'increase' ? 'text-green-600' : 'text-red-600'
-                }`}>
+                <p className={`text-xs mt-3 flex items-center gap-1 ${stat.changeType === 'increase' ? 'text-green-600' : 'text-red-600'
+                  }`}>
                   <TrendingUp className="w-3 h-3" />
                   {stat.change} from last month
                 </p>
@@ -952,7 +949,7 @@ const DashboardTab = ({ stats, users, plans, onRefresh, showToast, setActiveTab,
             View All
           </Button>
         </div>
-        
+
         {recentUsers.length === 0 ? (
           <EmptyState
             icon={Users}
@@ -994,8 +991,8 @@ const DashboardTab = ({ stats, users, plans, onRefresh, showToast, setActiveTab,
                         <div className="mt-1">
                           <Badge variant={
                             user.payment_status === 'Pending' ? 'warning' :
-                            user.payment_status === 'VerifiedByCash' ? 'success' :
-                            user.payment_status === 'VerifiedByUpi' ? 'info' : 'default'
+                              user.payment_status === 'VerifiedByCash' ? 'success' :
+                                user.payment_status === 'VerifiedByUpi' ? 'info' : 'default'
                           }>
                             {user.payment_status}
                           </Badge>
@@ -1055,8 +1052,8 @@ const DashboardTab = ({ stats, users, plans, onRefresh, showToast, setActiveTab,
                         <td className="px-6 py-4 whitespace-nowrap">
                           <Badge variant={
                             user.payment_status === 'Pending' ? 'warning' :
-                            user.payment_status === 'VerifiedByCash' ? 'success' :
-                            user.payment_status === 'VerifiedByUpi' ? 'info' : 'default'
+                              user.payment_status === 'VerifiedByCash' ? 'success' :
+                                user.payment_status === 'VerifiedByUpi' ? 'info' : 'default'
                           }>
                             {user.payment_status}
                           </Badge>
@@ -1513,22 +1510,20 @@ const RenewPlanModal = ({ user, onClose, onSuccess, showToast, openProgress, clo
           <button
             type="button"
             onClick={() => setIsReducing(false)}
-            className={`flex-1 py-2 px-4 rounded-md font-medium text-sm transition-all ${
-              !isReducing
-                ? 'bg-green-500 text-white shadow-sm'
-                : 'bg-transparent text-gray-600 hover:text-gray-900'
-            }`}
+            className={`flex-1 py-2 px-4 rounded-md font-medium text-sm transition-all ${!isReducing
+              ? 'bg-green-500 text-white shadow-sm'
+              : 'bg-transparent text-gray-600 hover:text-gray-900'
+              }`}
           >
             ➕ Extend Plan
           </button>
           <button
             type="button"
             onClick={() => setIsReducing(true)}
-            className={`flex-1 py-2 px-4 rounded-md font-medium text-sm transition-all ${
-              isReducing
-                ? 'bg-orange-500 text-white shadow-sm'
-                : 'bg-transparent text-gray-600 hover:text-gray-900'
-            }`}
+            className={`flex-1 py-2 px-4 rounded-md font-medium text-sm transition-all ${isReducing
+              ? 'bg-orange-500 text-white shadow-sm'
+              : 'bg-transparent text-gray-600 hover:text-gray-900'
+              }`}
           >
             ➖ Reduce Plan
           </button>
@@ -1566,11 +1561,10 @@ const RenewPlanModal = ({ user, onClose, onSuccess, showToast, openProgress, clo
                 key={option.value}
                 type="button"
                 onClick={() => setMonths(option.value)}
-                className={`relative p-4 rounded-lg border-2 transition-all ${
-                  months === option.value
-                    ? isReducing ? 'border-orange-500 bg-orange-50' : 'border-green-500 bg-green-50'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
+                className={`relative p-4 rounded-lg border-2 transition-all ${months === option.value
+                  ? isReducing ? 'border-orange-500 bg-orange-50' : 'border-green-500 bg-green-50'
+                  : 'border-gray-200 hover:border-gray-300'
+                  }`}
               >
                 {option.popular && !isReducing && (
                   <span className="absolute -top-2 -right-2 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full">
@@ -1578,18 +1572,16 @@ const RenewPlanModal = ({ user, onClose, onSuccess, showToast, openProgress, clo
                   </span>
                 )}
                 <div className="text-center">
-                  <div className={`text-2xl font-bold ${
-                    months === option.value
-                      ? isReducing ? 'text-orange-600' : 'text-green-600'
-                      : 'text-gray-900'
-                  }`}>
+                  <div className={`text-2xl font-bold ${months === option.value
+                    ? isReducing ? 'text-orange-600' : 'text-green-600'
+                    : 'text-gray-900'
+                    }`}>
                     {option.value}
                   </div>
-                  <div className={`text-xs ${
-                    months === option.value
-                      ? isReducing ? 'text-orange-700' : 'text-green-700'
-                      : 'text-gray-600'
-                  }`}>
+                  <div className={`text-xs ${months === option.value
+                    ? isReducing ? 'text-orange-700' : 'text-green-700'
+                    : 'text-gray-600'
+                    }`}>
                     {option.value === 1 ? 'Month' : 'Months'}
                   </div>
                 </div>
@@ -1599,11 +1591,10 @@ const RenewPlanModal = ({ user, onClose, onSuccess, showToast, openProgress, clo
         </div>
 
         {/* New Expiry Date Preview */}
-        <div className={`${
-          isReducing
-            ? 'bg-orange-50 border-orange-200'
-            : 'bg-green-50 border-green-200'
-        } border p-4 rounded-lg`}>
+        <div className={`${isReducing
+          ? 'bg-orange-50 border-orange-200'
+          : 'bg-green-50 border-green-200'
+          } border p-4 rounded-lg`}>
           <div className="flex items-center gap-2 mb-2">
             <Calendar className={`w-5 h-5 ${isReducing ? 'text-orange-600' : 'text-green-600'}`} />
             <h4 className={`font-medium ${isReducing ? 'text-orange-900' : 'text-green-900'}`}>
@@ -1619,11 +1610,10 @@ const RenewPlanModal = ({ user, onClose, onSuccess, showToast, openProgress, clo
         </div>
 
         {/* Info / Warning */}
-        <div className={`${
-          isReducing
-            ? 'bg-yellow-50 border-yellow-200'
-            : 'bg-blue-50 border-blue-200'
-        } border p-3 rounded-lg`}>
+        <div className={`${isReducing
+          ? 'bg-yellow-50 border-yellow-200'
+          : 'bg-blue-50 border-blue-200'
+          } border p-3 rounded-lg`}>
           <div className="flex gap-2">
             <Info className={`w-5 h-5 ${isReducing ? 'text-yellow-600' : 'text-blue-600'} flex-shrink-0`} />
             <div className={`text-xs ${isReducing ? 'text-yellow-800' : 'text-blue-800'}`}>
@@ -2109,100 +2099,100 @@ const UsersTab = ({ users, plans, onRefresh, showToast, openProgress, closeProgr
         {/* Mobile Card View */}
         <div className="md:hidden space-y-4">
           {paginatedUsers.map((user) => {
-                const plan = plans.find(p => p.id === user.broadband_plan_id);
-                return (
-                  <div key={user.id} className="bg-white border border-gray-200 rounded-lg p-4">
-                    {/* User Header */}
-                    <div className="flex items-center justify-between mb-3 pb-3 border-b border-gray-100">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
-                          <Users className="w-5 h-5 text-orange-600" />
-                        </div>
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">{user.name}</div>
-                          <div className="text-xs text-gray-500">{user.cs_id}</div>
-                        </div>
-                      </div>
-                      <Badge variant={user.is_plan_active ? 'success' : 'danger'}>
-                        {user.status}
-                      </Badge>
+            const plan = plans.find(p => p.id === user.broadband_plan_id);
+            return (
+              <div key={user.id} className="bg-white border border-gray-200 rounded-lg p-4">
+                {/* User Header */}
+                <div className="flex items-center justify-between mb-3 pb-3 border-b border-gray-100">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      <Users className="w-5 h-5 text-orange-600" />
                     </div>
-
-                    {/* User Details Grid */}
-                    <div className="grid grid-cols-2 gap-3 mb-3 text-sm">
-                      <div>
-                        <span className="text-gray-600 flex items-center gap-1">
-                          <Phone className="w-3 h-3" /> Phone:
-                        </span>
-                        <p className="font-medium text-gray-900">{user.phone}</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Plan:</span>
-                        <p className="font-medium text-gray-900">{plan ? plan.name : 'No Plan'}</p>
-                      </div>
-                      <div className="col-span-2">
-                        <span className="text-gray-600 flex items-center gap-1">
-                          <Mail className="w-3 h-3" /> Email:
-                        </span>
-                        <p className="font-medium text-gray-900 text-xs truncate">{user.email}</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Expires:</span>
-                        <p className="font-medium text-gray-900 text-xs">{user.plan_expiry_date}</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Payment:</span>
-                        <div className="mt-1">
-                          {getPaymentStatusBadge(user.payment_status)}
-                        </div>
-                      </div>
-                      {user.old_pending_amount > 0 && (
-                        <div className="col-span-2">
-                          <p className="text-xs text-red-600 font-medium">
-                            Pending: ₹{user.old_pending_amount} (Due: {user.payment_due_date})
-                          </p>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="flex gap-2 pt-3 border-t border-gray-100">
-                      <button
-                        onClick={() => handleBilling(user)}
-                        className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-xs bg-orange-50 text-orange-600 rounded-lg hover:bg-orange-100"
-                        title="Billing"
-                      >
-                        <CreditCard className="w-4 h-4" />
-                        <span>Bill</span>
-                      </button>
-                      <button
-                        onClick={() => handleEditUser(user)}
-                        className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-xs bg-orange-50 text-orange-600 rounded-lg hover:bg-orange-100"
-                        title="Edit"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                        <span>Edit</span>
-                      </button>
-                      <button
-                        onClick={() => handleRenewPlan(user)}
-                        className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-xs bg-orange-50 text-orange-600 rounded-lg hover:bg-orange-100"
-                        title="Renew"
-                      >
-                        <RefreshCw className="w-4 h-4" />
-                        <span>Renew</span>
-                      </button>
-                      <button
-                        onClick={() => handleDeleteClickUser(user)}
-                        className="flex items-center justify-center px-3 py-2 text-xs bg-red-50 text-red-600 rounded-lg hover:bg-red-100"
-                        title="Delete"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">{user.name}</div>
+                      <div className="text-xs text-gray-500">{user.cs_id}</div>
                     </div>
                   </div>
-                );
-              })}
-            </div>
+                  <Badge variant={user.is_plan_active ? 'success' : 'danger'}>
+                    {user.status}
+                  </Badge>
+                </div>
+
+                {/* User Details Grid */}
+                <div className="grid grid-cols-2 gap-3 mb-3 text-sm">
+                  <div>
+                    <span className="text-gray-600 flex items-center gap-1">
+                      <Phone className="w-3 h-3" /> Phone:
+                    </span>
+                    <p className="font-medium text-gray-900">{user.phone}</p>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Plan:</span>
+                    <p className="font-medium text-gray-900">{plan ? plan.name : 'No Plan'}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-gray-600 flex items-center gap-1">
+                      <Mail className="w-3 h-3" /> Email:
+                    </span>
+                    <p className="font-medium text-gray-900 text-xs truncate">{user.email}</p>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Expires:</span>
+                    <p className="font-medium text-gray-900 text-xs">{user.plan_expiry_date}</p>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Payment:</span>
+                    <div className="mt-1">
+                      {getPaymentStatusBadge(user.payment_status)}
+                    </div>
+                  </div>
+                  {user.old_pending_amount > 0 && (
+                    <div className="col-span-2">
+                      <p className="text-xs text-red-600 font-medium">
+                        Pending: ₹{user.old_pending_amount} (Due: {user.payment_due_date})
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-2 pt-3 border-t border-gray-100">
+                  <button
+                    onClick={() => handleBilling(user)}
+                    className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-xs bg-orange-50 text-orange-600 rounded-lg hover:bg-orange-100"
+                    title="Billing"
+                  >
+                    <CreditCard className="w-4 h-4" />
+                    <span>Bill</span>
+                  </button>
+                  <button
+                    onClick={() => handleEditUser(user)}
+                    className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-xs bg-orange-50 text-orange-600 rounded-lg hover:bg-orange-100"
+                    title="Edit"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                    <span>Edit</span>
+                  </button>
+                  <button
+                    onClick={() => handleRenewPlan(user)}
+                    className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-xs bg-orange-50 text-orange-600 rounded-lg hover:bg-orange-100"
+                    title="Renew"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    <span>Renew</span>
+                  </button>
+                  <button
+                    onClick={() => handleDeleteClickUser(user)}
+                    className="flex items-center justify-center px-3 py-2 text-xs bg-red-50 text-red-600 rounded-lg hover:bg-red-100"
+                    title="Delete"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
 
         {/* Pagination */}
         {totalPages > 1 && (
@@ -3198,7 +3188,7 @@ const EditBillingHistoryModal = ({ record, plans, onClose, onSuccess, showToast,
     setFormData(prev => ({
       ...prev,
       [name]: name.includes('amount') ? (value === '' ? 0 : parseFloat(value))
-            : (name.includes('plan_id') ? (value === '' ? '' : Number(value)) : value)
+        : (name.includes('plan_id') ? (value === '' ? '' : Number(value)) : value)
     }));
   };
 
@@ -3260,7 +3250,7 @@ const EditBillingHistoryModal = ({ record, plans, onClose, onSuccess, showToast,
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Payment Status Section */}
-            <div className="md:col-span-2 bg-gray-50 p-4 rounded-lg">
+          <div className="md:col-span-2 bg-gray-50 p-4 rounded-lg">
             <h5 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
               <ChevronRight className="w-4 h-4 text-orange-600" />
               Payment Status Change
@@ -3466,7 +3456,8 @@ const BillingModal = ({ user, plans, onClose, onSuccess, showToast, openProgress
     payment_status: user.payment_status || 'Pending',
     old_pending_amount: Number(user.old_pending_amount || 0),
     payment_due_date: user.payment_due_date || '',
-    plan_start_date: user.plan_start_date || ''
+    plan_start_date: user.plan_start_date || '',
+    remarks: user.invoice_remarks || ''
   });
   const [loading, setLoading] = useState(false);
   const [userBillingHistory, setUserBillingHistory] = useState([]);
@@ -3500,8 +3491,8 @@ const BillingModal = ({ user, plans, onClose, onSuccess, showToast, openProgress
     setFormData(prev => ({
       ...prev,
       [name]: name === 'broadband_plan_id' ? Number(value)
-              : name === 'old_pending_amount' ? (value === '' ? 0 : parseFloat(value))
-              : value
+        : name === 'old_pending_amount' ? (value === '' ? 0 : parseFloat(value))
+          : value
     }));
   };
 
@@ -3714,135 +3705,150 @@ const BillingModal = ({ user, plans, onClose, onSuccess, showToast, openProgress
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Plan Selection */}
               <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Broadband Plan
-            </label>
-            <select
-              name="broadband_plan_id"
-              value={formData.broadband_plan_id}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-              required
-            >
-              {plans.map((plan) => (
-                <option key={plan.id} value={plan.id}>
-                  {plan.name} - ₹{plan.price}/month ({plan.speed} - {plan.data_limit})
-                </option>
-              ))}
-            </select>
-          </div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Broadband Plan
+                </label>
+                <select
+                  name="broadband_plan_id"
+                  value={formData.broadband_plan_id}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  required
+                >
+                  {plans.map((plan) => (
+                    <option key={plan.id} value={plan.id}>
+                      {plan.name} - ₹{plan.price}/month ({plan.speed} - {plan.data_limit})
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-          {/* Payment Status */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Payment Status
-            </label>
-            <select
-              name="payment_status"
-              value={formData.payment_status}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-              required
-            >
-              <option value="Pending">Pending</option>
-              <option value="VerifiedByCash">Verified By Cash</option>
-              <option value="VerifiedByUpi">Verified By UPI</option>
-            </select>
-            <p className="text-xs text-gray-500 mt-1">
-              {formData.payment_status === 'Pending' && '⏳ Customer has not paid yet'}
-              {formData.payment_status === 'VerifiedByCash' && '💵 Cash payment received'}
-              {formData.payment_status === 'VerifiedByUpi' && '💳 Online payment received'}
-            </p>
-          </div>
+              {/* Payment Status */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Payment Status
+                </label>
+                <select
+                  name="payment_status"
+                  value={formData.payment_status}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  required
+                >
+                  <option value="Pending">Pending</option>
+                  <option value="VerifiedByCash">Verified By Cash</option>
+                  <option value="VerifiedByUpi">Verified By UPI</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  {formData.payment_status === 'Pending' && '⏳ Customer has not paid yet'}
+                  {formData.payment_status === 'VerifiedByCash' && '💵 Cash payment received'}
+                  {formData.payment_status === 'VerifiedByUpi' && '💳 Online payment received'}
+                </p>
+              </div>
 
-          {/* Old Pending Amount */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Old Pending Amount (₹)
-            </label>
-            <input
-              type="number"
-              name="old_pending_amount"
-              value={formData.old_pending_amount}
-              onChange={handleChange}
-              min="0"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-              required
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Previous outstanding balance
-            </p>
-          </div>
+              {/* Old Pending Amount */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Old Pending Amount (₹)
+                </label>
+                <input
+                  type="number"
+                  name="old_pending_amount"
+                  value={formData.old_pending_amount}
+                  onChange={handleChange}
+                  min="0"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  required
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Previous outstanding balance
+                </p>
+              </div>
 
-          {/* Payment Due Date */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Payment Due Date
-            </label>
-            <input
-              type="date"
-              name="payment_due_date"
-              value={formData.payment_due_date}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-              required
-            />
-          </div>
+              {/* Payment Due Date */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Payment Due Date
+                </label>
+                <input
+                  type="date"
+                  name="payment_due_date"
+                  value={formData.payment_due_date}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  required
+                />
+              </div>
 
-          {/* Plan Start Date */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Plan Start Date
-            </label>
-            <input
-              type="date"
-              name="plan_start_date"
-              value={formData.plan_start_date}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-            />
-          </div>
-        </div>
+              {/* Plan Start Date */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Plan Start Date
+                </label>
+                <input
+                  type="date"
+                  name="plan_start_date"
+                  value={formData.plan_start_date}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+              </div>
 
-        {/* Total Calculation */}
-        <div className="bg-orange-50 border border-orange-200 p-4 rounded-lg">
-          <h4 className="font-medium text-orange-900 mb-3">Bill Summary</h4>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-orange-700">Plan Price:</span>
-              <span className="font-medium text-orange-900">
-                ₹{selectedPlan ? selectedPlan.price.toLocaleString() : 0}
-              </span>
+              {/* Remarks */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Remarks <span className="text-gray-500 text-xs">(Visible on invoice)</span>
+                </label>
+                <input
+                  type="text"
+                  name="remarks"
+                  value={formData.remarks}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="e.g. Payment adjust for downtime"
+                />
+              </div>
             </div>
-            <div className="flex justify-between">
-              <span className="text-orange-700">Old Pending:</span>
-              <span className="font-medium text-orange-900">
-                ₹{Math.max(0, parseFloat(formData.old_pending_amount) || 0).toLocaleString()}
-              </span>
-            </div>
-            <div className="border-t border-orange-300 pt-2 flex justify-between text-base">
-              <span className="font-semibold text-orange-900">Total Due:</span>
-              <span className="font-bold text-orange-900">
-                ₹{totalDue.toLocaleString()}
-              </span>
-            </div>
-          </div>
-        </div>
 
-        {/* Info Box */}
-        <div className="bg-orange-50 border border-orange-200 p-4 rounded-lg">
-          <div className="flex gap-3">
-            <Info className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
-            <div className="text-sm text-orange-800">
-              <p className="font-medium mb-1">Billing Status Guide:</p>
-              <ul className="space-y-1 text-xs">
-                <li>• <strong>Pending:</strong> Customer hasn't paid yet (will receive reminders)</li>
-                <li>• <strong>VerifiedByCash:</strong> Cash received at office/from engineer</li>
-                <li>• <strong>VerifiedByUpi:</strong> Online payment verified (UPI/Card/Net Banking)</li>
-              </ul>
+            {/* Total Calculation */}
+            <div className="bg-orange-50 border border-orange-200 p-4 rounded-lg">
+              <h4 className="font-medium text-orange-900 mb-3">Bill Summary</h4>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-orange-700">Plan Price:</span>
+                  <span className="font-medium text-orange-900">
+                    ₹{selectedPlan ? selectedPlan.price.toLocaleString() : 0}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-orange-700">Old Pending:</span>
+                  <span className="font-medium text-orange-900">
+                    ₹{Math.max(0, parseFloat(formData.old_pending_amount) || 0).toLocaleString()}
+                  </span>
+                </div>
+                <div className="border-t border-orange-300 pt-2 flex justify-between text-base">
+                  <span className="font-semibold text-orange-900">Total Due:</span>
+                  <span className="font-bold text-orange-900">
+                    ₹{totalDue.toLocaleString()}
+                  </span>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+
+            {/* Info Box */}
+            <div className="bg-orange-50 border border-orange-200 p-4 rounded-lg">
+              <div className="flex gap-3">
+                <Info className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
+                <div className="text-sm text-orange-800">
+                  <p className="font-medium mb-1">Billing Status Guide:</p>
+                  <ul className="space-y-1 text-xs">
+                    <li>• <strong>Pending:</strong> Customer hasn't paid yet (will receive reminders)</li>
+                    <li>• <strong>VerifiedByCash:</strong> Cash received at office/from engineer</li>
+                    <li>• <strong>VerifiedByUpi:</strong> Online payment verified (UPI/Card/Net Banking)</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
 
             {/* Actions */}
             <div className="flex justify-end gap-3 pt-4 border-t">
@@ -4698,11 +4704,10 @@ const EngineersTab = ({ engineers, onRefresh, showToast, openProgress, closeProg
                         <button
                           key={page}
                           onClick={() => setCurrentPage(page)}
-                          className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-                            currentPage === page
-                              ? 'bg-orange-600 text-white'
-                              : 'text-gray-700 hover:bg-gray-100'
-                          }`}
+                          className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${currentPage === page
+                            ? 'bg-orange-600 text-white'
+                            : 'text-gray-700 hover:bg-gray-100'
+                            }`}
                         >
                           {page}
                         </button>
@@ -5597,7 +5602,7 @@ const BillingTab = ({ billingHistory, users, plans, onRefresh, showToast, openPr
                       </div>
                       <Badge variant={
                         record.change_type === 'payment_verification' ? 'info' :
-                        record.change_type === 'plan_change' ? 'warning' : 'default'
+                          record.change_type === 'plan_change' ? 'warning' : 'default'
                       }>
                         {getChangeTypeLabel(record.change_type)}
                       </Badge>
@@ -5739,7 +5744,7 @@ const BillingTab = ({ billingHistory, users, plans, onRefresh, showToast, openPr
                         <td className="px-6 py-4 whitespace-nowrap">
                           <Badge variant={
                             record.change_type === 'payment_verification' ? 'info' :
-                            record.change_type === 'plan_change' ? 'warning' : 'default'
+                              record.change_type === 'plan_change' ? 'warning' : 'default'
                           }>
                             {getChangeTypeLabel(record.change_type)}
                           </Badge>
@@ -5801,7 +5806,7 @@ const BillingTab = ({ billingHistory, users, plans, onRefresh, showToast, openPr
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">{record.admin_email}</div>
                         </td>
-                        
+
                       </tr>
                     );
                   })}
@@ -5911,8 +5916,8 @@ const NotificationsTab = ({ users, plans, showToast, openProgress, closeProgress
               <p className="text-sm text-gray-600">Send payment reminders to all pending users</p>
             </div>
           </div>
-          <Button 
-            onClick={handleSendAllNotifications} 
+          <Button
+            onClick={handleSendAllNotifications}
             disabled={loading}
             className="w-full"
           >
@@ -5940,8 +5945,8 @@ const NotificationsTab = ({ users, plans, showToast, openProgress, closeProgress
               <p className="text-sm text-gray-600">Update status for all expired plans</p>
             </div>
           </div>
-          <Button 
-            onClick={handleCheckExpiredPlans} 
+          <Button
+            onClick={handleCheckExpiredPlans}
             disabled={loading}
             variant="danger"
             className="w-full"
@@ -6090,7 +6095,7 @@ const SettingsTab = ({ showToast }) => {
       const response = await api.get('/api/export/users', {
         responseType: 'blob'
       });
-      
+
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -6098,7 +6103,7 @@ const SettingsTab = ({ showToast }) => {
       document.body.appendChild(link);
       link.click();
       link.remove();
-      
+
       showToast('Users exported successfully', 'success');
     } catch (error) {
       showToast('Failed to export users', 'error');
@@ -6123,8 +6128,8 @@ const SettingsTab = ({ showToast }) => {
               <p className="text-sm text-gray-600">Test email notification system</p>
             </div>
           </div>
-          <Button 
-            onClick={handleTestEmail} 
+          <Button
+            onClick={handleTestEmail}
             disabled={emailLoading}
             variant="outline"
           >
@@ -6153,8 +6158,8 @@ const SettingsTab = ({ showToast }) => {
               <p className="text-sm text-gray-600">Test WhatsApp notification system</p>
             </div>
           </div>
-          <Button 
-            onClick={handleTestWhatsApp} 
+          <Button
+            onClick={handleTestWhatsApp}
             disabled={whatsappLoading}
             variant="outline"
           >
@@ -6453,9 +6458,8 @@ const AddressBillingTab = ({ showToast }) => {
           value={formData[field]}
           onChange={(e) => handleInputChange(field, e.target.value)}
           placeholder={placeholder}
-          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
-            errors[field] ? 'border-red-500' : 'border-gray-300'
-          }`}
+          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent ${errors[field] ? 'border-red-500' : 'border-gray-300'
+            }`}
           rows={3}
         />
       ) : (
@@ -6464,9 +6468,8 @@ const AddressBillingTab = ({ showToast }) => {
           value={formData[field]}
           onChange={(e) => handleInputChange(field, e.target.value)}
           placeholder={placeholder}
-          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
-            errors[field] ? 'border-red-500' : 'border-gray-300'
-          }`}
+          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent ${errors[field] ? 'border-red-500' : 'border-gray-300'
+            }`}
         />
       )}
       {errors[field] && (
@@ -6602,17 +6605,15 @@ const AddressBillingTab = ({ showToast }) => {
           {stepperSteps.map((step, index) => (
             <React.Fragment key={index}>
               <div className="flex flex-col items-center">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${
-                  index <= currentStep ? 'bg-orange-600 text-white' : 'bg-gray-200 text-gray-500'
-                }`}>
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${index <= currentStep ? 'bg-orange-600 text-white' : 'bg-gray-200 text-gray-500'
+                  }`}>
                   {index + 1}
                 </div>
                 <span className="text-xs mt-2 text-gray-600">{step.title}</span>
               </div>
               {index < stepperSteps.length - 1 && (
-                <div className={`flex-1 h-1 mx-2 ${
-                  index < currentStep ? 'bg-orange-600' : 'bg-gray-200'
-                }`} />
+                <div className={`flex-1 h-1 mx-2 ${index < currentStep ? 'bg-orange-600' : 'bg-gray-200'
+                  }`} />
               )}
             </React.Fragment>
           ))}
@@ -6891,9 +6892,8 @@ const AddressBillingTab = ({ showToast }) => {
           <button
             type="button"
             onClick={() => setUiLayout('card')}
-            className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
-              uiLayout === 'card' ? 'bg-white text-orange-600 shadow' : 'text-gray-600 hover:text-gray-900'
-            }`}
+            className={`px-3 py-2 rounded text-sm font-medium transition-colors ${uiLayout === 'card' ? 'bg-white text-orange-600 shadow' : 'text-gray-600 hover:text-gray-900'
+              }`}
             title="Card Layout"
           >
             Card
@@ -6901,9 +6901,8 @@ const AddressBillingTab = ({ showToast }) => {
           <button
             type="button"
             onClick={() => setUiLayout('stepper')}
-            className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
-              uiLayout === 'stepper' ? 'bg-white text-orange-600 shadow' : 'text-gray-600 hover:text-gray-900'
-            }`}
+            className={`px-3 py-2 rounded text-sm font-medium transition-colors ${uiLayout === 'stepper' ? 'bg-white text-orange-600 shadow' : 'text-gray-600 hover:text-gray-900'
+              }`}
             title="Stepper Wizard"
           >
             Stepper
@@ -6911,9 +6910,8 @@ const AddressBillingTab = ({ showToast }) => {
           <button
             type="button"
             onClick={() => setUiLayout('fullwidth')}
-            className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
-              uiLayout === 'fullwidth' ? 'bg-white text-orange-600 shadow' : 'text-gray-600 hover:text-gray-900'
-            }`}
+            className={`px-3 py-2 rounded text-sm font-medium transition-colors ${uiLayout === 'fullwidth' ? 'bg-white text-orange-600 shadow' : 'text-gray-600 hover:text-gray-900'
+              }`}
             title="Full Width"
           >
             Full
@@ -6921,9 +6919,8 @@ const AddressBillingTab = ({ showToast }) => {
           <button
             type="button"
             onClick={() => setUiLayout('compact')}
-            className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
-              uiLayout === 'compact' ? 'bg-white text-orange-600 shadow' : 'text-gray-600 hover:text-gray-900'
-            }`}
+            className={`px-3 py-2 rounded text-sm font-medium transition-colors ${uiLayout === 'compact' ? 'bg-white text-orange-600 shadow' : 'text-gray-600 hover:text-gray-900'
+              }`}
             title="Compact Sidebar"
           >
             Compact
