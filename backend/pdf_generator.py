@@ -40,7 +40,7 @@ def generate_invoice_pdf(user_data: dict, plan_data: dict, billing_data: dict, c
     filepath = output_dir / filename
     
     # Create PDF
-    doc = SimpleDocTemplate(str(filepath), pagesize=A4)
+    doc = SimpleDocTemplate(str(filepath), pagesize=A4, topMargin=0.4*inch, bottomMargin=0.4*inch, leftMargin=0.5*inch, rightMargin=0.5*inch)
     elements = []
     
     # Styles
@@ -48,9 +48,9 @@ def generate_invoice_pdf(user_data: dict, plan_data: dict, billing_data: dict, c
     title_style = ParagraphStyle(
         'CustomTitle',
         parent=styles['Heading1'],
-        fontSize=24,
+        fontSize=18,
         textColor=colors.HexColor('#F97316'),
-        spaceAfter=30,
+        spaceAfter=15,
         alignment=TA_CENTER
     )
     
@@ -58,7 +58,7 @@ def generate_invoice_pdf(user_data: dict, plan_data: dict, billing_data: dict, c
     company_name = "4You Broadband"
     elements.append(Paragraph(company_name, title_style))
     elements.append(Paragraph("TAX INVOICE", styles['Heading2']))
-    elements.append(Spacer(1, 0.3 * inch))
+    elements.append(Spacer(1, 0.1 * inch))
 
     # Common wrapping style to avoid cutting long addresses
     wrap_style = ParagraphStyle(
@@ -104,7 +104,7 @@ def generate_invoice_pdf(user_data: dict, plan_data: dict, billing_data: dict, c
     ]))
     
     elements.append(info_table)
-    elements.append(Spacer(1, 0.3 * inch))
+    elements.append(Spacer(1, 0.1 * inch))
     
     # Invoice Details
     invoice_details = [
@@ -123,7 +123,7 @@ def generate_invoice_pdf(user_data: dict, plan_data: dict, billing_data: dict, c
     ]))
     
     elements.append(details_table)
-    elements.append(Spacer(1, 0.3 * inch))
+    elements.append(Spacer(1, 0.1 * inch))
     
     # Items Table
     items_data = [
@@ -184,7 +184,7 @@ def generate_invoice_pdf(user_data: dict, plan_data: dict, billing_data: dict, c
     ]))
     
     elements.append(items_table)
-    elements.append(Spacer(1, 0.5 * inch))
+    elements.append(Spacer(1, 0.2 * inch))
     
     # Payment Information - use company data if available
     upi_id = company_data.get('upi_id', '4youbroadband@upi') if company_data and company_data.get('upi_id') else '4youbroadband@upi'
@@ -198,10 +198,9 @@ def generate_invoice_pdf(user_data: dict, plan_data: dict, billing_data: dict, c
         "Bank: HDFC Bank, Mumbai",
         styles['Normal']
     )
-    elements.append(payment_info)
-    elements.append(Spacer(1, 0.3 * inch))
 
     # Generate QR Code for UPI payment
+    qr_flowables = []
     try:
         # Build UPI link with optional tn (invoice number) using urlencode for safety
         from urllib.parse import urlencode
@@ -239,13 +238,23 @@ def generate_invoice_pdf(user_data: dict, plan_data: dict, billing_data: dict, c
         qr_img.save(img_buffer, format='PNG')
         img_buffer.seek(0)
         
-        qr_image = Image(img_buffer, width=1.5*inch, height=1.5*inch)
-        elements.append(qr_image)
-        elements.append(Paragraph("Scan to Pay via UPI", styles['Normal']))
+        qr_image = Image(img_buffer, width=1.2*inch, height=1.2*inch)
+        qr_flowables.append(qr_image)
+        qr_flowables.append(Paragraph("Scan to Pay via UPI", ParagraphStyle('SmallCenter', parent=styles['Normal'], fontSize=8, alignment=TA_CENTER)))
     except Exception as e:
         logger.warning(f"⚠️  QR code generation failed: {str(e)}")
     
-    elements.append(Spacer(1, 0.3 * inch))
+    # Side-by-side layout for Payment Info and QR
+    payment_qr_table = Table([[payment_info, qr_flowables]], colWidths=[doc.width * 0.7, doc.width * 0.3])
+    payment_qr_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+        ('ALIGN', (1, 0), (1, -1), 'CENTER'),
+    ]))
+    elements.append(payment_qr_table)
+
+    elements.append(Spacer(1, 0.1 * inch))
     
     # Footer
     footer_text = Paragraph(
