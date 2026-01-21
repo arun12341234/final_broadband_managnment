@@ -131,6 +131,7 @@ class BillingUpdate(BaseModel):
     remarks: Optional[str] = None
     extra_items: Optional[List[BillingItem]] = None
     amount_paid: Optional[float] = 0
+    include_plan_charges: Optional[bool] = False
     
     @validator('payment_status')
     def validate_payment_status(cls, v):

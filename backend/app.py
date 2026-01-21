@@ -730,8 +730,33 @@ async def update_user_billing(
     
     # Start: Calculate total_due for record keeping
     # We use the previous old_pending, plus the items being added now.
-    # (Assuming the "items" are what caused the change aside from payment)
+    
+    # Check if plan charges should be included
+    # If yes, we add it as an explicit item so it shows up in history/PDF list nicely
+    # effectively merging "plan charge" into "extra items" for display purposes
+    from schemas import BillingItem # Ensure imported
+    
+    if billing_data.include_plan_charges:
+        if billing_data.extra_items is None:
+            billing_data.extra_items = []
+        
+        # Add Plan Charge to the START of the list
+        plan_item = BillingItem(
+            description=f"Plan Charges: {new_plan.name if new_plan else 'Current Plan'}",
+            amount=current_plan_price
+        )
+        billing_data.extra_items.insert(0, plan_item)
+    
+    # Recalculate extras total with plan included
+    extra_items_total = sum(item.amount for item in billing_data.extra_items) if billing_data.extra_items else 0
+    
+    # Total Due = Old Pending + All Extras (which now includes plan)
     total_due_calc = old_pending + extra_items_total
+    
+    # Process extra items for history
+    extra_items_json = None
+    if billing_data.extra_items:
+        extra_items_json = json.dumps([item.dict() for item in billing_data.extra_items])
     
     billing_record = BillingHistory(
         user_id=user_id,
@@ -739,7 +764,7 @@ async def update_user_billing(
         previous_payment_status=old_payment_status,
         new_payment_status=billing_data.payment_status,
         previous_old_pending_amount=old_pending,
-        new_old_pending_amount=billing_data.old_pending_amount,
+        new_old_pending_amount=billing_data.old_pending_amount, # Carry forward from frontend
         previous_payment_due_date=old_due_date,
         new_payment_due_date=billing_data.payment_due_date,
         previous_plan_id=old_plan.id if old_plan else None,
@@ -772,11 +797,16 @@ async def update_user_billing(
             "address": user.address or ""
         }
         
+        # If plan charges NOT included, show price as 0 in PDF for clarity
+        # Or better yet, we might want to hide it, but structure expects it.
+        # Let's set price to 0 if not included.
+        pdf_plan_price = current_plan_price if billing_data.include_plan_charges else 0
+        
         plan_data = {
             "name": new_plan.name if new_plan else (old_plan.name if old_plan else "Custom"),
             "speed": new_plan.speed if new_plan else "",
             "data_limit": new_plan.data_limit if new_plan else "",
-            "price": current_plan_price # Use plan price if set, or 0
+            "price": pdf_plan_price 
         }
         
         # Determine billing period (e.g. Current Month)

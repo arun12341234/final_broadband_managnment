@@ -3454,7 +3454,8 @@ const BillingModal = ({ user, plans, onClose, onSuccess, showToast, openProgress
   // Additional Items State
   const [additionalItems, setAdditionalItems] = useState([]);
   const [amountPaid, setAmountPaid] = useState('');
-  
+  const [includePlanCharges, setIncludePlanCharges] = useState(true);
+
   const [formData, setFormData] = useState({
     broadband_plan_id: user.broadband_plan_id,
     payment_status: user.payment_status || 'Pending',
@@ -3469,6 +3470,11 @@ const BillingModal = ({ user, plans, onClose, onSuccess, showToast, openProgress
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [showHistorySection, setShowHistorySection] = useState(false);
   const [editingHistoryRecord, setEditingHistoryRecord] = useState(null);
+
+  // Fetch billing history for this user
+  useEffect(() => {
+    fetchUserBillingHistory();
+  }, [user.id]);
 
   // Fetch billing history for this user
   useEffect(() => {
@@ -3522,10 +3528,16 @@ const BillingModal = ({ user, plans, onClose, onSuccess, showToast, openProgress
   const selectedPlan = plans.find(p => p.id === formData.broadband_plan_id);
   // Base pending from DB (fixed starting point)
   const basePending = parseFloat(user.old_pending_amount || 0);
+
+  // Plan Amount
+  const planAmount = (includePlanCharges && selectedPlan) ? selectedPlan.price : 0;
+
   // Sum of extra items
   const extraItemsTotal = additionalItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
-  // Total Due NOW (Base + Extra)
-  const totalDueNow = basePending + extraItemsTotal;
+
+  // Total Due NOW (Base + Plan + Extra)
+  const totalDueNow = basePending + planAmount + extraItemsTotal;
+
   // Carry Forward (New Pending) = Total Due - Paid
   const paidAmountVal = parseFloat(amountPaid) || 0;
   const carryForward = Math.max(0, totalDueNow - paidAmountVal);
@@ -3536,12 +3548,13 @@ const BillingModal = ({ user, plans, onClose, onSuccess, showToast, openProgress
 
     try {
       openProgress('Updating Billing', 'Applying billing changes...');
-      
+
       const payload = {
         ...formData,
         old_pending_amount: carryForward, // Send the calculated carry forward as new pending
         extra_items: additionalItems.filter(item => item.description && item.amount !== ''),
-        amount_paid: paidAmountVal
+        amount_paid: paidAmountVal,
+        include_plan_charges: includePlanCharges // Send this flag to backend
       };
 
       await api.put(`/api/users/${user.id}/billing`, payload);
@@ -3556,6 +3569,8 @@ const BillingModal = ({ user, plans, onClose, onSuccess, showToast, openProgress
       setLoading(false);
     }
   };
+
+
 
   const handleEditHistoryRecord = (record) => {
     setEditingHistoryRecord(record);
@@ -3668,32 +3683,32 @@ const BillingModal = ({ user, plans, onClose, onSuccess, showToast, openProgress
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                         {/* Extra Items Breakdown */}
                         {record.extra_items && (
-                           <div className="md:col-span-2 bg-blue-50 p-2 rounded border border-blue-100 mb-2">
-                             <span className="text-blue-800 text-xs font-bold block mb-1">Additional Items:</span>
-                             <ul className="list-disc pl-4 space-y-0.5">
-                               {(() => {
-                                 try {
-                                   const items = JSON.parse(record.extra_items);
-                                   return items.map((item, i) => (
-                                     <li key={i} className="text-xs text-blue-700">
-                                       {item.description}: ₹{item.amount}
-                                     </li>
-                                   ));
-                                 } catch (e) { return <li className="text-xs text-red-500">Error parsing items</li>; }
-                               })()}
-                             </ul>
-                           </div>
+                          <div className="md:col-span-2 bg-blue-50 p-2 rounded border border-blue-100 mb-2">
+                            <span className="text-blue-800 text-xs font-bold block mb-1">Additional Items:</span>
+                            <ul className="list-disc pl-4 space-y-0.5">
+                              {(() => {
+                                try {
+                                  const items = JSON.parse(record.extra_items);
+                                  return items.map((item, i) => (
+                                    <li key={i} className="text-xs text-blue-700">
+                                      {item.description}: ₹{item.amount}
+                                    </li>
+                                  ));
+                                } catch (e) { return <li className="text-xs text-red-500">Error parsing items</li>; }
+                              })()}
+                            </ul>
+                          </div>
                         )}
 
                         {/* Payment & Due Details */}
                         <div className="bg-gray-50 p-2 rounded">
                           <div className="flex justify-between items-center mb-1">
-                             <span className="text-gray-600 text-xs font-medium">Amount Paid:</span>
-                             <span className="text-xs font-bold text-green-600">₹{record.amount_paid || 0}</span>
+                            <span className="text-gray-600 text-xs font-medium">Amount Paid:</span>
+                            <span className="text-xs font-bold text-green-600">₹{record.amount_paid || 0}</span>
                           </div>
                           <div className="flex justify-between items-center">
-                             <span className="text-gray-600 text-xs font-medium">Total Due (at time):</span>
-                             <span className="text-xs font-bold text-gray-900">₹{record.total_due || 0}</span>
+                            <span className="text-gray-600 text-xs font-medium">Total Due (at time):</span>
+                            <span className="text-xs font-bold text-gray-900">₹{record.total_due || 0}</span>
                           </div>
                         </div>
 
@@ -3711,16 +3726,16 @@ const BillingModal = ({ user, plans, onClose, onSuccess, showToast, openProgress
 
                         {/* Pending Amount Change (Carry Forward) */}
                         <div className="bg-gray-50 p-2 rounded">
-                            <span className="text-gray-600 text-xs font-medium">Pending Balance (Carry Forward):</span>
-                            <div className="flex items-center gap-2 mt-1">
-                              <span className="text-xs font-medium text-gray-900">
-                                ₹{record.previous_old_pending_amount || 0}
-                              </span>
-                              <ChevronRight className="w-3 h-3 text-gray-400" />
-                              <span className="text-xs font-medium text-orange-600">
-                                ₹{record.new_old_pending_amount || 0}
-                              </span>
-                            </div>
+                          <span className="text-gray-600 text-xs font-medium">Pending Balance (Carry Forward):</span>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-xs font-medium text-gray-900">
+                              ₹{record.previous_old_pending_amount || 0}
+                            </span>
+                            <ChevronRight className="w-3 h-3 text-gray-400" />
+                            <span className="text-xs font-medium text-orange-600">
+                              ₹{record.new_old_pending_amount || 0}
+                            </span>
+                          </div>
                         </div>
 
                         {/* Plan Change */}
@@ -3777,7 +3792,7 @@ const BillingModal = ({ user, plans, onClose, onSuccess, showToast, openProgress
                 </select>
               </div>
 
-               {/* Due Date */}
+              {/* Due Date */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Payment Due Date
@@ -3819,13 +3834,13 @@ const BillingModal = ({ user, plans, onClose, onSuccess, showToast, openProgress
                   <label className="block text-sm font-medium text-gray-900">
                     Additional Items / Charges
                   </label>
-                  <Button type="button" size="sm" onClick={handleAddItem} variant="outline" className="text-xs h-8">
-                    <Plus className="w-3 h-3 mr-1" /> Add Item
+                  <Button type="button" size="sm" onClick={handleAddItem} variant="outline" className="text-xs px-3 py-1 h-auto flex items-center gap-1">
+                    <Plus className="w-3 h-3" /> Add Item
                   </Button>
                 </div>
-                
+
                 {additionalItems.length === 0 && (
-                   <p className="text-xs text-gray-500 italic text-center py-2">No additional items added.</p>
+                  <p className="text-xs text-gray-500 italic text-center py-2">No additional items added.</p>
                 )}
 
                 <div className="space-y-3">
@@ -3842,7 +3857,7 @@ const BillingModal = ({ user, plans, onClose, onSuccess, showToast, openProgress
                         />
                       </div>
                       <div className="w-32">
-                         <input
+                        <input
                           type="number"
                           placeholder="Amount"
                           value={item.amount}
@@ -3864,21 +3879,37 @@ const BillingModal = ({ user, plans, onClose, onSuccess, showToast, openProgress
                 </div>
               </div>
 
-               {/* Amount Paid Input */}
-               <div className="md:col-span-2">
-                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                   Amount Paid Now (₹)
-                 </label>
-                 <input
-                   type="number"
-                   value={amountPaid}
-                   onChange={(e) => setAmountPaid(e.target.value)}
-                   className="w-full px-3 py-2 border-2 border-green-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-300 text-lg font-bold text-green-700"
-                   placeholder="0"
-                   min="0"
-                 />
-                 <p className="text-xs text-gray-500 mt-1">Enter the amount collected from customer</p>
-               </div>
+              {/* Include Plan Charges Toggle */}
+              <div className="md:col-span-2">
+                <div className="flex items-center gap-2 mb-2">
+                  <input
+                    type="checkbox"
+                    id="includePlanCharges"
+                    checked={includePlanCharges}
+                    onChange={(e) => setIncludePlanCharges(e.target.checked)}
+                    className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+                  />
+                  <label htmlFor="includePlanCharges" className="text-sm font-medium text-gray-700 select-none cursor-pointer">
+                    Include Plan Charges (₹{selectedPlan ? selectedPlan.price : 0})
+                  </label>
+                </div>
+              </div>
+
+              {/* Amount Paid Input */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Amount Paid Now (₹)
+                </label>
+                <input
+                  type="number"
+                  value={amountPaid}
+                  onChange={(e) => setAmountPaid(e.target.value)}
+                  className="w-full px-3 py-2 border-2 border-green-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-300 text-lg font-bold text-green-700"
+                  placeholder="0"
+                  min="0"
+                />
+                <p className="text-xs text-gray-500 mt-1">Enter the amount collected from customer</p>
+              </div>
 
               {/* Remarks */}
               <div className="md:col-span-2">
@@ -3906,6 +3937,14 @@ const BillingModal = ({ user, plans, onClose, onSuccess, showToast, openProgress
                     ₹{basePending.toLocaleString()}
                   </span>
                 </div>
+                {includePlanCharges && selectedPlan && (
+                  <div className="flex justify-between text-blue-700">
+                    <span className="font-medium">Plan Charges ({selectedPlan.name}):</span>
+                    <span className="font-bold">
+                      + ₹{selectedPlan.price.toLocaleString()}
+                    </span>
+                  </div>
+                )}
                 {additionalItems.length > 0 && (
                   <div className="flex justify-between">
                     <span className="text-orange-700">Additional Items Total:</span>
@@ -3915,12 +3954,12 @@ const BillingModal = ({ user, plans, onClose, onSuccess, showToast, openProgress
                   </div>
                 )}
                 <div className="border-t border-orange-200 pt-2 flex justify-between">
-                    <span className="font-semibold text-orange-900">Total Due Amount:</span>
-                    <span className="font-bold text-orange-900">₹{totalDueNow.toLocaleString()}</span>
+                  <span className="font-semibold text-orange-900">Total Due Amount:</span>
+                  <span className="font-bold text-orange-900">₹{totalDueNow.toLocaleString()}</span>
                 </div>
-                 <div className="flex justify-between text-green-700">
-                    <span className="font-semibold">Less Amount Paid:</span>
-                    <span className="font-bold">- ₹{paidAmountVal.toLocaleString()}</span>
+                <div className="flex justify-between text-green-700">
+                  <span className="font-semibold">Less Amount Paid:</span>
+                  <span className="font-bold">- ₹{paidAmountVal.toLocaleString()}</span>
                 </div>
                 <div className="border-t-2 border-orange-300 pt-2 flex justify-between text-base">
                   <span className="font-bold text-orange-800">New Pending Balance (Carry Forward):</span>
