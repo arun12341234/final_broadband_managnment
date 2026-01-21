@@ -178,12 +178,41 @@ def generate_invoice_pdf(user_data: dict, plan_data: dict, billing_data: dict, c
             f"{old_pending:,.2f}"
         ])
     
+    # Add Extra Items
+    extra_items = billing_data.get("extra_items", [])
+    if extra_items:
+        idx_start = 3 if old_pending > 0 else 2
+        for idx, item in enumerate(extra_items, start=idx_start):
+            items_data.append([
+                str(idx),
+                item.get("description", "Additional Charge"),
+                "-",
+                f"{float(item.get('amount', 0)):,.2f}"
+            ])
+            
     # Calculate totals
     subtotal = plan_data.get('price', 0) + old_pending
-    total_amount = subtotal # No GST
+    extra_total = sum(float(item.get('amount', 0)) for item in extra_items)
+    total_due = subtotal + extra_total
     
-    # Add subtotal and Total
-    items_data.append(["", "", "Total Amount:", f"{total_amount:,.2f}"])
+    # Amount Paid
+    amount_paid = billing_data.get("amount_paid", 0.0)
+    
+    # Balance Due (Carry Forward)
+    balance_due = max(0, total_due - amount_paid)
+    
+    # Add Totals Rows
+    # Subtotal
+    # items_data.append(["", "", "Subtotal:", f"{total_due:,.2f}"])
+    
+    # Total Due
+    items_data.append(["", "", "Total Due:", f"{total_due:,.2f}"])
+    
+    # Amount Paid (if any)
+    if amount_paid > 0:
+        items_data.append(["", "", "Less: Amount Paid:", f"-{amount_paid:,.2f}"])
+        # Balance Due
+        items_data.append(["", "", "Balance Due:", f"{balance_due:,.2f}"])
     
     items_table = Table(items_data, colWidths=[doc.width * 0.08, doc.width * 0.52, doc.width * 0.2, doc.width * 0.2])
     items_table.setStyle(TableStyle([
@@ -193,20 +222,35 @@ def generate_invoice_pdf(user_data: dict, plan_data: dict, billing_data: dict, c
         ('FONT', (0, 0), (-1, 0), 'Helvetica-Bold', 10),
         
         # Data rows
-        ('FONT', (0, 1), (-1, -4), 'Helvetica', 9),
+        ('FONT', (0, 1), (-1, -1), 'Helvetica', 9),
         ('ALIGN', (0, 0), (0, -1), 'CENTER'),
         ('ALIGN', (-1, 0), (-1, -1), 'RIGHT'),
         
-        # Totals rows
-        ('FONT', (0, -3), (-1, -1), 'Helvetica-Bold', 10),
-        ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#FEF3C7')),
-        
         # Grid
-        ('GRID', (0, 0), (-1, -4), 0.5, colors.grey),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
         ('BOX', (0, 0), (-1, -1), 1, colors.black),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('TOPPADDING', (0, 0), (-1, -1), 8),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+    ]))
+    
+    # Apply special styling for total rows
+    # We need to calculate how many rows are data vs totals
+    # Standard: Header(1) + Plan(1) -> 2 rows
+    # Optional: OldPending(1)
+    # Optional: ExtraItems(N)
+    # Totals: Total Due(1) + (Paid(1) + Balance(1) if paid)
+    
+    total_rows_count = 1 # Total Due always there
+    if amount_paid > 0:
+        total_rows_count += 2 # Paid + Balance
+        
+    start_totals_row = -total_rows_count
+    
+    items_table.setStyle(TableStyle([
+         ('FONT', (0, start_totals_row), (-1, -1), 'Helvetica-Bold', 10),
+         ('BACKGROUND', (0, start_totals_row), (-1, -1), colors.HexColor('#FEF3C7')),
+         # Make "Amount Paid" green text if desired, or "Balance Due" red
     ]))
     
     elements.append(items_table)

@@ -713,6 +713,26 @@ async def update_user_billing(
     
     new_plan = db.query(BroadbandPlan).filter(BroadbandPlan.id == billing_data.broadband_plan_id).first()
     
+    # Process extra items for history
+    extra_items_json = None
+    if billing_data.extra_items:
+        extra_items_json = json.dumps([item.dict() for item in billing_data.extra_items])
+
+    # Calculate total due for history (Plan Price + Old Pending + Extra Items)
+    current_plan_price = new_plan.price if new_plan else 0
+    extra_items_total = sum(item.amount for item in billing_data.extra_items) if billing_data.extra_items else 0
+    # Note: user.old_pending_amount is already the NEW simplified pending amount from frontend. 
+    # To recover the "Total Due" before payment, we might need logic.
+    # However, let's just store what we know.
+    # Actually, simpler: Total Due = Old Pending (Before this update) + Plan Price (if charging now?) + Extra Items
+    # But usually billing update here is for "Current Month + Arrears".
+    # Let's rely on frontend sending what it wants, or just log the parts.
+    
+    # Start: Calculate total_due for record keeping
+    # We use the previous old_pending, plus the items being added now.
+    # (Assuming the "items" are what caused the change aside from payment)
+    total_due_calc = old_pending + extra_items_total
+    
     billing_record = BillingHistory(
         user_id=user_id,
         admin_email=current_admin.email,
@@ -726,11 +746,110 @@ async def update_user_billing(
         previous_plan_name=old_plan.name if old_plan else None,
         new_plan_id=new_plan.id if new_plan else None,
         new_plan_name=new_plan.name if new_plan else None,
+        extra_items=extra_items_json,
+        amount_paid=billing_data.amount_paid,
+        total_due=total_due_calc,
         change_type="billing_update",
         notes=f"Billing updated by {current_admin.email}"
     )
     
     db.add(billing_record)
+    
+    # -------------------------------------------------------------
+    # NEW: Generate Invoice PDF & Record for this transaction
+    # -------------------------------------------------------------
+    try:
+        # Generate unique invoice number
+        invoice_number = generate_unique_invoice_number(db)
+        today = datetime.now()
+        
+        # Prepare data for PDF
+        user_data = {
+            "name": user.name,
+            "cs_id": user.cs_id,
+            "mobile": user.phone,
+            "email": user.email or "",
+            "address": user.address or ""
+        }
+        
+        plan_data = {
+            "name": new_plan.name if new_plan else (old_plan.name if old_plan else "Custom"),
+            "speed": new_plan.speed if new_plan else "",
+            "data_limit": new_plan.data_limit if new_plan else "",
+            "price": current_plan_price # Use plan price if set, or 0
+        }
+        
+        # Determine billing period (e.g. Current Month)
+        billing_period = today.strftime("%B %Y")
+        
+        billing_info = {
+            "invoice_number": invoice_number,
+            "invoice_date": today.strftime("%d-%b-%Y"),
+            "due_date": datetime.strptime(billing_data.payment_due_date, "%Y-%m-%d").strftime("%d-%b-%Y") if billing_data.payment_due_date else "",
+            "billing_period": billing_period,
+            "old_pending": old_pending, # The pending BEFORE this transaction
+            "payment_status": billing_data.payment_status,
+            "extra_items": [item.dict() for item in billing_data.extra_items] if billing_data.extra_items else [],
+            "amount_paid": billing_data.amount_paid,
+            "remarks": billing_data.remarks
+        }
+        
+        # Fetch company settings
+        billing_settings = db.query(BillingSettings).filter(BillingSettings.is_primary == True).order_by(BillingSettings.id.desc()).first()
+        if not billing_settings:
+            billing_settings = db.query(BillingSettings).order_by(BillingSettings.id.desc()).first()
+            
+        company_data = None
+        if billing_settings:
+            company_data = {
+                "name": billing_settings.full_name,
+                "street": billing_settings.street,
+                "city": billing_settings.city,
+                "state": billing_settings.state,
+                "country": billing_settings.country,
+                "pin_code": billing_settings.pin_code,
+                "gstin": billing_settings.gstin,
+                "contact_number": billing_settings.contact_number,
+                "upi_id": billing_settings.upi_id,
+                "qr_code_data": billing_settings.qr_code_data
+            }
+            
+        # Generate PDF
+        from pdf_generator import generate_invoice_pdf
+        pdf_path = generate_invoice_pdf(user_data, plan_data, billing_info, company_data)
+        
+        # Create Invoice Record
+        new_invoice = Invoice(
+            invoice_number=invoice_number,
+            user_id=user.id,
+            plan_id=new_plan.id if new_plan else (old_plan.id if old_plan else "custom"),
+            plan_name=new_plan.name if new_plan else (old_plan.name if old_plan else "Custom"),
+            plan_price=current_plan_price,
+            old_pending_amount=old_pending,
+            subtotal=total_due_calc, # Rough calc
+            gst_rate=0,
+            gst_amount=0,
+            total_amount=total_due_calc, # Total Due
+            payment_status=billing_data.payment_status,
+            payment_method="Manual/Adjustment",
+            payment_date=today.strftime("%Y-%m-%d") if billing_data.amount_paid > 0 else None,
+            invoice_date=today.strftime("%Y-%m-%d"),
+            due_date=billing_data.payment_due_date,
+            billing_period=billing_period,
+            months_renewed=1,
+            generated_by=current_admin.email,
+            notes=f"Billing Adjustment. Paid: {billing_data.amount_paid}",
+            pdf_filepath=pdf_path,
+            extra_items=extra_items_json,
+            amount_paid=billing_data.amount_paid
+        )
+        
+        db.add(new_invoice)
+        
+    except Exception as e:
+        logger.error(f"Failed to generate invoice for billing update: {str(e)}")
+        # Don't fail the whole request, but log error
+    
     db.commit()
     
     logger.info(f"Billing updated for {user.name} by {current_admin.email}")

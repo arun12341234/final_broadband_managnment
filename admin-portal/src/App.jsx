@@ -3451,9 +3451,14 @@ const EditBillingHistoryModal = ({ record, plans, onClose, onSuccess, showToast,
 const BillingModal = ({ user, plans, onClose, onSuccess, showToast, openProgress, closeProgress }) => {
   const currentPlan = plans.find(p => p.id === user.broadband_plan_id);
 
+  // Additional Items State
+  const [additionalItems, setAdditionalItems] = useState([]);
+  const [amountPaid, setAmountPaid] = useState('');
+  
   const [formData, setFormData] = useState({
     broadband_plan_id: user.broadband_plan_id,
     payment_status: user.payment_status || 'Pending',
+    // We will calculate this on submit/render, but keep it for initial state
     old_pending_amount: Number(user.old_pending_amount || 0),
     payment_due_date: user.payment_due_date || '',
     plan_start_date: user.plan_start_date || '',
@@ -3496,13 +3501,50 @@ const BillingModal = ({ user, plans, onClose, onSuccess, showToast, openProgress
     }));
   };
 
+  // Dynamic Item Handlers
+  const handleAddItem = () => {
+    setAdditionalItems([...additionalItems, { description: '', amount: '' }]);
+  };
+
+  const handleRemoveItem = (index) => {
+    const newItems = [...additionalItems];
+    newItems.splice(index, 1);
+    setAdditionalItems(newItems);
+  };
+
+  const handleItemChange = (index, field, value) => {
+    const newItems = [...additionalItems];
+    newItems[index][field] = field === 'amount' ? (value === '' ? '' : parseFloat(value)) : value;
+    setAdditionalItems(newItems);
+  };
+
+  // Calculations
+  const selectedPlan = plans.find(p => p.id === formData.broadband_plan_id);
+  // Base pending from DB (fixed starting point)
+  const basePending = parseFloat(user.old_pending_amount || 0);
+  // Sum of extra items
+  const extraItemsTotal = additionalItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+  // Total Due NOW (Base + Extra)
+  const totalDueNow = basePending + extraItemsTotal;
+  // Carry Forward (New Pending) = Total Due - Paid
+  const paidAmountVal = parseFloat(amountPaid) || 0;
+  const carryForward = Math.max(0, totalDueNow - paidAmountVal);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
       openProgress('Updating Billing', 'Applying billing changes...');
-      await api.put(`/api/users/${user.id}/billing`, formData);
+      
+      const payload = {
+        ...formData,
+        old_pending_amount: carryForward, // Send the calculated carry forward as new pending
+        extra_items: additionalItems.filter(item => item.description && item.amount !== ''),
+        amount_paid: paidAmountVal
+      };
+
+      await api.put(`/api/users/${user.id}/billing`, payload);
       showToast('Billing updated successfully', 'success');
       // Refresh billing history
       await fetchUserBillingHistory();
@@ -3530,9 +3572,6 @@ const BillingModal = ({ user, plans, onClose, onSuccess, showToast, openProgress
       showToast(getErrorMessage(error), 'error');
     }
   };
-
-  const selectedPlan = plans.find(p => p.id === formData.broadband_plan_id);
-  const totalDue = selectedPlan ? selectedPlan.price + Math.max(0, parseFloat(formData.old_pending_amount) || 0) : 0;
 
   return (
     <Modal isOpen={true} onClose={onClose} title="Billing Adjustment" size="max-w-4xl">
@@ -3627,6 +3666,37 @@ const BillingModal = ({ user, plans, onClose, onSuccess, showToast, openProgress
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                        {/* Extra Items Breakdown */}
+                        {record.extra_items && (
+                           <div className="md:col-span-2 bg-blue-50 p-2 rounded border border-blue-100 mb-2">
+                             <span className="text-blue-800 text-xs font-bold block mb-1">Additional Items:</span>
+                             <ul className="list-disc pl-4 space-y-0.5">
+                               {(() => {
+                                 try {
+                                   const items = JSON.parse(record.extra_items);
+                                   return items.map((item, i) => (
+                                     <li key={i} className="text-xs text-blue-700">
+                                       {item.description}: ₹{item.amount}
+                                     </li>
+                                   ));
+                                 } catch (e) { return <li className="text-xs text-red-500">Error parsing items</li>; }
+                               })()}
+                             </ul>
+                           </div>
+                        )}
+
+                        {/* Payment & Due Details */}
+                        <div className="bg-gray-50 p-2 rounded">
+                          <div className="flex justify-between items-center mb-1">
+                             <span className="text-gray-600 text-xs font-medium">Amount Paid:</span>
+                             <span className="text-xs font-bold text-green-600">₹{record.amount_paid || 0}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                             <span className="text-gray-600 text-xs font-medium">Total Due (at time):</span>
+                             <span className="text-xs font-bold text-gray-900">₹{record.total_due || 0}</span>
+                          </div>
+                        </div>
+
                         {/* Payment Status Change */}
                         {record.previous_payment_status && record.new_payment_status && (
                           <div className="bg-gray-50 p-2 rounded">
@@ -3639,10 +3709,9 @@ const BillingModal = ({ user, plans, onClose, onSuccess, showToast, openProgress
                           </div>
                         )}
 
-                        {/* Pending Amount Change */}
-                        {(record.previous_old_pending_amount !== null || record.new_old_pending_amount !== null) && (
-                          <div className="bg-gray-50 p-2 rounded">
-                            <span className="text-gray-600 text-xs font-medium">Pending Amount:</span>
+                        {/* Pending Amount Change (Carry Forward) */}
+                        <div className="bg-gray-50 p-2 rounded">
+                            <span className="text-gray-600 text-xs font-medium">Pending Balance (Carry Forward):</span>
                             <div className="flex items-center gap-2 mt-1">
                               <span className="text-xs font-medium text-gray-900">
                                 ₹{record.previous_old_pending_amount || 0}
@@ -3652,20 +3721,7 @@ const BillingModal = ({ user, plans, onClose, onSuccess, showToast, openProgress
                                 ₹{record.new_old_pending_amount || 0}
                               </span>
                             </div>
-                          </div>
-                        )}
-
-                        {/* Due Date Change */}
-                        {record.previous_payment_due_date && record.new_payment_due_date && (
-                          <div className="bg-gray-50 p-2 rounded">
-                            <span className="text-gray-600 text-xs font-medium">Due Date:</span>
-                            <div className="flex items-center gap-2 mt-1">
-                              <span className="text-xs text-gray-900">{formatDate(record.previous_payment_due_date)}</span>
-                              <ChevronRight className="w-3 h-3 text-gray-400" />
-                              <span className="text-xs font-medium text-orange-600">{formatDate(record.new_payment_due_date)}</span>
-                            </div>
-                          </div>
-                        )}
+                        </div>
 
                         {/* Plan Change */}
                         {record.previous_plan_name && record.new_plan_name && (
@@ -3698,35 +3754,15 @@ const BillingModal = ({ user, plans, onClose, onSuccess, showToast, openProgress
         <div className="border-t-4 border-orange-500 pt-4">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <DollarSign className="w-5 h-5 text-orange-600" />
-            New Billing Adjustment
+            New Billing Adjustment & Payment
           </h3>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Plan Selection */}
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Broadband Plan
-                </label>
-                <select
-                  name="broadband_plan_id"
-                  value={formData.broadband_plan_id}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  required
-                >
-                  {plans.map((plan) => (
-                    <option key={plan.id} value={plan.id}>
-                      {plan.name} - ₹{plan.price}/month ({plan.speed} - {plan.data_limit})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Payment Status */}
+              {/* Payment Status Dropdown */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Payment Status
+                  Payment Mode
                 </label>
                 <select
                   name="payment_status"
@@ -3735,37 +3771,13 @@ const BillingModal = ({ user, plans, onClose, onSuccess, showToast, openProgress
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                   required
                 >
-                  <option value="Pending">Pending</option>
-                  <option value="VerifiedByCash">Verified By Cash</option>
-                  <option value="VerifiedByUpi">Verified By UPI</option>
+                  <option value="Pending">Pending (Not Paid)</option>
+                  <option value="VerifiedByCash">Cash Payment</option>
+                  <option value="VerifiedByUpi">UPI / Online</option>
                 </select>
-                <p className="text-xs text-gray-500 mt-1">
-                  {formData.payment_status === 'Pending' && '⏳ Customer has not paid yet'}
-                  {formData.payment_status === 'VerifiedByCash' && '💵 Cash payment received'}
-                  {formData.payment_status === 'VerifiedByUpi' && '💳 Online payment received'}
-                </p>
               </div>
 
-              {/* Old Pending Amount */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Old Pending Amount (₹)
-                </label>
-                <input
-                  type="number"
-                  name="old_pending_amount"
-                  value={formData.old_pending_amount}
-                  onChange={handleChange}
-                  min="0"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  required
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Previous outstanding balance
-                </p>
-              </div>
-
-              {/* Payment Due Date */}
+               {/* Due Date */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Payment Due Date
@@ -3780,24 +3792,98 @@ const BillingModal = ({ user, plans, onClose, onSuccess, showToast, openProgress
                 />
               </div>
 
-              {/* Plan Start Date */}
-              <div>
+              {/* Plan Selection */}
+              <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Plan Start Date
+                  Broadband Plan (Reference)
                 </label>
-                <input
-                  type="date"
-                  name="plan_start_date"
-                  value={formData.plan_start_date}
+                <select
+                  name="broadband_plan_id"
+                  value={formData.broadband_plan_id}
                   onChange={handleChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                />
+                  required
+                >
+                  {plans.map((plan) => (
+                    <option key={plan.id} value={plan.id}>
+                      {plan.name} - ₹{plan.price}/month ({plan.speed})
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">Changing this does not auto-add price. Add as item if needed.</p>
               </div>
+
+              {/* Additional Items Section */}
+              <div className="md:col-span-2 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <div className="flex justify-between items-center mb-3">
+                  <label className="block text-sm font-medium text-gray-900">
+                    Additional Items / Charges
+                  </label>
+                  <Button type="button" size="sm" onClick={handleAddItem} variant="outline" className="text-xs h-8">
+                    <Plus className="w-3 h-3 mr-1" /> Add Item
+                  </Button>
+                </div>
+                
+                {additionalItems.length === 0 && (
+                   <p className="text-xs text-gray-500 italic text-center py-2">No additional items added.</p>
+                )}
+
+                <div className="space-y-3">
+                  {additionalItems.map((item, index) => (
+                    <div key={index} className="flex gap-2 items-start">
+                      <div className="flex-1">
+                        <input
+                          type="text"
+                          placeholder="Description (e.g. Router, Cable)"
+                          value={item.description}
+                          onChange={(e) => handleItemChange(index, 'description', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                          required
+                        />
+                      </div>
+                      <div className="w-32">
+                         <input
+                          type="number"
+                          placeholder="Amount"
+                          value={item.amount}
+                          onChange={(e) => handleItemChange(index, 'amount', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                          required
+                          min="0"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveItem(index)}
+                        className="text-red-500 p-2 hover:bg-red-50 rounded"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+               {/* Amount Paid Input */}
+               <div className="md:col-span-2">
+                 <label className="block text-sm font-medium text-gray-700 mb-1">
+                   Amount Paid Now (₹)
+                 </label>
+                 <input
+                   type="number"
+                   value={amountPaid}
+                   onChange={(e) => setAmountPaid(e.target.value)}
+                   className="w-full px-3 py-2 border-2 border-green-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-300 text-lg font-bold text-green-700"
+                   placeholder="0"
+                   min="0"
+                 />
+                 <p className="text-xs text-gray-500 mt-1">Enter the amount collected from customer</p>
+               </div>
 
               {/* Remarks */}
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Remarks <span className="text-gray-500 text-xs">(Visible on invoice)</span>
+                  Remarks
                 </label>
                 <input
                   type="text"
@@ -3805,47 +3891,42 @@ const BillingModal = ({ user, plans, onClose, onSuccess, showToast, openProgress
                   value={formData.remarks}
                   onChange={handleChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  placeholder="e.g. Payment adjust for downtime"
+                  placeholder="Notes shown on invoice..."
                 />
               </div>
             </div>
 
             {/* Total Calculation */}
             <div className="bg-orange-50 border border-orange-200 p-4 rounded-lg">
-              <h4 className="font-medium text-orange-900 mb-3">Bill Summary</h4>
+              <h4 className="font-medium text-orange-900 mb-3">Bill Calculation</h4>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-orange-700">Plan Price:</span>
+                  <span className="text-orange-700">Previous Pending Balance:</span>
                   <span className="font-medium text-orange-900">
-                    ₹{selectedPlan ? selectedPlan.price.toLocaleString() : 0}
+                    ₹{basePending.toLocaleString()}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-orange-700">Old Pending:</span>
-                  <span className="font-medium text-orange-900">
-                    ₹{Math.max(0, parseFloat(formData.old_pending_amount) || 0).toLocaleString()}
-                  </span>
+                {additionalItems.length > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-orange-700">Additional Items Total:</span>
+                    <span className="font-medium text-orange-900">
+                      + ₹{extraItemsTotal.toLocaleString()}
+                    </span>
+                  </div>
+                )}
+                <div className="border-t border-orange-200 pt-2 flex justify-between">
+                    <span className="font-semibold text-orange-900">Total Due Amount:</span>
+                    <span className="font-bold text-orange-900">₹{totalDueNow.toLocaleString()}</span>
                 </div>
-                <div className="border-t border-orange-300 pt-2 flex justify-between text-base">
-                  <span className="font-semibold text-orange-900">Total Due:</span>
-                  <span className="font-bold text-orange-900">
-                    ₹{totalDue.toLocaleString()}
-                  </span>
+                 <div className="flex justify-between text-green-700">
+                    <span className="font-semibold">Less Amount Paid:</span>
+                    <span className="font-bold">- ₹{paidAmountVal.toLocaleString()}</span>
                 </div>
-              </div>
-            </div>
-
-            {/* Info Box */}
-            <div className="bg-orange-50 border border-orange-200 p-4 rounded-lg">
-              <div className="flex gap-3">
-                <Info className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
-                <div className="text-sm text-orange-800">
-                  <p className="font-medium mb-1">Billing Status Guide:</p>
-                  <ul className="space-y-1 text-xs">
-                    <li>• <strong>Pending:</strong> Customer hasn't paid yet (will receive reminders)</li>
-                    <li>• <strong>VerifiedByCash:</strong> Cash received at office/from engineer</li>
-                    <li>• <strong>VerifiedByUpi:</strong> Online payment verified (UPI/Card/Net Banking)</li>
-                  </ul>
+                <div className="border-t-2 border-orange-300 pt-2 flex justify-between text-base">
+                  <span className="font-bold text-orange-800">New Pending Balance (Carry Forward):</span>
+                  <span className="font-extrabold text-orange-600 text-lg">
+                    ₹{carryForward.toLocaleString()}
+                  </span>
                 </div>
               </div>
             </div>
@@ -3859,10 +3940,10 @@ const BillingModal = ({ user, plans, onClose, onSuccess, showToast, openProgress
                 {loading ? (
                   <span className="flex items-center gap-2">
                     <Loader className="w-4 h-4 animate-spin" />
-                    Updating...
+                    Processing...
                   </span>
                 ) : (
-                  'Update Billing'
+                  'Update Billing & Payment'
                 )}
               </Button>
             </div>

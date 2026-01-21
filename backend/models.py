@@ -108,6 +108,11 @@ class BillingHistory(Base):
     new_plan_id = Column(String)
     new_plan_name = Column(String)
     
+    # Advanced Billing Features
+    extra_items = Column(Text, nullable=True)  # JSON string for additional items: [{"description": "Router", "amount": 2000}, ...]
+    amount_paid = Column(Float, nullable=True) # Partial payment amount
+    total_due = Column(Float, nullable=True)   # Total due at time of billing
+    
     # Metadata
     change_type = Column(String)  # billing_update, payment_verification, plan_change
     notes = Column(Text)
@@ -169,6 +174,10 @@ class Invoice(Base):
     gst_amount = Column(Float, nullable=False)  # Calculated GST
     total_amount = Column(Float, nullable=False)  # Final amount with GST
 
+    # Advanced Billing display
+    extra_items = Column(Text, nullable=True)  # JSON string [{"description": "X", "amount": 100}]
+    amount_paid = Column(Float, default=0.0)   # Amount paid in this transaction
+    
     # Payment details
     payment_status = Column(String, default="Pending")  # Pending, Paid, Cancelled
     payment_method = Column(String, nullable=True)  # Cash, UPI, Card, etc.

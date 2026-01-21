@@ -117,6 +117,11 @@ class UserResponse(BaseModel):
 # BILLING SCHEMAS
 # ============================================
 
+class BillingItem(BaseModel):
+    description: str
+    amount: float
+
+
 class BillingUpdate(BaseModel):
     broadband_plan_id: str
     payment_status: str
@@ -124,6 +129,8 @@ class BillingUpdate(BaseModel):
     payment_due_date: str
     plan_start_date: Optional[str] = None
     remarks: Optional[str] = None
+    extra_items: Optional[List[BillingItem]] = None
+    amount_paid: Optional[float] = 0
     
     @validator('payment_status')
     def validate_payment_status(cls, v):
@@ -157,6 +164,9 @@ class BillingHistoryResponse(BaseModel):
     new_plan_id: Optional[str]
     previous_plan_name: Optional[str]
     new_plan_name: Optional[str]
+    extra_items: Optional[str]  # JSON string
+    amount_paid: Optional[float]
+    total_due: Optional[float]
     change_type: str
     notes: Optional[str]
     created_at: datetime

@@ -4314,3 +4314,327 @@ AttributeError: module 'bcrypt' has no attribute '__about__'
 2026-01-07 20:12:41,466 - app - INFO - Shutdown backup created
 2026-01-07 20:12:47,155 - __main__ - INFO - Configuration validated
 2026-01-07 20:12:48,816 - __mp_main__ - INFO - Configuration validated
+2026-01-07 20:12:49,306 - app - INFO - Configuration validated
+2026-01-07 20:12:49,388 - app - INFO - Starting 4You Broadband API...
+2026-01-07 20:12:49,389 - app - INFO - Directory created/verified: uploads\photos
+2026-01-07 20:12:49,389 - app - INFO - Directory created/verified: uploads\documents
+2026-01-07 20:12:49,389 - app - INFO - Directory created/verified: backups
+2026-01-07 20:12:49,390 - app - INFO - Directory created/verified: exports
+2026-01-07 20:12:49,390 - app - INFO - Directory created/verified: logs
+2026-01-07 20:12:49,422 - app - INFO - Startup backup created
+2026-01-07 20:12:49,426 - app - INFO - Database initialized
+2026-01-07 20:12:49,452 - app - INFO - Admin already exists
+2026-01-07 20:12:49,693 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-07 20:12:49,694 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-07 20:12:49,694 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-07 20:12:49,698 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-07 20:12:49,698 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-07 20:12:49,699 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-07 20:12:49,699 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-07 20:12:49,708 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-07 20:12:49,708 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-07 20:12:49,708 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-07 20:12:49,709 - app - INFO - Scheduler started
+2026-01-07 20:12:49,709 - app - INFO - Application startup complete
+2026-01-07 20:12:49,709 - app - INFO - API running on http://localhost:8000
+2026-01-07 20:12:49,710 - app - INFO - API Docs at http://localhost:8000/docs
+2026-01-07 20:13:08,186 - auth_helpers - WARNING - JWT decode error: Signature has expired.
+2026-01-07 20:13:08,204 - auth_helpers - WARNING - JWT decode error: Signature has expired.
+2026-01-07 20:13:36,329 - app - INFO - Admin login successful: admin@4you.in
+2026-01-07 20:14:29,674 - app - INFO - User created: sachin kumar by admin@4you.in
+2026-01-07 20:15:39,722 - app - INFO - User updated: sachin kumar by admin@4you.in
+2026-01-07 20:15:51,930 - app - INFO - Invoice PDF generated: INV-20260107-0001
+2026-01-07 20:15:51,931 - app - INFO - Invoice INV-20260107-0001 created for sachin kumar: Rs 999.0 (includes Rs 0 old pending)
+2026-01-07 20:15:51,933 - app - INFO - Plan extended for sachin kumar: +1 months by admin@4you.in
+2026-01-07 20:18:02,614 - app - INFO - Shutting down application...
+2026-01-07 20:18:02,946 - app - INFO - Shutdown backup created
+2026-01-21 10:32:02,311 - __main__ - INFO - Configuration validated
+2026-01-21 10:32:11,625 - __mp_main__ - INFO - Configuration validated
+2026-01-21 10:32:13,524 - app - INFO - Configuration validated
+2026-01-21 10:32:13,809 - app - INFO - Starting 4You Broadband API...
+2026-01-21 10:32:13,810 - app - INFO - Directory created/verified: uploads\photos
+2026-01-21 10:32:13,812 - app - INFO - Directory created/verified: uploads\documents
+2026-01-21 10:32:13,813 - app - INFO - Directory created/verified: backups
+2026-01-21 10:32:13,814 - app - INFO - Directory created/verified: exports
+2026-01-21 10:32:13,815 - app - INFO - Directory created/verified: logs
+2026-01-21 10:32:15,135 - app - INFO - Startup backup created
+2026-01-21 10:32:15,151 - app - INFO - Database initialized
+2026-01-21 10:32:15,204 - app - INFO - Admin already exists
+2026-01-21 10:32:17,239 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-21 10:32:17,241 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-21 10:32:17,243 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-21 10:32:17,305 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-21 10:32:17,307 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-21 10:32:17,309 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-21 10:32:17,309 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-21 10:32:17,423 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-21 10:32:17,424 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-21 10:32:17,425 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-21 10:32:17,426 - app - INFO - Scheduler started
+2026-01-21 10:32:17,427 - app - INFO - Application startup complete
+2026-01-21 10:32:17,428 - app - INFO - API running on http://localhost:8000
+2026-01-21 10:32:17,429 - app - INFO - API Docs at http://localhost:8000/docs
+2026-01-21 10:34:34,984 - app - INFO - Admin login successful: admin@4you.in
+2026-01-21 10:45:34,644 - app - INFO - Shutting down application...
+2026-01-21 10:45:34,965 - app - INFO - Shutdown backup created
+2026-01-21 10:45:40,045 - __mp_main__ - INFO - Configuration validated
+2026-01-21 10:45:41,860 - app - INFO - Configuration validated
+2026-01-21 10:45:42,113 - app - INFO - Starting 4You Broadband API...
+2026-01-21 10:45:42,114 - app - INFO - Directory created/verified: uploads\photos
+2026-01-21 10:45:42,115 - app - INFO - Directory created/verified: uploads\documents
+2026-01-21 10:45:42,116 - app - INFO - Directory created/verified: backups
+2026-01-21 10:45:42,117 - app - INFO - Directory created/verified: exports
+2026-01-21 10:45:42,118 - app - INFO - Directory created/verified: logs
+2026-01-21 10:45:42,211 - app - INFO - Startup backup created
+2026-01-21 10:45:42,221 - app - INFO - Database initialized
+2026-01-21 10:45:42,307 - app - INFO - Admin already exists
+2026-01-21 10:45:43,227 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-21 10:45:43,227 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-21 10:45:43,228 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-21 10:45:43,234 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-21 10:45:43,234 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-21 10:45:43,235 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-21 10:45:43,235 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-21 10:45:43,244 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-21 10:45:43,244 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-21 10:45:43,244 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-21 10:45:43,244 - app - INFO - Scheduler started
+2026-01-21 10:45:43,245 - app - INFO - Application startup complete
+2026-01-21 10:45:43,245 - app - INFO - API running on http://localhost:8000
+2026-01-21 10:45:43,245 - app - INFO - API Docs at http://localhost:8000/docs
+2026-01-21 10:45:56,771 - app - INFO - Shutting down application...
+2026-01-21 10:45:56,807 - app - INFO - Shutdown backup created
+2026-01-21 10:45:59,230 - __mp_main__ - INFO - Configuration validated
+2026-01-21 10:45:59,955 - app - INFO - Configuration validated
+2026-01-21 10:46:00,092 - app - INFO - Starting 4You Broadband API...
+2026-01-21 10:46:00,092 - app - INFO - Directory created/verified: uploads\photos
+2026-01-21 10:46:00,093 - app - INFO - Directory created/verified: uploads\documents
+2026-01-21 10:46:00,093 - app - INFO - Directory created/verified: backups
+2026-01-21 10:46:00,094 - app - INFO - Directory created/verified: exports
+2026-01-21 10:46:00,095 - app - INFO - Directory created/verified: logs
+2026-01-21 10:46:00,144 - app - INFO - Startup backup created
+2026-01-21 10:46:00,151 - app - INFO - Database initialized
+2026-01-21 10:46:00,200 - app - INFO - Admin already exists
+2026-01-21 10:46:00,629 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-21 10:46:00,630 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-21 10:46:00,631 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-21 10:46:00,638 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-21 10:46:00,639 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-21 10:46:00,639 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-21 10:46:00,640 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-21 10:46:00,651 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-21 10:46:00,652 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-21 10:46:00,652 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-21 10:46:00,652 - app - INFO - Scheduler started
+2026-01-21 10:46:00,652 - app - INFO - Application startup complete
+2026-01-21 10:46:00,653 - app - INFO - API running on http://localhost:8000
+2026-01-21 10:46:00,653 - app - INFO - API Docs at http://localhost:8000/docs
+2026-01-21 10:47:07,778 - app - INFO - Shutting down application...
+2026-01-21 10:47:07,806 - app - INFO - Shutdown backup created
+2026-01-21 10:47:09,641 - __mp_main__ - INFO - Configuration validated
+2026-01-21 10:47:10,239 - app - INFO - Configuration validated
+2026-01-21 10:47:10,333 - app - INFO - Starting 4You Broadband API...
+2026-01-21 10:47:10,333 - app - INFO - Directory created/verified: uploads\photos
+2026-01-21 10:47:10,334 - app - INFO - Directory created/verified: uploads\documents
+2026-01-21 10:47:10,334 - app - INFO - Directory created/verified: backups
+2026-01-21 10:47:10,335 - app - INFO - Directory created/verified: exports
+2026-01-21 10:47:10,335 - app - INFO - Directory created/verified: logs
+2026-01-21 10:47:10,378 - app - INFO - Startup backup created
+2026-01-21 10:47:10,381 - app - INFO - Database initialized
+2026-01-21 10:47:10,412 - app - INFO - Admin already exists
+2026-01-21 10:47:10,718 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-21 10:47:10,718 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-21 10:47:10,718 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-21 10:47:10,722 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-21 10:47:10,723 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-21 10:47:10,723 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-21 10:47:10,723 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-21 10:47:10,732 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-21 10:47:10,732 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-21 10:47:10,732 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-21 10:47:10,733 - app - INFO - Scheduler started
+2026-01-21 10:47:10,733 - app - INFO - Application startup complete
+2026-01-21 10:47:10,733 - app - INFO - API running on http://localhost:8000
+2026-01-21 10:47:10,733 - app - INFO - API Docs at http://localhost:8000/docs
+2026-01-21 13:13:45,853 - auth_helpers - WARNING - JWT decode error: Signature has expired.
+2026-01-21 13:13:45,860 - auth_helpers - WARNING - JWT decode error: Signature has expired.
+2026-01-21 14:09:16,500 - app - INFO - Admin login successful: admin@4you.in
+2026-01-21 14:09:38,602 - app - INFO - Shutting down application...
+2026-01-21 14:09:38,635 - app - INFO - Shutdown backup created
+2026-01-21 14:09:43,313 - __main__ - INFO - Configuration validated
+2026-01-21 14:09:45,087 - __mp_main__ - INFO - Configuration validated
+2026-01-21 14:09:45,707 - app - INFO - Configuration validated
+2026-01-21 14:09:45,788 - app - INFO - Starting 4You Broadband API...
+2026-01-21 14:09:45,788 - app - INFO - Directory created/verified: uploads\photos
+2026-01-21 14:09:45,788 - app - INFO - Directory created/verified: uploads\documents
+2026-01-21 14:09:45,789 - app - INFO - Directory created/verified: backups
+2026-01-21 14:09:45,789 - app - INFO - Directory created/verified: exports
+2026-01-21 14:09:45,790 - app - INFO - Directory created/verified: logs
+2026-01-21 14:09:45,832 - app - INFO - Startup backup created
+2026-01-21 14:09:45,835 - app - INFO - Database initialized
+2026-01-21 14:09:45,860 - app - INFO - Admin already exists
+2026-01-21 14:09:46,135 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-21 14:09:46,135 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-21 14:09:46,136 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-21 14:09:46,139 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-21 14:09:46,140 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-21 14:09:46,140 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-21 14:09:46,140 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-21 14:09:46,151 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-21 14:09:46,151 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-21 14:09:46,151 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-21 14:09:46,152 - app - INFO - Scheduler started
+2026-01-21 14:09:46,152 - app - INFO - Application startup complete
+2026-01-21 14:09:46,152 - app - INFO - API running on http://localhost:8000
+2026-01-21 14:09:46,152 - app - INFO - API Docs at http://localhost:8000/docs
+2026-01-21 14:11:01,591 - app - INFO - Shutting down application...
+2026-01-21 14:11:01,716 - app - INFO - Shutdown backup created
+2026-01-21 14:29:19,821 - __main__ - INFO - Configuration validated
+2026-01-21 14:29:27,178 - __mp_main__ - INFO - Configuration validated
+2026-01-21 14:29:29,238 - app - INFO - Configuration validated
+2026-01-21 14:29:29,588 - app - INFO - Starting 4You Broadband API...
+2026-01-21 14:29:29,590 - app - INFO - Directory created/verified: uploads\photos
+2026-01-21 14:29:29,591 - app - INFO - Directory created/verified: uploads\documents
+2026-01-21 14:29:29,593 - app - INFO - Directory created/verified: backups
+2026-01-21 14:29:29,595 - app - INFO - Directory created/verified: exports
+2026-01-21 14:29:29,596 - app - INFO - Directory created/verified: logs
+2026-01-21 14:29:29,748 - app - INFO - Startup backup created
+2026-01-21 14:29:29,764 - app - INFO - Database initialized
+2026-01-21 14:29:29,878 - app - INFO - Admin already exists
+2026-01-21 14:29:30,931 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-21 14:29:30,935 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-21 14:29:30,937 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-21 14:29:30,966 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-21 14:29:30,967 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-21 14:29:30,968 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-21 14:29:30,969 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-21 14:29:30,990 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-21 14:29:30,990 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-21 14:29:30,991 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-21 14:29:30,991 - app - INFO - Scheduler started
+2026-01-21 14:29:30,992 - app - INFO - Application startup complete
+2026-01-21 14:29:30,992 - app - INFO - API running on http://localhost:8000
+2026-01-21 14:29:30,993 - app - INFO - API Docs at http://localhost:8000/docs
+2026-01-21 15:11:11,754 - auth_helpers - WARNING - JWT decode error: Signature has expired.
+2026-01-21 15:11:11,757 - auth_helpers - WARNING - JWT decode error: Signature has expired.
+2026-01-21 15:11:11,782 - auth_helpers - WARNING - JWT decode error: Signature has expired.
+2026-01-21 15:11:11,783 - auth_helpers - WARNING - JWT decode error: Signature has expired.
+2026-01-21 15:11:11,795 - auth_helpers - WARNING - JWT decode error: Signature has expired.
+2026-01-21 15:11:11,796 - auth_helpers - WARNING - JWT decode error: Signature has expired.
+2026-01-21 15:11:11,804 - auth_helpers - WARNING - JWT decode error: Signature has expired.
+2026-01-21 15:11:11,805 - auth_helpers - WARNING - JWT decode error: Signature has expired.
+2026-01-21 15:11:28,069 - app - INFO - Admin login successful: admin@4you.in
+2026-01-21 15:12:11,123 - app - INFO - Shutting down application...
+2026-01-21 15:12:11,156 - app - INFO - Shutdown backup created
+2026-01-21 15:12:17,086 - __main__ - INFO - Configuration validated
+2026-01-21 15:12:18,815 - __mp_main__ - INFO - Configuration validated
+2026-01-21 15:12:19,328 - app - INFO - Configuration validated
+2026-01-21 15:12:19,409 - app - INFO - Starting 4You Broadband API...
+2026-01-21 15:12:19,410 - app - INFO - Directory created/verified: uploads\photos
+2026-01-21 15:12:19,410 - app - INFO - Directory created/verified: uploads\documents
+2026-01-21 15:12:19,411 - app - INFO - Directory created/verified: backups
+2026-01-21 15:12:19,411 - app - INFO - Directory created/verified: exports
+2026-01-21 15:12:19,411 - app - INFO - Directory created/verified: logs
+2026-01-21 15:12:19,448 - app - INFO - Startup backup created
+2026-01-21 15:12:19,451 - app - INFO - Database initialized
+2026-01-21 15:12:19,476 - app - INFO - Admin already exists
+2026-01-21 15:12:19,744 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-21 15:12:19,745 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-21 15:12:19,745 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-21 15:12:19,749 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-21 15:12:19,750 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-21 15:12:19,750 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-21 15:12:19,750 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-21 15:12:19,760 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-21 15:12:19,760 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-21 15:12:19,760 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-21 15:12:19,760 - app - INFO - Scheduler started
+2026-01-21 15:12:19,761 - app - INFO - Application startup complete
+2026-01-21 15:12:19,761 - app - INFO - API running on http://localhost:8000
+2026-01-21 15:12:19,761 - app - INFO - API Docs at http://localhost:8000/docs
+2026-01-21 15:13:37,997 - app - INFO - User created: Sachin kumar by admin@4you.in
+2026-01-21 15:13:37,998 - app - INFO - Photo uploaded: http://localhost:8000/uploads/photos/CS_5996_1768968816_Whisk_af0abdde77525b5acf448ebb51ea1d02eg.png
+2026-01-21 15:31:48,576 - app - INFO - Shutting down application...
+2026-01-21 15:31:48,614 - app - INFO - Shutdown backup created
+2026-01-21 15:31:50,649 - __mp_main__ - INFO - Configuration validated
+2026-01-21 15:31:51,194 - app - INFO - Configuration validated
+2026-01-21 15:31:51,279 - app - INFO - Starting 4You Broadband API...
+2026-01-21 15:31:51,280 - app - INFO - Directory created/verified: uploads\photos
+2026-01-21 15:31:51,280 - app - INFO - Directory created/verified: uploads\documents
+2026-01-21 15:31:51,280 - app - INFO - Directory created/verified: backups
+2026-01-21 15:31:51,281 - app - INFO - Directory created/verified: exports
+2026-01-21 15:31:51,281 - app - INFO - Directory created/verified: logs
+2026-01-21 15:31:51,318 - app - INFO - Startup backup created
+2026-01-21 15:31:51,322 - app - INFO - Database initialized
+2026-01-21 15:31:51,352 - app - INFO - Admin already exists
+2026-01-21 15:31:51,630 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-21 15:31:51,630 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-21 15:31:51,631 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-21 15:31:51,635 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-21 15:31:51,635 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-21 15:31:51,635 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-21 15:31:51,636 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-21 15:31:51,644 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-21 15:31:51,644 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-21 15:31:51,645 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-21 15:31:51,645 - app - INFO - Scheduler started
+2026-01-21 15:31:51,645 - app - INFO - Application startup complete
+2026-01-21 15:31:51,645 - app - INFO - API running on http://localhost:8000
+2026-01-21 15:31:51,646 - app - INFO - API Docs at http://localhost:8000/docs
+2026-01-21 15:31:59,824 - app - INFO - Shutting down application...
+2026-01-21 15:31:59,857 - app - INFO - Shutdown backup created
+2026-01-21 15:32:01,749 - __mp_main__ - INFO - Configuration validated
+2026-01-21 15:32:02,357 - app - INFO - Configuration validated
+2026-01-21 15:32:02,450 - app - INFO - Starting 4You Broadband API...
+2026-01-21 15:32:02,451 - app - INFO - Directory created/verified: uploads\photos
+2026-01-21 15:32:02,451 - app - INFO - Directory created/verified: uploads\documents
+2026-01-21 15:32:02,451 - app - INFO - Directory created/verified: backups
+2026-01-21 15:32:02,452 - app - INFO - Directory created/verified: exports
+2026-01-21 15:32:02,452 - app - INFO - Directory created/verified: logs
+2026-01-21 15:32:02,491 - app - INFO - Startup backup created
+2026-01-21 15:32:02,495 - app - INFO - Database initialized
+2026-01-21 15:32:02,530 - app - INFO - Admin already exists
+2026-01-21 15:32:02,816 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-21 15:32:02,817 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-21 15:32:02,817 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-21 15:32:02,821 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-21 15:32:02,821 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-21 15:32:02,821 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-21 15:32:02,822 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-21 15:32:02,831 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-21 15:32:02,831 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-21 15:32:02,831 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-21 15:32:02,831 - app - INFO - Scheduler started
+2026-01-21 15:32:02,832 - app - INFO - Application startup complete
+2026-01-21 15:32:02,832 - app - INFO - API running on http://localhost:8000
+2026-01-21 15:32:02,832 - app - INFO - API Docs at http://localhost:8000/docs
+2026-01-21 15:34:47,234 - app - INFO - Shutting down application...
+2026-01-21 15:34:47,274 - app - INFO - Shutdown backup created
+2026-01-21 15:34:49,156 - __mp_main__ - INFO - Configuration validated
+2026-01-21 15:34:49,731 - app - INFO - Configuration validated
+2026-01-21 15:34:49,817 - app - INFO - Starting 4You Broadband API...
+2026-01-21 15:34:49,818 - app - INFO - Directory created/verified: uploads\photos
+2026-01-21 15:34:49,818 - app - INFO - Directory created/verified: uploads\documents
+2026-01-21 15:34:49,818 - app - INFO - Directory created/verified: backups
+2026-01-21 15:34:49,819 - app - INFO - Directory created/verified: exports
+2026-01-21 15:34:49,819 - app - INFO - Directory created/verified: logs
+2026-01-21 15:34:49,903 - app - INFO - Startup backup created
+2026-01-21 15:34:49,906 - app - INFO - Database initialized
+2026-01-21 15:34:49,932 - app - INFO - Admin already exists
+2026-01-21 15:34:50,203 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-21 15:34:50,203 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-21 15:34:50,204 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-01-21 15:34:50,208 - apscheduler.scheduler - INFO - Added job "Check and expire plans" to job store "default"
+2026-01-21 15:34:50,208 - apscheduler.scheduler - INFO - Added job "Daily database backup" to job store "default"
+2026-01-21 15:34:50,209 - apscheduler.scheduler - INFO - Added job "Send all notifications" to job store "default"
+2026-01-21 15:34:50,209 - apscheduler.scheduler - INFO - Scheduler started
+2026-01-21 15:34:50,218 - notification_service - INFO -    - 12:05 AM: Check expired plans
+2026-01-21 15:34:50,218 - notification_service - INFO -    - 2:00 AM: Database backup
+2026-01-21 15:34:50,218 - notification_service - INFO -    - 10:00 AM: Send notifications
+2026-01-21 15:34:50,218 - app - INFO - Scheduler started
+2026-01-21 15:34:50,219 - app - INFO - Application startup complete
+2026-01-21 15:34:50,219 - app - INFO - API running on http://localhost:8000
+2026-01-21 15:34:50,219 - app - INFO - API Docs at http://localhost:8000/docs
+2026-01-21 15:35:12,483 - app - INFO - Shutting down application...
+2026-01-21 15:35:12,513 - app - INFO - Shutdown backup created
+2026-01-21 15:35:14,201 - __mp_main__ - INFO - Configuration validated
