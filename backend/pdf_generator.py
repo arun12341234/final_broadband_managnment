@@ -284,7 +284,7 @@ def generate_invoice_pdf(user_data: dict, plan_data: dict, billing_data: dict, c
         upi_params = {
             "pa": upi_id,
             "pn": _sanitize_upi_text(company_name_for_upi, 35),
-            "am": f"{total_amount:.2f}",
+            "am": f"{total_due:.2f}",
             "cu": "INR",
         }
         if invoice_number:
