@@ -840,6 +840,9 @@ async def update_user_billing(
                 "pin_code": billing_settings.pin_code,
                 "gstin": billing_settings.gstin,
                 "contact_number": billing_settings.contact_number,
+                "mobile_no_1": billing_settings.mobile_no_1,
+                "mobile_no_2": billing_settings.mobile_no_2,
+                "telephone_no": billing_settings.telephone_no,
                 "upi_id": billing_settings.upi_id,
                 "qr_code_data": billing_settings.qr_code_data
             }
@@ -1038,6 +1041,9 @@ async def renew_user_plan(
                     "pin_code": billing_settings.pin_code,
                     "gstin": billing_settings.gstin,
                     "contact_number": billing_settings.contact_number,
+                    "mobile_no_1": billing_settings.mobile_no_1,
+                    "mobile_no_2": billing_settings.mobile_no_2,
+                    "telephone_no": billing_settings.telephone_no,
                     "upi_id": billing_settings.upi_id,
                     "qr_code_data": billing_settings.qr_code_data
                 }
@@ -1276,6 +1282,9 @@ async def generate_invoice_for_user(
             "pin_code": billing_settings.pin_code,
             "gstin": billing_settings.gstin,
             "contact_number": billing_settings.contact_number,
+            "mobile_no_1": billing_settings.mobile_no_1,
+            "mobile_no_2": billing_settings.mobile_no_2,
+            "telephone_no": billing_settings.telephone_no,
             "upi_id": billing_settings.upi_id,
             "qr_code_data": billing_settings.qr_code_data
         }

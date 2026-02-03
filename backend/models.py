@@ -228,6 +228,9 @@ class BillingSettings(Base):
     gstin = Column(String, nullable=True)  # Optional GST number
     contact_number = Column(String, nullable=True)  # Optional contact
     upi_id = Column(String, nullable=True)  # UPI ID for payments
+    mobile_no_1 = Column(String, nullable=True)
+    mobile_no_2 = Column(String, nullable=True)
+    telephone_no = Column(String, nullable=True)
     is_primary = Column(Boolean, nullable=False, default=False)
 
     # UI Layout preference

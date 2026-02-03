@@ -21,7 +21,8 @@ def regenerate_all_invoices():
         # Fetch Billing Settings (Company Info)
         # Using raw SQL to be safe, though BillingSettings seemed fine in app.py
         try:
-            billing_stmt = text("SELECT full_name, street, city, state, country, pin_code, gstin, contact_number, upi_id FROM billing_settings ORDER BY id DESC LIMIT 1")
+
+            billing_stmt = text("SELECT full_name, street, city, state, country, pin_code, gstin, contact_number, upi_id, mobile_no_1, mobile_no_2, telephone_no FROM billing_settings ORDER BY id DESC LIMIT 1")
             billing_row = db.execute(billing_stmt).first()
             
             company_data = None
@@ -35,7 +36,10 @@ def regenerate_all_invoices():
                     "pin_code": billing_row[5],
                     "gstin": billing_row[6],
                     "contact_number": billing_row[7],
-                    "upi_id": billing_row[8]
+                    "upi_id": billing_row[8],
+                    "mobile_no_1": billing_row[9],
+                    "mobile_no_2": billing_row[10],
+                    "telephone_no": billing_row[11]
                 }
         except Exception as e:
             logger.warning(f"Could not fetch billing settings: {e}")

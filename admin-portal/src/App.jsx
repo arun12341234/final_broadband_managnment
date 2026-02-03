@@ -1995,11 +1995,7 @@ const UsersTab = ({ users, plans, onRefresh, showToast, openProgress, closeProgr
                       {getPaymentStatusBadge(user.payment_status)}
                     </td>
                     <td className="px-4 py-3">
-                      <EditableAmountCell
-                        value={user.old_pending_amount || 0}
-                        userId={user.id}
-                        onUpdate={onRefresh}
-                      />
+                      <p className="text-sm text-gray-900 font-bold">₹{user.old_pending_amount || 0}</p>
                     </td>
                     <td className="px-4 py-3">
                       <p className="text-sm text-gray-900">{user.payment_due_date}</p>
@@ -6419,6 +6415,9 @@ const AddressBillingTab = ({ showToast }) => {
     pin_code: '',
     gstin: '',
     contact_number: '',
+    mobile_no_1: '',
+    mobile_no_2: '',
+    telephone_no: '',
     upi_id: ''
   });
 
@@ -6447,6 +6446,9 @@ const AddressBillingTab = ({ showToast }) => {
         pin_code: data.pin_code || '',
         gstin: data.gstin || '',
         contact_number: data.contact_number || '',
+        mobile_no_1: data.mobile_no_1 || '',
+        mobile_no_2: data.mobile_no_2 || '',
+        telephone_no: data.telephone_no || '',
         upi_id: data.upi_id || ''
       });
       setUiLayout(data.ui_layout || 'card');
@@ -6491,6 +6493,19 @@ const AddressBillingTab = ({ showToast }) => {
 
     if (formData.contact_number && !/^\d{10}$/.test(formData.contact_number)) {
       newErrors.contact_number = 'Contact number must be exactly 10 digits';
+    }
+
+    if (formData.mobile_no_1 && !/^\d{10}$/.test(formData.mobile_no_1)) {
+      newErrors.mobile_no_1 = 'Mobile 1 must be exactly 10 digits';
+    }
+
+    if (formData.mobile_no_2 && !/^\d{10}$/.test(formData.mobile_no_2)) {
+      newErrors.mobile_no_2 = 'Mobile 2 must be exactly 10 digits';
+    }
+
+    // Telephone can be variable length, typically 8-15 digits
+    if (formData.telephone_no && !/^\d{8,15}$/.test(formData.telephone_no)) {
+      newErrors.telephone_no = 'Telephone number must be between 8 and 15 digits';
     }
 
     if (formData.gstin && !/^\d{2}[A-Z]{5}\d{4}[A-Z]{1}[A-Z\d]{1}[Z]{1}[A-Z\d]{1}$/.test(formData.gstin)) {
@@ -6599,7 +6614,7 @@ const AddressBillingTab = ({ showToast }) => {
   );
 
   const stepperSteps = [
-    { title: 'Basic Info', fields: ['full_name', 'contact_number'] },
+    { title: 'Basic Info', fields: ['full_name', 'contact_number', 'mobile_no_1', 'mobile_no_2', 'telephone_no'] },
     { title: 'Address', fields: ['street', 'city', 'state'] },
     { title: 'Location', fields: ['country', 'pin_code'] },
     { title: 'Tax & Payment', fields: ['gstin', 'upi_id'] }
@@ -6619,7 +6634,10 @@ const AddressBillingTab = ({ showToast }) => {
             country: 'Country',
             pin_code: 'Pin Code',
             gstin: 'GSTIN (Optional)',
-            upi_id: 'UPI ID (Optional)'
+            upi_id: 'UPI ID (Optional)',
+            mobile_no_1: 'Mobile No. 1',
+            mobile_no_2: 'Mobile No. 2',
+            telephone_no: 'Telephone No.'
           };
           return (
             <div key={field}>
@@ -6628,7 +6646,7 @@ const AddressBillingTab = ({ showToast }) => {
                 labels[field],
                 'text',
                 labels[field],
-                field !== 'gstin' && field !== 'contact_number' && field !== 'upi_id'
+                field !== 'gstin' && field !== 'contact_number' && field !== 'upi_id' && field !== 'mobile_no_1' && field !== 'mobile_no_2' && field !== 'telephone_no'
               )}
             </div>
           );
@@ -6646,7 +6664,12 @@ const AddressBillingTab = ({ showToast }) => {
         </h3>
         <div className="space-y-4">
           {renderFormField('full_name', 'Full Name / Business Name', 'text', 'Enter full name')}
-          {renderFormField('contact_number', 'Contact Number', 'tel', '10-digit number', false)}
+          {renderFormField('contact_number', 'Contact Number (Primary)', 'tel', '10-digit number', false)}
+          <div className="grid grid-cols-2 gap-4">
+            {renderFormField('mobile_no_1', 'Mobile No. 1', 'tel', '10-digit number', false)}
+            {renderFormField('mobile_no_2', 'Mobile No. 2', 'tel', '10-digit number', false)}
+          </div>
+          {renderFormField('telephone_no', 'Telephone No.', 'tel', 'Std code - number', false)}
         </div>
       </Card>
 
@@ -6799,7 +6822,10 @@ const AddressBillingTab = ({ showToast }) => {
       <Card className="p-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {renderFormField('full_name', 'Full Name / Business Name', 'text', 'Enter full name')}
-          {renderFormField('contact_number', 'Contact Number', 'tel', '10-digit number', false)}
+          {renderFormField('contact_number', 'Contact Number (Primary)', 'tel', '10-digit number', false)}
+          {renderFormField('mobile_no_1', 'Mobile No. 1', 'tel', '10-digit number', false)}
+          {renderFormField('mobile_no_2', 'Mobile No. 2', 'tel', '10-digit number', false)}
+          {renderFormField('telephone_no', 'Telephone No.', 'tel', 'Std code - number', false)}
           {renderFormField('street', 'Street / Building / Area', 'text', 'Complete street address')}
           {renderFormField('city', 'City', 'text', 'City name')}
           {renderFormField('state', 'State', 'text', 'State name')}
@@ -6852,6 +6878,11 @@ const AddressBillingTab = ({ showToast }) => {
                 {renderFormField('pin_code', 'Pin Code', 'text', '6-digit')}
                 {renderFormField('contact_number', 'Contact', 'tel', '10-digit', false)}
               </div>
+              <div className="grid grid-cols-2 gap-4">
+                {renderFormField('mobile_no_1', 'Mobile 1', 'tel', '10-digit', false)}
+                {renderFormField('mobile_no_2', 'Mobile 2', 'tel', '10-digit', false)}
+              </div>
+              {renderFormField('telephone_no', 'Telephone', 'tel', 'Std - number', false)}
               {renderFormField('gstin', 'GSTIN (Optional)', 'text', 'GST Number', false)}
               {renderFormField('upi_id', 'UPI ID (Optional)', 'text', 'yourname@upi', false)}
             </div>

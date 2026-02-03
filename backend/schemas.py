@@ -329,10 +329,13 @@ class BillingSettingsCreate(BaseModel):
     gstin: Optional[str] = Field(None, min_length=15, max_length=15)
     contact_number: Optional[str] = Field(None, min_length=10, max_length=10)
     upi_id: Optional[str] = Field(None, max_length=100)
+    mobile_no_1: Optional[str] = Field(None, max_length=15)
+    mobile_no_2: Optional[str] = Field(None, max_length=15)
+    telephone_no: Optional[str] = Field(None, max_length=15)
     ui_layout: str = Field(default="card")
     is_primary: bool = False
 
-    @validator('gstin', 'contact_number', 'upi_id', pre=True)
+    @validator('gstin', 'contact_number', 'upi_id', 'mobile_no_1', 'mobile_no_2', 'telephone_no', pre=True)
     def empty_optional_to_none(cls, v):
         # Treat empty strings as None for optional fields
         if v is None:
@@ -382,10 +385,13 @@ class BillingSettingsUpdate(BaseModel):
     gstin: Optional[str] = Field(None, min_length=15, max_length=15)
     contact_number: Optional[str] = Field(None, min_length=10, max_length=10)
     upi_id: Optional[str] = Field(None, max_length=100)
+    mobile_no_1: Optional[str] = Field(None, max_length=15)
+    mobile_no_2: Optional[str] = Field(None, max_length=15)
+    telephone_no: Optional[str] = Field(None, max_length=15)
     ui_layout: Optional[str] = None
     is_primary: Optional[bool] = None
 
-    @validator('gstin', 'contact_number', 'upi_id', pre=True)
+    @validator('gstin', 'contact_number', 'upi_id', 'mobile_no_1', 'mobile_no_2', 'telephone_no', pre=True)
     def empty_optional_to_none_update(cls, v):
         # Treat empty strings as None for optional fields
         if v is None:
@@ -436,6 +442,9 @@ class BillingSettingsResponse(BaseModel):
     gstin: Optional[str]
     contact_number: Optional[str]
     upi_id: Optional[str]
+    mobile_no_1: Optional[str]
+    mobile_no_2: Optional[str]
+    telephone_no: Optional[str]
     ui_layout: str
     is_primary: bool
     qr_code_data: Optional[str]

@@ -87,6 +87,19 @@ def generate_invoice_pdf(user_data: dict, plan_data: dict, billing_data: dict, c
         if company_address: from_content.append(Paragraph(company_address, wrap_style))
         if company_city_state: from_content.append(Paragraph(company_city_state, wrap_style))
         if company_country_pin: from_content.append(Paragraph(company_country_pin, wrap_style))
+        # Combine mobile numbers
+        mobiles = []
+        if company_data.get('mobile_no_1'):
+            mobiles.append(company_data.get('mobile_no_1'))
+        if company_data.get('mobile_no_2'):
+            mobiles.append(company_data.get('mobile_no_2'))
+        
+        if mobiles:
+            from_content.append(Paragraph(f"Contact: {', '.join(mobiles)}", wrap_style))
+
+        if company_data.get('telephone_no'):
+            from_content.append(Paragraph(f"Tel: {company_data.get('telephone_no')}", wrap_style))
+        
         if company_data.get('gstin'):
             from_content.append(Paragraph(f"GSTIN: {company_data.get('gstin')}", wrap_style))
     else:
