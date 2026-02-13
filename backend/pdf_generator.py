@@ -13,16 +13,17 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def generate_invoice_pdf(user_data: dict, plan_data: dict, billing_data: dict, output_dir: Path = None):
+def generate_invoice_pdf(user_data: dict, plan_data: dict, billing_data: dict, company_data: dict = None, output_dir: Path = None, remarks: str = ""):
     """
     Generate professional invoice PDF
-    
+
     Args:
         user_data: Dict with user information
         plan_data: Dict with plan information
         billing_data: Dict with billing information
+        company_data: Dict with company/billing settings information (optional)
         output_dir: Output directory (default: exports/)
-    
+
     Returns:
         str: Path to generated PDF
     """
@@ -33,13 +34,17 @@ def generate_invoice_pdf(user_data: dict, plan_data: dict, billing_data: dict, o
     output_dir.mkdir(exist_ok=True)
     
     # Generate filename
+    # Support remarks from billing_data if not passed explicitly
+    if not remarks:
+        remarks = billing_data.get("remarks", "")
+
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     invoice_number = billing_data.get("invoice_number", f"INV-{timestamp}")
     filename = f"invoice_{invoice_number}.pdf"
     filepath = output_dir / filename
     
     # Create PDF
-    doc = SimpleDocTemplate(str(filepath), pagesize=A4)
+    doc = SimpleDocTemplate(str(filepath), pagesize=A4, topMargin=0.4*inch, bottomMargin=0.4*inch, leftMargin=0.5*inch, rightMargin=0.5*inch)
     elements = []
     
     # Styles
@@ -47,27 +52,84 @@ def generate_invoice_pdf(user_data: dict, plan_data: dict, billing_data: dict, o
     title_style = ParagraphStyle(
         'CustomTitle',
         parent=styles['Heading1'],
-        fontSize=24,
+        fontSize=18,
         textColor=colors.HexColor('#F97316'),
-        spaceAfter=30,
+        spaceAfter=15,
         alignment=TA_CENTER
     )
     
-    # Header
-    elements.append(Paragraph("4You Broadband", title_style))
+    # Header - always use fixed company name
+    company_name = "4You Broadband"
+    elements.append(Paragraph(company_name, title_style))
     elements.append(Paragraph("TAX INVOICE", styles['Heading2']))
-    elements.append(Spacer(1, 0.3 * inch))
+    elements.append(Spacer(1, 0.1 * inch))
+
+    # Common wrapping style to avoid cutting long addresses
+    wrap_style = ParagraphStyle(
+        'Wrap',
+        parent=styles['Normal'],
+        fontSize=9,
+        leading=12,
+        wordWrap='LTR'
+    )
+
+    # Company & Customer Info - use billing settings if available
+    from_content = []
+    to_content = []
     
-    # Company & Customer Info
+    # FROM Section
+    from_content.append(Paragraph(company_name, wrap_style))
+    if company_data:
+        company_address = company_data.get('street', '')
+        company_city_state = f"{company_data.get('city', '')}, {company_data.get('state', '')}"
+        company_country_pin = f"{company_data.get('country', '')} - {company_data.get('pin_code', '')}"
+        
+        if company_address: from_content.append(Paragraph(company_address, wrap_style))
+        if company_city_state: from_content.append(Paragraph(company_city_state, wrap_style))
+        if company_country_pin: from_content.append(Paragraph(company_country_pin, wrap_style))
+        # Combine mobile numbers
+        mobiles = []
+        if company_data.get('mobile_no_1'):
+            mobiles.append(company_data.get('mobile_no_1'))
+        if company_data.get('mobile_no_2'):
+            mobiles.append(company_data.get('mobile_no_2'))
+        
+        if mobiles:
+            from_content.append(Paragraph(f"Contact: {', '.join(mobiles)}", wrap_style))
+
+        if company_data.get('telephone_no'):
+            from_content.append(Paragraph(f"Tel: {company_data.get('telephone_no')}", wrap_style))
+        
+        if company_data.get('gstin'):
+            from_content.append(Paragraph(f"GSTIN: {company_data.get('gstin')}", wrap_style))
+    else:
+        # Fallback
+        from_content.extend([
+             Paragraph("Mumbai, Maharashtra", wrap_style),
+             Paragraph("India - 400001", wrap_style),
+             Paragraph("GSTIN: 27XXXXX1234X1Z5", wrap_style)
+        ])
+
+    # TO Section
+    to_content.append(Paragraph(user_data.get("name", ""), wrap_style))
+    if user_data.get("address"):
+        to_content.append(Paragraph(user_data.get("address", ""), wrap_style))
+    
+    # Add spacing between address and contact info
+    to_content.append(Spacer(1, 2))
+    
+    if user_data.get('mobile'):
+        to_content.append(Paragraph(f"Mobile: {user_data.get('mobile', '')}", wrap_style))
+    if user_data.get('email'):
+        to_content.append(Paragraph(f"Email: {user_data.get('email', '')}", wrap_style))
+
     info_data = [
-        ["From:", "To:"],
-        ["4You Broadband", user_data.get("name", "")],
-        ["Mumbai, Maharashtra", user_data.get("address", "")],
-        ["India - 400001", f"Mobile: {user_data.get('mobile', '')}"],
-        ["GSTIN: 27XXXXX1234X1Z5", f"Email: {user_data.get('email', '')}"],
+        [Paragraph("From:", styles['Heading4']), Paragraph("To:", styles['Heading4'])],
+        [from_content, to_content]
     ]
     
-    info_table = Table(info_data, colWidths=[3 * inch, 3 * inch])
+    # Expand to full available width for better wrapping
+    info_table = Table(info_data, colWidths=[doc.width * 0.5, doc.width * 0.5])
     info_table.setStyle(TableStyle([
         ('FONT', (0, 0), (-1, 0), 'Helvetica-Bold', 10),
         ('FONT', (0, 1), (-1, -1), 'Helvetica', 9),
@@ -76,7 +138,7 @@ def generate_invoice_pdf(user_data: dict, plan_data: dict, billing_data: dict, o
     ]))
     
     elements.append(info_table)
-    elements.append(Spacer(1, 0.3 * inch))
+    elements.append(Spacer(1, 0.1 * inch))
     
     # Invoice Details
     invoice_details = [
@@ -84,9 +146,19 @@ def generate_invoice_pdf(user_data: dict, plan_data: dict, billing_data: dict, o
         ["Invoice Date:", billing_data.get("invoice_date", datetime.now().strftime("%d-%b-%Y"))],
         ["Due Date:", billing_data.get("due_date", "")],
         ["Customer ID:", user_data.get("cs_id", "")],
+        ["Payment Status:", billing_data.get("payment_status", "Pending")],
     ]
+
+    right_wrap_style = ParagraphStyle(
+        'RightWrap',
+        parent=wrap_style,
+        alignment=TA_RIGHT
+    )
+
+    if remarks:
+        invoice_details.append(["Remarks:", Paragraph(remarks, right_wrap_style)])
     
-    details_table = Table(invoice_details, colWidths=[2 * inch, 3 * inch])
+    details_table = Table(invoice_details, colWidths=[doc.width * 0.35, doc.width * 0.65])
     details_table.setStyle(TableStyle([
         ('FONT', (0, 0), (-1, -1), 'Helvetica', 9),
         ('ALIGN', (0, 0), (0, -1), 'LEFT'),
@@ -94,7 +166,7 @@ def generate_invoice_pdf(user_data: dict, plan_data: dict, billing_data: dict, o
     ]))
     
     elements.append(details_table)
-    elements.append(Spacer(1, 0.3 * inch))
+    elements.append(Spacer(1, 0.1 * inch))
     
     # Items Table
     items_data = [
@@ -104,8 +176,8 @@ def generate_invoice_pdf(user_data: dict, plan_data: dict, billing_data: dict, o
     # Add plan item
     items_data.append([
         "1",
-        f"{plan_data.get('name', 'Broadband Plan')}\n{plan_data.get('speed', '')} - {plan_data.get('data_limit', '')}",
-        billing_data.get("billing_period", datetime.now().strftime("%B %Y")),
+        Paragraph(f"{plan_data.get('name', 'Broadband Plan')}<br/>{plan_data.get('speed', '')} - {plan_data.get('data_limit', '')}", wrap_style),
+        Paragraph(billing_data.get("billing_period", datetime.now().strftime("%B %Y")), wrap_style),
         f"{plan_data.get('price', 0):,.2f}"
     ])
     
@@ -119,18 +191,43 @@ def generate_invoice_pdf(user_data: dict, plan_data: dict, billing_data: dict, o
             f"{old_pending:,.2f}"
         ])
     
+    # Add Extra Items
+    extra_items = billing_data.get("extra_items", [])
+    if extra_items:
+        idx_start = 3 if old_pending > 0 else 2
+        for idx, item in enumerate(extra_items, start=idx_start):
+            items_data.append([
+                str(idx),
+                item.get("description", "Additional Charge"),
+                "-",
+                f"{float(item.get('amount', 0)):,.2f}"
+            ])
+            
     # Calculate totals
     subtotal = plan_data.get('price', 0) + old_pending
-    gst_rate = 18
-    gst_amount = subtotal * gst_rate / 100
-    total_amount = subtotal + gst_amount
+    extra_total = sum(float(item.get('amount', 0)) for item in extra_items)
+    total_due = subtotal + extra_total
     
-    # Add subtotal and GST
-    items_data.append(["", "", "Subtotal:", f"{subtotal:,.2f}"])
-    items_data.append(["", "", f"GST ({gst_rate}%):", f"{gst_amount:,.2f}"])
-    items_data.append(["", "", "Total Amount:", f"{total_amount:,.2f}"])
+    # Amount Paid
+    amount_paid = billing_data.get("amount_paid", 0.0)
     
-    items_table = Table(items_data, colWidths=[0.5 * inch, 3 * inch, 1.5 * inch, 1.5 * inch])
+    # Balance Due (Carry Forward)
+    balance_due = max(0, total_due - amount_paid)
+    
+    # Add Totals Rows
+    # Subtotal
+    # items_data.append(["", "", "Subtotal:", f"{total_due:,.2f}"])
+    
+    # Total Due
+    items_data.append(["", "", "Total Due:", f"{total_due:,.2f}"])
+    
+    # Amount Paid (if any)
+    if amount_paid > 0:
+        items_data.append(["", "", "Less: Amount Paid:", f"-{amount_paid:,.2f}"])
+        # Balance Due
+        items_data.append(["", "", "Balance Due:", f"{balance_due:,.2f}"])
+    
+    items_table = Table(items_data, colWidths=[doc.width * 0.08, doc.width * 0.52, doc.width * 0.2, doc.width * 0.2])
     items_table.setStyle(TableStyle([
         # Header row
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F97316')),
@@ -138,40 +235,82 @@ def generate_invoice_pdf(user_data: dict, plan_data: dict, billing_data: dict, o
         ('FONT', (0, 0), (-1, 0), 'Helvetica-Bold', 10),
         
         # Data rows
-        ('FONT', (0, 1), (-1, -4), 'Helvetica', 9),
+        ('FONT', (0, 1), (-1, -1), 'Helvetica', 9),
         ('ALIGN', (0, 0), (0, -1), 'CENTER'),
         ('ALIGN', (-1, 0), (-1, -1), 'RIGHT'),
         
-        # Totals rows
-        ('FONT', (0, -3), (-1, -1), 'Helvetica-Bold', 10),
-        ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#FEF3C7')),
-        
         # Grid
-        ('GRID', (0, 0), (-1, -4), 0.5, colors.grey),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
         ('BOX', (0, 0), (-1, -1), 1, colors.black),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('TOPPADDING', (0, 0), (-1, -1), 8),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
     ]))
     
-    elements.append(items_table)
-    elements.append(Spacer(1, 0.5 * inch))
+    # Apply special styling for total rows
+    # We need to calculate how many rows are data vs totals
+    # Standard: Header(1) + Plan(1) -> 2 rows
+    # Optional: OldPending(1)
+    # Optional: ExtraItems(N)
+    # Totals: Total Due(1) + (Paid(1) + Balance(1) if paid)
     
-    # Payment Information
+    total_rows_count = 1 # Total Due always there
+    if amount_paid > 0:
+        total_rows_count += 2 # Paid + Balance
+        
+    start_totals_row = -total_rows_count
+    
+    items_table.setStyle(TableStyle([
+         ('FONT', (0, start_totals_row), (-1, -1), 'Helvetica-Bold', 10),
+         ('BACKGROUND', (0, start_totals_row), (-1, -1), colors.HexColor('#FEF3C7')),
+         # Make "Amount Paid" green text if desired, or "Balance Due" red
+    ]))
+    
+    elements.append(items_table)
+    elements.append(Spacer(1, 0.2 * inch))
+    
+    # Payment Information - use company data if available
+    upi_id = company_data.get('upi_id', '4youbroadband@upi') if company_data and company_data.get('upi_id') else '4youbroadband@upi'
+    company_name_for_upi = company_data.get('name', '4You Broadband') if company_data else '4You Broadband'
+
     payment_info = Paragraph(
         "<b>Payment Information:</b><br/>"
-        "UPI: 4youbroadband@upi<br/>"
+        f"UPI: {upi_id}<br/>"
         "Account: 1234567890<br/>"
         "IFSC: HDFC0001234<br/>"
         "Bank: HDFC Bank, Mumbai",
         styles['Normal']
     )
-    elements.append(payment_info)
-    elements.append(Spacer(1, 0.3 * inch))
-    
+
     # Generate QR Code for UPI payment
+    qr_flowables = []
     try:
-        upi_string = f"upi://pay?pa=4youbroadband@upi&pn=4You Broadband&am={total_amount}&cu=INR"
+        # Build UPI link with optional tn (invoice number) using urlencode for safety
+        from urllib.parse import urlencode
+        
+        def _sanitize_upi_text(text: str, max_len: int = 50) -> str:
+            """Sanitize text for UPI params: ASCII-only and length-limited."""
+            s = str(text)
+            s = ''.join(ch for ch in s if ord(ch) < 128)
+            return s[:max_len]
+
+        upi_params = {
+            "pa": upi_id,
+            "pn": _sanitize_upi_text(company_name_for_upi, 35),
+            "am": f"{total_due:.2f}",
+            "cu": "INR",
+        }
+        if invoice_number:
+            # Short note to help reconciliation in UPI apps
+            upi_params["tn"] = _sanitize_upi_text(f"Invoice {invoice_number}", 50)
+            # Also provide transaction reference for broader app compatibility
+            upi_params["tr"] = _sanitize_upi_text(invoice_number, 50)
+            # Some apps look for tid; include as duplicate
+            upi_params["tid"] = _sanitize_upi_text(invoice_number, 35)
+        upi_string = "upi://pay?" + urlencode(upi_params)
+
+        logger.info(f"🔗 UPI Link for invoice {invoice_number}: {upi_string}")
+
         qr = qrcode.QRCode(version=1, box_size=3, border=2)
         qr.add_data(upi_string)
         qr.make(fit=True)
@@ -182,13 +321,26 @@ def generate_invoice_pdf(user_data: dict, plan_data: dict, billing_data: dict, o
         qr_img.save(img_buffer, format='PNG')
         img_buffer.seek(0)
         
-        qr_image = Image(img_buffer, width=1.5*inch, height=1.5*inch)
-        elements.append(qr_image)
-        elements.append(Paragraph("Scan to Pay via UPI", styles['Normal']))
+        qr_image = Image(img_buffer, width=1.2*inch, height=1.2*inch)
+        qr_flowables.append(qr_image)
+        qr_flowables.append(Paragraph("Scan to Pay via UPI", ParagraphStyle('SmallCenter', parent=styles['Normal'], fontSize=8, alignment=TA_CENTER)))
     except Exception as e:
         logger.warning(f"⚠️  QR code generation failed: {str(e)}")
     
-    elements.append(Spacer(1, 0.3 * inch))
+    # Side-by-side layout for Payment Info and QR
+    payment_qr_table = Table([[payment_info, qr_flowables]], colWidths=[doc.width * 0.7, doc.width * 0.3])
+    payment_qr_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+        ('ALIGN', (1, 0), (1, -1), 'CENTER'),
+    ]))
+    elements.append(payment_qr_table)
+
+    # Remarks Section
+
+
+    elements.append(Spacer(1, 0.1 * inch))
     
     # Footer
     footer_text = Paragraph(

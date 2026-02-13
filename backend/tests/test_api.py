@@ -4,7 +4,7 @@ Run: pytest tests/test_api.py -v
 """
 
 import pytest
-from fastapi.testclient import TestClient
+# from fastapi.testclient import TestClient
 import sys
 import os
 
@@ -17,7 +17,7 @@ def test_placeholder():
     assert True
 
 
-# Uncomment below for real tests (requires app import)
+# Uncomment below for real tests (requires app import and httpx installed)
 """
 from app import app
 

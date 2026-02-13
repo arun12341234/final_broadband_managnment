@@ -55,6 +55,7 @@ class User(Base):
     payment_status = Column(String, default="Pending")  # Pending, VerifiedByCash, VerifiedByUpi
     old_pending_amount = Column(Integer, default=0)
     payment_due_date = Column(String)
+    invoice_remarks = Column(Text, nullable=True)
     
     # Status
     status = Column(String, default="Active")  # Active, Expired, Suspended, Pending Installation
@@ -107,6 +108,11 @@ class BillingHistory(Base):
     new_plan_id = Column(String)
     new_plan_name = Column(String)
     
+    # Advanced Billing Features
+    extra_items = Column(Text, nullable=True)  # JSON string for additional items: [{"description": "Router", "amount": 2000}, ...]
+    amount_paid = Column(Float, nullable=True) # Partial payment amount
+    total_due = Column(Float, nullable=True)   # Total due at time of billing
+    
     # Metadata
     change_type = Column(String)  # billing_update, payment_verification, plan_change
     notes = Column(Text)
@@ -121,29 +127,121 @@ class BillingHistory(Base):
 
 class Installation(Base):
     __tablename__ = "installations"
-    
+
     id = Column(String, primary_key=True, index=True)
     user_id = Column(String, ForeignKey("users.id"), nullable=False)
     engineer_id = Column(String, ForeignKey("engineers.id"), nullable=True)
-    
+
     # Installation details
     status = Column(String, default="Pending Installation")  # Pending Installation, Installation Scheduled, Completed
     scheduled_date = Column(String, nullable=True)
     completed_date = Column(String, nullable=True)
-    
+
     # Technical details
     router_serial = Column(String, nullable=True)
     cable_length = Column(String, nullable=True)
     installation_notes = Column(Text, nullable=True)
     installation_photo = Column(String, nullable=True)
-    
+
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     # Relationships
     user = relationship("User", backref="installations")
     engineer = relationship("Engineer", backref="installations")
-    
+
     def __repr__(self):
         return f"<Installation(id='{self.id}', status='{self.status}')>"
+
+
+class Invoice(Base):
+    __tablename__ = "invoices"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    invoice_number = Column(String, unique=True, index=True, nullable=False)
+    user_id = Column(String, ForeignKey("users.id"), nullable=False)
+
+    # Invoice details
+    plan_id = Column(String, ForeignKey("broadband_plans.id"), nullable=False)
+    plan_name = Column(String, nullable=False)
+    plan_price = Column(Float, nullable=False)
+
+    # Amounts
+    old_pending_amount = Column(Integer, default=0)  # Previous outstanding amount
+    subtotal = Column(Float, nullable=False)  # plan_price + old_pending_amount
+    gst_rate = Column(Float, default=18.0)  # GST percentage
+    gst_amount = Column(Float, nullable=False)  # Calculated GST
+    total_amount = Column(Float, nullable=False)  # Final amount with GST
+
+    # Advanced Billing display
+    extra_items = Column(Text, nullable=True)  # JSON string [{"description": "X", "amount": 100}]
+    amount_paid = Column(Float, default=0.0)   # Amount paid in this transaction
+    
+    # Payment details
+    payment_status = Column(String, default="Pending")  # Pending, Paid, Cancelled
+    payment_method = Column(String, nullable=True)  # Cash, UPI, Card, etc.
+    transaction_id = Column(String, nullable=True)
+    payment_date = Column(String, nullable=True)
+
+    # Dates
+    invoice_date = Column(String, nullable=False)
+    due_date = Column(String, nullable=False)
+    billing_period = Column(String, nullable=False)  # e.g., "January 2025 - February 2025"
+
+    # Renewal info
+    months_renewed = Column(Integer, default=1)  # Number of months renewed
+    old_expiry_date = Column(String, nullable=True)
+    new_expiry_date = Column(String, nullable=True)
+
+    # Admin who generated
+    generated_by = Column(String, nullable=False)  # Admin email
+
+    # PDF file path
+    pdf_filepath = Column(String, nullable=True)
+
+    # Notes
+    notes = Column(Text, nullable=True)
+
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    user = relationship("User", backref="invoices")
+    plan = relationship("BroadbandPlan", backref="invoices")
+
+    def __repr__(self):
+        return f"<Invoice(invoice_number='{self.invoice_number}', total={self.total_amount})>"
+
+
+class BillingSettings(Base):
+    __tablename__ = "billing_settings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    full_name = Column(String, nullable=False)
+    street = Column(Text, nullable=False)  # Street / Building / Area
+    city = Column(String, nullable=False)
+    state = Column(String, nullable=False)
+    country = Column(String, nullable=False, default="India")
+    pin_code = Column(String, nullable=False)
+    gstin = Column(String, nullable=True)  # Optional GST number
+    contact_number = Column(String, nullable=True)  # Optional contact
+    upi_id = Column(String, nullable=True)  # UPI ID for payments
+    mobile_no_1 = Column(String, nullable=True)
+    mobile_no_2 = Column(String, nullable=True)
+    telephone_no = Column(String, nullable=True)
+    is_primary = Column(Boolean, nullable=False, default=False)
+
+    # UI Layout preference
+    ui_layout = Column(String, default="card")  # card, stepper, fullwidth, compact
+
+    # QR Code data
+    qr_code_data = Column(Text, nullable=True)  # Base64 encoded QR code image
+
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<BillingSettings(name='{self.full_name}', city='{self.city}')>"
